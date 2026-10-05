@@ -1,16 +1,60 @@
 # CardLearn
 
 Application de cartes pour apprendre le vocabulaire anglais technique, avec le système de Leitner.
-Tout tient dans un seul composant React : [`CardLearn.jsx`](CardLearn.jsx).
+Toute l'application tient dans un seul composant React : [`CardLearn.jsx`](CardLearn.jsx). Le
+dossier `src/` l'habille pour le web : connexion Supabase et sauvegarde en ligne.
 
 ## Utilisation
 
-Collez le contenu de `CardLearn.jsx` dans un artifact React sur claude.ai. Le composant exporte
-`CardLearn` par défaut et n'importe que `react`.
+### Comme site web (Vite + React)
 
-La progression est enregistrée avec `window.storage` sous la clé `vocab-progress`. Si cette API
-n'existe pas, l'application fonctionne quand même et affiche un avertissement : la progression est
-alors perdue en fermant la page.
+```bash
+npm install
+npm run dev      # http://localhost:5173
+npm run build    # génère dist/
+```
+
+Sans configuration Supabase, l'application tourne **en mode local** : pas de connexion, et la
+progression reste dans le navigateur (`localStorage`).
+
+Avec Supabase, il faut **se connecter** par lien magique envoyé par e-mail, et en option avec GitHub.
+La progression est alors enregistrée dans la table `progress`, une ligne par personne, et retrouvée sur
+tous les appareils. Une copie reste dans le navigateur : les réponses données hors ligne sont envoyées
+au serveur dès que la connexion revient.
+
+### Dans un artifact claude.ai
+
+`CardLearn.jsx` reste autonome : collez-le dans un artifact React. Il n'importe que `react` et
+enregistre la progression avec `window.storage` sous la clé `vocab-progress`. Sur le site, c'est
+`src/App.jsx` qui fournit ce `window.storage`, branché sur Supabase ou sur le navigateur.
+
+## Déployer sur Vercel avec Supabase
+
+1. **Créer la base.** Dans Vercel, ouvrez *Storage → Create → Supabase* (offre gratuite), ou créez un
+   projet sur supabase.com.
+2. **Créer la table.** Dans Supabase, ouvrez *SQL Editor*, collez le contenu de
+   [`supabase/schema.sql`](supabase/schema.sql) et cliquez sur *Run*. La sécurité au niveau des lignes
+   (RLS) est activée : chacun ne lit et n'écrit que sa propre progression.
+3. **Autoriser les redirections.** Dans *Authentication → URL Configuration* :
+   - *Site URL* : `https://votre-app.vercel.app`
+   - *Redirect URLs* : `https://votre-app.vercel.app/**` et `http://localhost:5173/**`
+4. **Importer le dépôt dans Vercel** (*Add New → Project*). Vercel détecte Vite tout seul.
+5. **Variables d'environnement** (*Settings → Environment Variables*) :
+   - `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` : à copier depuis *Project Settings → API* dans
+     Supabase. Si vous avez créé la base depuis Vercel, les variables `NEXT_PUBLIC_SUPABASE_URL` et
+     `NEXT_PUBLIC_SUPABASE_ANON_KEY` ajoutées par l'intégration suffisent.
+   - `VITE_AUTH_GITHUB=true` (facultatif) : affiche « Continuer avec GitHub ». Il faut d'abord activer
+     le fournisseur GitHub dans *Authentication → Providers*.
+
+   Ces variables sont lues au moment du build : **redéployez** après les avoir ajoutées ou modifiées.
+
+Pour le développement local, copiez `.env.example` en `.env.local` et remplissez-le.
+
+N'utilisez jamais la clé `service_role` dans le site : seule la clé `anon` (ou `publishable`) est
+publique.
+
+L'envoi d'e-mails intégré à Supabase est limité à quelques messages par heure. Pour plus
+d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Emails*.
 
 ## Fonctionnement
 
@@ -29,6 +73,16 @@ alors perdue en fermant la page.
   (« Application Programming Interface - API »), on accepte la forme longue, le sigle ou les deux.
   Le « to » initial des verbes est facultatif. Les fautes de frappe ne sont pas tolérées.
 - **Définitions** : le terme français est masqué dans la définition. Le bouton « Indice » le révèle.
+
+## Structure
+
+| Fichier | Rôle |
+|---|---|
+| `CardLearn.jsx` | L'application : données, correction, Leitner, interface |
+| `src/App.jsx` | Connexion Supabase et choix du stockage (Supabase ou navigateur) |
+| `src/storage.js` | Implémentations de `window.storage` |
+| `src/supabase.js` | Client Supabase, configuré par les variables d'environnement |
+| `supabase/schema.sql` | Table `progress` et règles d'accès |
 
 ## Données
 
