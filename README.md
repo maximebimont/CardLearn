@@ -66,6 +66,9 @@ d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Em
 
 ## Fonctionnement
 
+- **Accueil** : tableau de scores (série de jours, cartes maîtrisées, note estimée), plateau
+  « Nouvelle partie » avec les catégories en tuiles, le nombre de cartes et le bouton « Jouer », et
+  la « Revanche » pour reprendre les cartes ratées pas encore maîtrisées.
 - **Cartes** : le texte français s'affiche, vous tapez la réponse anglaise puis validez avec Entrée.
   Une bonne réponse passe derrière la pile. Une erreur affiche la bonne réponse le temps de la lire,
   de 4 à 9 secondes selon sa longueur (Entrée ou « Continuer » pour passer plus vite), puis la carte
@@ -74,15 +77,15 @@ d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Em
 - **Leitner** : 5 boîtes. Une bonne réponse fait monter la carte d'une boîte, une erreur la renvoie
   en boîte 1. La boîte 5 correspond aux cartes maîtrisées. Le tirage favorise les boîtes basses
   (poids 16 / 8 / 4 / 2 / 1).
-- **Dans une session** : une carte ratée revient 3 à 5 cartes plus loin. Une carte réussie revient
+- **Dans une partie** : une carte ratée revient 3 à 5 cartes plus loin. Une carte réussie revient
   8 à 12 cartes plus loin en boîte 2, 14 à 18 en boîte 3 et 20 à 26 en boîte 4. Elle ne revient pas
-  si la session est trop courte ou si elle est maîtrisée. Une session compte 10, 20 ou 50 cartes.
+  si la partie est trop courte ou si elle est maîtrisée. Une partie compte 10, 20 ou 50 cartes.
 - **Correction** : la casse, la ponctuation, les tirets, les apostrophes et les espaces sont ignorés.
   Les alternatives (« Server / Host ») sont acceptées séparément ou en entier. Pour les sigles
   (« Application Programming Interface - API »), on accepte la forme longue, le sigle ou les deux.
   Le « to » initial des verbes est facultatif. Les fautes de frappe ne sont pas tolérées.
 - **Définitions** : le terme français est masqué dans la définition. Le bouton « Indice » le révèle.
-- **Fin de session** : score et cartes ratées, regroupées par carte. Un clic sur une carte affiche
+- **Fin de partie** : score et cartes ratées, regroupées par carte. Un clic sur une carte affiche
   le détail de ses tentatives : réponse donnée, réussie ou non, boîte avant et après.
 - **Navigation** : une barre d'icônes centrée en haut mène à l'accueil, au profil et au classement.
   Une fois connecté, l'icône de déconnexion se trouve tout à gauche.
