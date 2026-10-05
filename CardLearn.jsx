@@ -696,42 +696,37 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
 const NAV_ITEMS = [
   { id: "home", label: "Accueil", Glyph: IconHome },
   { id: "profile", label: "Profil", Glyph: IconUser },
-  { id: "ranking", label: "Classement", Glyph: IconPodium, soon: true },
+  { id: "ranking", label: "Classement (bientôt)", Glyph: IconPodium },
 ];
 
+// Icônes seules, centrées ; la déconnexion est à gauche.
 function NavBar({ screen, onNavigate, account, onSignOut, leaving }) {
   const active = screen === "session" || screen === "summary" ? "home" : screen;
+  const logoutLabel = leaving ? "Déconnexion en cours" : account?.email ? `Se déconnecter (${account.email})` : "Se déconnecter";
   return (
     <header className="cl-nav">
       <nav className="cl-nav-inner" aria-label="Navigation principale">
-        <button type="button" className="cl-nav-brand" onClick={() => onNavigate("home")} aria-label="CardLearn, accueil">
-          <span className="cl-logo" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
-          <span className="cl-nav-brand-name">CardLearn</span>
-        </button>
+        {onSignOut && (
+          <button type="button" className="cl-nav-logout" onClick={onSignOut} disabled={leaving} aria-label={logoutLabel} title={logoutLabel}>
+            <IconLogout size={22} />
+          </button>
+        )}
         <ul className="cl-nav-links">
-          {NAV_ITEMS.map(({ id, label, Glyph, soon }) => (
+          {NAV_ITEMS.map(({ id, label, Glyph }) => (
             <li key={id}>
-              <button type="button" className="cl-nav-link" aria-current={active === id ? "page" : undefined} onClick={() => onNavigate(id)}>
-                <Glyph size={17} />
-                <span>{label}</span>
-                {soon && <span className="cl-nav-soon">bientôt</span>}
+              <button
+                type="button"
+                className="cl-nav-link"
+                aria-current={active === id ? "page" : undefined}
+                aria-label={label}
+                title={label}
+                onClick={() => onNavigate(id)}
+              >
+                <Glyph size={22} />
               </button>
             </li>
           ))}
         </ul>
-        {onSignOut && (
-          <div className="cl-nav-account">
-            {account?.email && <span className="cl-nav-email">{account.email}</span>}
-            <button type="button" className="cl-nav-logout" onClick={onSignOut} disabled={leaving} aria-label={leaving ? "Déconnexion en cours" : "Se déconnecter"}>
-              <IconLogout size={17} />
-              <span>{leaving ? "Déconnexion…" : "Déconnexion"}</span>
-            </button>
-          </div>
-        )}
       </nav>
     </header>
   );
@@ -745,10 +740,10 @@ function Ranking({ summary }) {
         <h1>Classement</h1>
       </header>
       <section className="cl-panel" aria-labelledby="ranking-title">
-        <h2 id="ranking-title">Le classement arrive dans une prochaine version</h2>
+        <h2 id="ranking-title">Défiez les autres élèves</h2>
         <p className="cl-muted">
-          Vous pourrez y comparer vos cartes maîtrisées et vos séries de jours avec celles des autres élèves. Voici les chiffres qui
-          compteront pour vous classer.
+          Le classement mettra les élèves en compétition : chacun gagnera des places en maîtrisant des cartes et en révisant chaque
+          jour. Il arrive dans une prochaine version. Voici vos chiffres actuels.
         </p>
         <dl className="cl-stats cl-stats--3">
           <div>
@@ -1456,25 +1451,22 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
-.cl-nav-inner { max-width: 960px; margin-inline: auto; padding-inline: 16px; min-height: 58px; display: flex; align-items: center; gap: 6px; }
-.cl-nav-brand { display: inline-flex; align-items: center; gap: 10px; margin-right: 14px; padding: 6px 2px; border: 0; background: none; color: var(--ink); font: 700 19px/1 var(--font-display); letter-spacing: -0.01em; cursor: pointer; }
-.cl-logo { position: relative; width: 30px; height: 27px; flex: none; }
-.cl-logo span { position: absolute; left: 0; width: 25px; height: 18px; border-radius: 3px; border: 1.5px solid var(--ink); background: var(--surface); }
-.cl-logo span:nth-child(1) { top: 0; left: 5px; opacity: .35; }
-.cl-logo span:nth-child(2) { top: 4px; left: 2.5px; opacity: .6; }
-.cl-logo span:nth-child(3) { top: 8px; box-shadow: inset 0 5px 0 -3.5px var(--rule); }
-.cl-nav-links { display: flex; align-items: stretch; gap: 2px; flex: none; }
-.cl-nav-link { position: relative; display: inline-flex; align-items: center; gap: 7px; min-height: 58px; padding: 0 12px; border: 0; background: none; color: var(--ink-2); font: 700 15px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
-.cl-nav-link:hover { color: var(--ink); }
-.cl-nav-link[aria-current="page"] { color: var(--ink); }
-.cl-nav-link[aria-current="page"]::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--accent); }
-.cl-nav-soon { padding: 2px 6px; border-radius: 999px; background: var(--accent-soft); color: var(--ink-2); font: 600 10.5px/1.3 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; }
-.cl-nav-account { display: flex; align-items: center; gap: 12px; margin-left: auto; min-width: 0; }
-.cl-nav-email { font-size: 13px; color: var(--ink-3); max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cl-nav-logout { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink-2); font: 700 14px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
-.cl-nav-logout:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-3); }
+.cl-nav-inner { max-width: 960px; margin-inline: auto; padding-inline: 16px; min-height: 60px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+.cl-nav-links { grid-column: 2; display: flex; align-items: center; gap: 10px; }
+.cl-nav-link, .cl-nav-logout {
+  display: inline-grid; place-items: center;
+  width: 52px; height: 44px;
+  border: 0; border-radius: 10px;
+  background: none; color: var(--ink-2);
+  cursor: pointer;
+  transition: background-color .15s, color .15s;
+}
+.cl-nav-link:hover { background: var(--surface-2); color: var(--ink); }
+.cl-nav-link[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
+.cl-nav-logout { grid-column: 1; justify-self: start; width: 44px; color: var(--ink-3); }
+.cl-nav-logout:hover:not(:disabled) { background: var(--bad-soft); color: var(--bad); }
 .cl-nav-logout:disabled { opacity: .55; cursor: progress; }
-.cl-nav-brand:focus-visible, .cl-nav-link:focus-visible, .cl-nav-logout:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; border-radius: 8px; }
+.cl-nav-link:focus-visible, .cl-nav-logout:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 /* Choix des catégories et de la taille */
 .cl-field { border: 0; padding: 0; display: grid; gap: 10px; min-width: 0; }
@@ -1665,24 +1657,6 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 /* La carte ratée glisse sur le côté. */
 @keyframes cl-slide-out { to { transform: translateX(118%) rotate(8deg); opacity: 0; } }
 
-@media (max-width: 900px) {
-  .cl-nav-email { display: none; }
-}
-@media (max-width: 800px) {
-  .cl-nav-inner { gap: 2px; }
-  .cl-nav-brand { margin-right: 4px; }
-  .cl-nav-brand-name, .cl-nav-soon, .cl-nav-logout span { display: none; }
-  .cl-nav-link { padding: 0 9px; gap: 6px; }
-  .cl-nav-logout { padding: 6px 9px; }
-}
-@media (max-width: 440px) {
-  .cl-nav-link .cl-icon { display: none; }
-  .cl-nav-link { padding: 0 8px; }
-}
-@media (max-width: 360px) {
-  .cl-nav-brand { display: none; }
-  .cl-nav-link { padding: 0 7px; font-size: 14px; }
-}
 @media (max-width: 400px) {
   .cl-stats.cl-stats--3 { grid-template-columns: minmax(0, 1fr); }
 }
