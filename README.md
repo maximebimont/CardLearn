@@ -37,7 +37,9 @@ enregistre la progression avec `window.storage` sous la clé `vocab-progress`. S
    [`supabase/schema.sql`](supabase/schema.sql) et cliquez sur *Run*. La sécurité au niveau des lignes
    (RLS) est activée : chacun ne lit et n'écrit que sa propre progression. Le script crée aussi la
    fonction `delete_my_account`, utilisée par le bouton « Supprimer mon compte » du profil ; elle ne
-   peut supprimer que le compte connecté. Le script peut être relancé sans risque.
+   peut supprimer que le compte connecté. Il crée enfin la table `players` (pseudos) et la fonction
+   `get_leaderboard`, qui calcule le classement sans exposer les adresses ni la progression détaillée.
+   Le script peut être relancé sans risque.
 3. **Autoriser les redirections.** Dans *Authentication → URL Configuration* :
    - *Site URL* : `https://votre-app.vercel.app`
    - *Redirect URLs* : `https://votre-app.vercel.app/**` et `http://localhost:5173/**`
@@ -112,8 +114,11 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
   Le logo (à gauche) ramène à l'accueil ; une fois connecté, l'icône de déconnexion est à droite.
 - **Suppression de compte** (site connecté à Supabase) : dans le profil, « Supprimer mon compte »
   demande de taper SUPPRIMER, puis efface le compte, sa progression et ses copies locales.
-- **Classement** (à venir) : il mettra les élèves en compétition selon leurs cartes maîtrisées et
-  leur régularité. Pour l'instant, la page affiche vos chiffres.
+- **Classement** (site connecté à Supabase) : les élèves qui choisissent un pseudo sont classés par
+  nombre de cartes maîtrisées (niveau 5), calculé depuis leur progression. Podium avec coupes or,
+  argent et bronze, puis la suite du classement ; les ex æquo partagent le même rang. Seuls le pseudo
+  et le score sont visibles des autres, jamais l'adresse e-mail. On peut modifier son pseudo ou
+  quitter le classement.
 
 ## Structure
 
@@ -123,7 +128,7 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
 | `src/App.jsx` | Connexion Supabase et choix du stockage (Supabase ou navigateur) |
 | `src/storage.js` | Implémentations de `window.storage` |
 | `src/supabase.js` | Client Supabase, configuré par les variables d'environnement |
-| `supabase/schema.sql` | Table `progress`, règles d'accès et suppression de compte |
+| `supabase/schema.sql` | Tables `progress` et `players`, règles d'accès, suppression de compte, classement |
 | `public/manifest.webmanifest`, `public/icons/` | Appli web installable : nom, icônes, plein écran |
 | `src/service-worker.js` | Démarrage hors connexion |
 

@@ -371,9 +371,43 @@ function SignedIn({ session, onAccountDeleted }) {
     await supabase.auth.signOut({ scope: "local" });
   };
 
+  // Classement : pseudos (table players) et scores calculés par la fonction SQL get_leaderboard.
+  const leaderboard = useMemo(() => {
+    const notReady = (error) => ["PGRST202", "PGRST205", "42P01", "42883"].includes(error?.code);
+    const fail = (error, fallback) =>
+      new Error(notReady(error) ? "Le classement n'est pas encore activé sur ce site. Réessayez plus tard." : fallback);
+    return {
+      async load() {
+        const [board, mine] = await Promise.all([
+          supabase.rpc("get_leaderboard"),
+          supabase.from("players").select("pseudo").eq("user_id", userId).maybeSingle(),
+        ]);
+        const error = board.error || mine.error;
+        if (error) throw fail(error, "Le classement n'a pas pu être chargé. Vérifiez votre connexion internet, puis réessayez.");
+        return { entries: Array.isArray(board.data) ? board.data : [], pseudo: mine.data?.pseudo ?? null };
+      },
+      async join(pseudo) {
+        const { error } = await supabase.from("players").upsert({ user_id: userId, pseudo }, { onConflict: "user_id" });
+        if (!error) return;
+        if (error.code === "23505") throw new Error("Ce pseudo est déjà pris. Choisissez-en un autre.");
+        if (error.code === "23514") throw new Error("Le pseudo doit faire entre 2 et 20 caractères.");
+        throw fail(error, "Le pseudo n'a pas pu être enregistré. Vérifiez votre connexion internet, puis réessayez.");
+      },
+      async leave() {
+        const { error } = await supabase.from("players").delete().eq("user_id", userId);
+        if (error) throw fail(error, "Impossible de quitter le classement pour le moment. Réessayez.");
+      },
+    };
+  }, [userId]);
+
   return (
     <StorageScope key={userId} storage={storage}>
-      <CardLearn account={{ email: session.user.email || "Compte GitHub" }} onSignOut={signOut} onDeleteAccount={deleteAccount} />
+      <CardLearn
+        account={{ email: session.user.email || "Compte GitHub" }}
+        onSignOut={signOut}
+        onDeleteAccount={deleteAccount}
+        leaderboard={leaderboard}
+      />
     </StorageScope>
   );
 }
