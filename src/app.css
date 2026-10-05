@@ -130,7 +130,6 @@ body { font: 16px/1.55 var(--font-body); -webkit-font-smoothing: antialiased; }
 .sh-btn--primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .sh-btn--primary:hover:not(:disabled) { border-color: var(--accent); filter: brightness(1.08); }
 .sh-btn--quiet { background: transparent; color: var(--ink-2); justify-self: start; }
-.sh-btn--sm { min-height: 34px; padding: 6px 12px; font-size: 14px; }
 
 .sh-field { display: grid; gap: 8px; min-width: 0; }
 .sh-password { position: relative; }
@@ -167,21 +166,3 @@ body { font: 16px/1.55 var(--font-body); -webkit-font-smoothing: antialiased; }
 .sh-sent { display: grid; gap: 8px; padding: 14px; border-radius: 8px; background: var(--ok-soft); }
 .sh-sent p { color: var(--ink) !important; }
 .sh-error { padding: 10px 14px; border-radius: 8px; background: var(--bad-soft); color: var(--ink) !important; font-size: 15px; }
-
-.sh-account {
-  max-width: 760px;
-  margin-inline: auto;
-  padding-inline: 16px;
-  padding-block: 10px 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px 12px;
-  font-size: 14px;
-  color: var(--ink-3);
-}
-.sh-account-who { min-width: 0; overflow-wrap: anywhere; }
-.sh-account-email { color: var(--ink-2); font-weight: 700; }
-/* La barre de compte occupe le haut de la page : CardLearn n'a pas besoin de toute la hauteur. */
-.sh-signed-in .cl-app { min-height: calc(100vh - 46px); padding-top: 12px; }

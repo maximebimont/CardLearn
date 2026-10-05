@@ -81,6 +81,9 @@ d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Em
   (« Application Programming Interface - API »), on accepte la forme longue, le sigle ou les deux.
   Le « to » initial des verbes est facultatif. Les fautes de frappe ne sont pas tolérées.
 - **Définitions** : le terme français est masqué dans la définition. Le bouton « Indice » le révèle.
+- **Navigation** : une barre en haut donne accès à l'accueil, au profil et au classement (page
+  d'attente pour l'instant). Une fois connecté, elle affiche aussi l'adresse et le bouton de
+  déconnexion.
 
 ## Structure
 

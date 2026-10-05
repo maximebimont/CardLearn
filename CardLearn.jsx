@@ -445,6 +445,10 @@ const IconCheck = (p) => <Icon d="M5 12.5l4.5 4.5L19 7.5" {...p} />;
 const IconCross = (p) => <Icon d="M6 6l12 12M18 6L6 18" {...p} />;
 const IconBack = (p) => <Icon d="M15 5l-7 7 7 7" {...p} />;
 const IconNext = (p) => <Icon d="M5 12h14M13 6l6 6-6 6" {...p} />;
+const IconHome = (p) => <Icon d="M4 10.5L12 4l8 6.5M6 9v11h4.5v-6h3v6H18V9" {...p} />;
+const IconUser = (p) => <Icon d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20.5c.8-3.6 3.8-5.5 7.5-5.5s6.7 1.9 7.5 5.5" {...p} />;
+const IconPodium = (p) => <Icon d="M9 21V9h6v12M3 21v-7h6M15 12h6v9M2 21h20" {...p} />;
+const IconLogout = (p) => <Icon d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9" {...p} />;
 
 /* -------------------------------------------------------------- Composants -- */
 
@@ -689,6 +693,84 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
   );
 }
 
+const NAV_ITEMS = [
+  { id: "home", label: "Accueil", Glyph: IconHome },
+  { id: "profile", label: "Profil", Glyph: IconUser },
+  { id: "ranking", label: "Classement", Glyph: IconPodium, soon: true },
+];
+
+function NavBar({ screen, onNavigate, account, onSignOut, leaving }) {
+  const active = screen === "session" || screen === "summary" ? "home" : screen;
+  return (
+    <header className="cl-nav">
+      <nav className="cl-nav-inner" aria-label="Navigation principale">
+        <button type="button" className="cl-nav-brand" onClick={() => onNavigate("home")} aria-label="CardLearn, accueil">
+          <span className="cl-logo" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          <span className="cl-nav-brand-name">CardLearn</span>
+        </button>
+        <ul className="cl-nav-links">
+          {NAV_ITEMS.map(({ id, label, Glyph, soon }) => (
+            <li key={id}>
+              <button type="button" className="cl-nav-link" aria-current={active === id ? "page" : undefined} onClick={() => onNavigate(id)}>
+                <Glyph size={17} />
+                <span>{label}</span>
+                {soon && <span className="cl-nav-soon">bientôt</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+        {onSignOut && (
+          <div className="cl-nav-account">
+            {account?.email && <span className="cl-nav-email">{account.email}</span>}
+            <button type="button" className="cl-nav-logout" onClick={onSignOut} disabled={leaving} aria-label={leaving ? "Déconnexion en cours" : "Se déconnecter"}>
+              <IconLogout size={17} />
+              <span>{leaving ? "Déconnexion…" : "Déconnexion"}</span>
+            </button>
+          </div>
+        )}
+      </nav>
+    </header>
+  );
+}
+
+function Ranking({ summary }) {
+  return (
+    <div className="cl-wrap">
+      <header className="cl-page-head">
+        <p className="cl-eyebrow">Bientôt disponible</p>
+        <h1>Classement</h1>
+      </header>
+      <section className="cl-panel" aria-labelledby="ranking-title">
+        <h2 id="ranking-title">Le classement arrive dans une prochaine version</h2>
+        <p className="cl-muted">
+          Vous pourrez y comparer vos cartes maîtrisées et vos séries de jours avec celles des autres élèves. Voici les chiffres qui
+          compteront pour vous classer.
+        </p>
+        <dl className="cl-stats cl-stats--3">
+          <div>
+            <dt>Cartes maîtrisées</dt>
+            <dd>
+              {summary.mastered}&nbsp;/&nbsp;{TOTAL}
+            </dd>
+          </div>
+          <div>
+            <dt>Série en cours</dt>
+            <dd>{plural(summary.streak, "jour", "jours")}</dd>
+          </div>
+          <div>
+            <dt>Note estimée</dt>
+            <dd>{summary.grade}</dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+  );
+}
+
 function Home({ progress, summary, cats, onCatsChange, onSizeChange, onStart, onProfile, storage }) {
   const size = progress.settings.size;
   const selected = CARDS.filter((card) => cats.includes(card.cat)).length;
@@ -697,18 +779,9 @@ function Home({ progress, summary, cats, onCatsChange, onSizeChange, onStart, on
 
   return (
     <div className="cl-wrap">
-      <header className="cl-topbar">
-        <div className="cl-brand">
-          <span className="cl-logo" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
-          <div>
-            <h1 className="cl-brand-name">CardLearn</h1>
-            <p className="cl-brand-sub">Vocabulaire anglais technique · {TOTAL}&nbsp;cartes</p>
-          </div>
-        </div>
+      <header className="cl-page-head">
+        <h1 className="cl-sr">Accueil</h1>
+        <p className="cl-eyebrow">Vocabulaire anglais technique · {TOTAL}&nbsp;cartes</p>
       </header>
 
       <StorageNotice state={storage} />
@@ -894,7 +967,7 @@ function BoxChart({ boxes, unseen }) {
   );
 }
 
-function Profile({ progress, summary, onBack, onReset, storage }) {
+function Profile({ progress, summary, onReset, storage }) {
   const [confirming, setConfirming] = useState(false);
   const [resetDone, setResetDone] = useState(false);
   const { stats } = progress;
@@ -905,10 +978,7 @@ function Profile({ progress, summary, onBack, onReset, storage }) {
 
   return (
     <div className="cl-wrap cl-wrap--wide">
-      <header className="cl-page-head cl-page-head--row">
-        <button type="button" className="cl-btn cl-btn--ghost cl-btn--sm" onClick={onBack}>
-          <IconBack size={16} /> Accueil
-        </button>
+      <header className="cl-page-head">
         <h1>Profil</h1>
       </header>
 
@@ -1063,17 +1133,19 @@ function Profile({ progress, summary, onBack, onReset, storage }) {
 
 /* --------------------------------------------------------------------- App -- */
 
-export default function CardLearn() {
+// account / onSignOut : fournis par le site (connexion Supabase). Absents dans un artifact.
+export default function CardLearn({ account = null, onSignOut = null } = {}) {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(emptyProgress);
   const [storage, setStorage] = useState("ok"); // ok | unavailable | error
-  const [screen, setScreen] = useState("home"); // home | session | summary | profile
+  const [screen, setScreen] = useState("home"); // home | session | summary | profile | ranking
   const [cats, setCats] = useState(CAT_KEYS);
   const [session, setSession] = useState(null);
   const [result, setResult] = useState(null);
   const dirty = useRef(false);
   const saver = useRef({ busy: false, pending: null });
   const reducedMotion = usePrefersReducedMotion();
+  const [leaving, setLeaving] = useState(false);
 
   // Chargement de la progression au démarrage.
   useEffect(() => {
@@ -1151,6 +1223,26 @@ export default function CardLearn() {
     setScreen("session");
   };
 
+  // Quitter une session par la barre : les réponses données sont déjà enregistrées.
+  const navigate = (target) => {
+    setSession(null);
+    setScreen(target);
+  };
+
+  const signOut = async () => {
+    if (!onSignOut || leaving) return;
+    setLeaving(true);
+    // Laisse partir la dernière sauvegarde avant de se déconnecter.
+    for (let i = 0; i < 30 && (dirty.current || saver.current.busy || saver.current.pending); i++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    try {
+      await onSignOut();
+    } catch (err) {
+      setLeaving(false);
+    }
+  };
+
   const handleAnswer = useCallback((card, ok, firstOfSession) => update((p) => recordAnswer(p, card, ok, firstOfSession)), [update]);
 
   const handleEnd = (results, completed) => {
@@ -1184,7 +1276,9 @@ export default function CardLearn() {
       />
     );
   } else if (screen === "profile") {
-    content = <Profile progress={progress} summary={summary} storage={storage} onBack={() => setScreen("home")} onReset={() => update((p) => emptyProgress(p.settings.size))} />;
+    content = <Profile progress={progress} summary={summary} storage={storage} onReset={() => update((p) => emptyProgress(p.settings.size))} />;
+  } else if (screen === "ranking") {
+    content = <Ranking summary={summary} />;
   } else {
     content = (
       <Home
@@ -1203,7 +1297,8 @@ export default function CardLearn() {
   return (
     <div className="cl-app">
       <style>{STYLES}</style>
-      {content}
+      {!loading && <NavBar screen={screen} onNavigate={navigate} account={account} onSignOut={onSignOut ? signOut : null} leaving={leaving} />}
+      <main className="cl-main">{content}</main>
     </div>
   );
 }
@@ -1289,8 +1384,6 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-app {
   min-height: 100vh;
   box-sizing: border-box;
-  padding-inline: 16px;
-  padding-block: 24px 56px;
   overflow-x: clip;
   background: var(--bg);
   color: var(--ink);
@@ -1308,6 +1401,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-muted { color: var(--ink-2); font-size: 15px; }
 .cl-ink { color: var(--ink); }
 
+.cl-main { padding-inline: 16px; padding-block: 24px 56px; }
 .cl-wrap { max-width: 640px; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 .cl-wrap--wide { max-width: 760px; }
 .cl-wrap--session { max-width: 600px; gap: 16px; }
@@ -1352,19 +1446,35 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-notice { padding: 10px 14px; border-radius: 8px; background: var(--bad-soft); color: var(--ink); font-size: 14px; }
 .cl-eyebrow { font: 600 12px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
 .cl-page-head { display: grid; gap: 6px; }
-.cl-page-head--row { grid-template-columns: auto 1fr; align-items: center; gap: 12px; }
 .cl-app .cl-subhead { font-size: 15px; font-family: var(--font-body); font-weight: 700; color: var(--ink-2); margin-top: 4px; }
 
-/* En-tête de l'accueil */
-.cl-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.cl-brand { display: flex; align-items: center; gap: 14px; }
-.cl-app .cl-brand-name { font-size: 30px; line-height: 1; }
-.cl-app .cl-brand-sub { margin-top: 4px; color: var(--ink-3); font-size: 14px; }
-.cl-logo { position: relative; width: 40px; height: 36px; flex: none; }
-.cl-logo span { position: absolute; left: 0; width: 34px; height: 24px; border-radius: 4px; border: 1.5px solid var(--ink); background: var(--surface); }
-.cl-logo span:nth-child(1) { top: 0; left: 6px; opacity: .35; }
-.cl-logo span:nth-child(2) { top: 5px; left: 3px; opacity: .6; }
-.cl-logo span:nth-child(3) { top: 10px; box-shadow: inset 0 6px 0 -4.5px var(--rule); }
+/* Barre de navigation */
+.cl-nav {
+  position: sticky; top: 0; z-index: 40;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.cl-nav-inner { max-width: 960px; margin-inline: auto; padding-inline: 16px; min-height: 58px; display: flex; align-items: center; gap: 6px; }
+.cl-nav-brand { display: inline-flex; align-items: center; gap: 10px; margin-right: 14px; padding: 6px 2px; border: 0; background: none; color: var(--ink); font: 700 19px/1 var(--font-display); letter-spacing: -0.01em; cursor: pointer; }
+.cl-logo { position: relative; width: 30px; height: 27px; flex: none; }
+.cl-logo span { position: absolute; left: 0; width: 25px; height: 18px; border-radius: 3px; border: 1.5px solid var(--ink); background: var(--surface); }
+.cl-logo span:nth-child(1) { top: 0; left: 5px; opacity: .35; }
+.cl-logo span:nth-child(2) { top: 4px; left: 2.5px; opacity: .6; }
+.cl-logo span:nth-child(3) { top: 8px; box-shadow: inset 0 5px 0 -3.5px var(--rule); }
+.cl-nav-links { display: flex; align-items: stretch; gap: 2px; flex: none; }
+.cl-nav-link { position: relative; display: inline-flex; align-items: center; gap: 7px; min-height: 58px; padding: 0 12px; border: 0; background: none; color: var(--ink-2); font: 700 15px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
+.cl-nav-link:hover { color: var(--ink); }
+.cl-nav-link[aria-current="page"] { color: var(--ink); }
+.cl-nav-link[aria-current="page"]::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--accent); }
+.cl-nav-soon { padding: 2px 6px; border-radius: 999px; background: var(--accent-soft); color: var(--ink-2); font: 600 10.5px/1.3 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; }
+.cl-nav-account { display: flex; align-items: center; gap: 12px; margin-left: auto; min-width: 0; }
+.cl-nav-email { font-size: 13px; color: var(--ink-3); max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cl-nav-logout { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink-2); font: 700 14px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
+.cl-nav-logout:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-3); }
+.cl-nav-logout:disabled { opacity: .55; cursor: progress; }
+.cl-nav-brand:focus-visible, .cl-nav-link:focus-visible, .cl-nav-logout:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; border-radius: 8px; }
 
 /* Choix des catégories et de la taille */
 .cl-field { border: 0; padding: 0; display: grid; gap: 10px; min-width: 0; }
@@ -1507,6 +1617,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-grade-scale li.is-current { border-color: var(--ink); color: var(--ink); background: var(--surface-2); }
 .cl-grade-scale-letter { font: 700 18px/1.1 var(--font-display); color: var(--ink); }
 .cl-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.cl-stats.cl-stats--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .cl-stats div { display: grid; gap: 4px; padding: 12px; border-radius: 8px; background: var(--surface-2); min-width: 0; }
 .cl-stats dt { font-size: 13px; color: var(--ink-2); }
 .cl-stats dd { font: 700 24px/1.1 var(--font-body); font-variant-numeric: tabular-nums; color: var(--ink); }
@@ -1554,8 +1665,29 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 /* La carte ratée glisse sur le côté. */
 @keyframes cl-slide-out { to { transform: translateX(118%) rotate(8deg); opacity: 0; } }
 
+@media (max-width: 900px) {
+  .cl-nav-email { display: none; }
+}
+@media (max-width: 800px) {
+  .cl-nav-inner { gap: 2px; }
+  .cl-nav-brand { margin-right: 4px; }
+  .cl-nav-brand-name, .cl-nav-soon, .cl-nav-logout span { display: none; }
+  .cl-nav-link { padding: 0 9px; gap: 6px; }
+  .cl-nav-logout { padding: 6px 9px; }
+}
+@media (max-width: 440px) {
+  .cl-nav-link .cl-icon { display: none; }
+  .cl-nav-link { padding: 0 8px; }
+}
+@media (max-width: 360px) {
+  .cl-nav-brand { display: none; }
+  .cl-nav-link { padding: 0 7px; font-size: 14px; }
+}
+@media (max-width: 400px) {
+  .cl-stats.cl-stats--3 { grid-template-columns: minmax(0, 1fr); }
+}
 @media (max-width: 640px) {
-  .cl-app { padding-block: 16px 40px; }
+  .cl-main { padding-block: 16px 40px; }
   .cl-app h1 { font-size: 28px; }
   .cl-cats, .cl-duo, .cl-grid-2 { grid-template-columns: minmax(0, 1fr); }
   .cl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
