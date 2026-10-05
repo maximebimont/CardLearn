@@ -722,7 +722,7 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
 const NAV_ITEMS = [
   { id: "home", label: "Accueil", Glyph: IconHome },
   { id: "profile", label: "Profil", Glyph: IconUser },
-  { id: "ranking", label: "Classement (bientôt)", Glyph: IconPodium },
+  { id: "ranking", label: "Classement", Glyph: IconPodium },
 ];
 
 // Logo à gauche, icônes centrées, déconnexion à droite.
@@ -765,37 +765,257 @@ function NavBar({ screen, onNavigate, account, onSignOut, leaving }) {
   );
 }
 
-function Ranking({ summary }) {
+// Coupe du podium : or, argent ou bronze.
+function Trophy({ medal, size = 40 }) {
+  return (
+    <svg className="cl-trophy" data-medal={medal} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path className="cl-trophy-handles" d="M7 5H4.2v1.4A3.6 3.6 0 0 0 7.8 10M17 5h2.8v1.4A3.6 3.6 0 0 1 16.2 10" />
+      <path d="M6.8 3h10.4v5.6a5.2 5.2 0 0 1-10.4 0z" />
+      <path d="M10.2 13.6h3.6l.6 3.6H9.6z" />
+      <path d="M7.4 17.2h9.2v3.6H7.4z" />
+    </svg>
+  );
+}
+
+const MEDALS = { 1: "gold", 2: "silver", 3: "bronze" };
+const ordinal = (n) => (n === 1 ? "1er" : `${n}e`);
+
+// Places du podium : 2e à gauche, 1er au centre, 3e à droite (ordre visuel géré en CSS).
+function Podium({ entries }) {
+  const slots = [0, 1, 2].map((i) => entries[i] || null);
+  return (
+    <ol className="cl-podium" aria-label="Podium">
+      {slots.map((entry, i) => {
+        const medal = entry ? MEDALS[entry.rank] || "none" : "none";
+        return (
+          <li key={i} className={cls("cl-podium-slot", entry?.is_me && "is-me")} data-place={i + 1}>
+            {entry ? (
+              <>
+                {medal !== "none" ? <Trophy medal={medal} size={i === 0 ? 56 : 44} /> : <span className="cl-podium-spacer" />}
+                <span className="cl-podium-name">
+                  {entry.pseudo}
+                  {entry.is_me && <span className="cl-me-tag">vous</span>}
+                </span>
+                <span className="cl-podium-score">{plural(entry.mastered, "carte", "cartes")}</span>
+              </>
+            ) : (
+              <span className="cl-podium-empty">Place libre</span>
+            )}
+            <span className="cl-podium-step" data-medal={medal}>
+              {entry ? entry.rank : i + 1}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function PseudoForm({ initial = "", submitLabel, onSubmit, onCancel }) {
+  const [value, setValue] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const pseudo = value.trim();
+  const valid = pseudo.length >= 2 && pseudo.length <= 20;
+  return (
+    <form
+      className="cl-pseudo-form"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        if (!valid || busy) return;
+        setBusy(true);
+        setError("");
+        try {
+          await onSubmit(pseudo);
+        } catch (err) {
+          setError(err?.message || "L'enregistrement du pseudo a échoué. Réessayez.");
+          setBusy(false);
+        }
+      }}
+    >
+      <label htmlFor="pseudo-input">Votre pseudo</label>
+      <div className="cl-pseudo-row">
+        <input
+          id="pseudo-input"
+          className="cl-pseudo-input"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          maxLength={20}
+          autoComplete="nickname"
+          placeholder="2 à 20 caractères"
+          autoFocus
+        />
+        <button type="submit" className="cl-btn cl-btn--primary" disabled={!valid || busy}>
+          {busy ? "Enregistrement…" : submitLabel}
+        </button>
+        {onCancel && (
+          <button type="button" className="cl-btn" onClick={onCancel} disabled={busy}>
+            Annuler
+          </button>
+        )}
+      </div>
+      <p className="cl-pseudo-hint">Votre pseudo est visible par les autres élèves. Votre adresse e-mail ne l'est jamais.</p>
+      {error && (
+        <p className="cl-confirm-error" role="alert">
+          {error}
+        </p>
+      )}
+    </form>
+  );
+}
+
+// leaderboard : fourni par le site connecté (load, join, leave). Absent dans un artifact ou hors connexion.
+function Ranking({ summary, leaderboard }) {
+  const [state, setState] = useState({ status: leaderboard ? "loading" : "offline" });
+  const [editing, setEditing] = useState(false);
+  const [actionError, setActionError] = useState("");
+
+  const load = useCallback(async () => {
+    if (!leaderboard) return;
+    setState((prev) => (prev.status === "ready" ? { ...prev, refreshing: true } : { status: "loading" }));
+    try {
+      const data = await leaderboard.load();
+      setState({ status: "ready", ...data });
+    } catch (err) {
+      setState({ status: "error", message: err?.message || "Le classement n'a pas pu être chargé." });
+    }
+  }, [leaderboard]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const join = async (pseudo) => {
+    await leaderboard.join(pseudo);
+    setEditing(false);
+    await load();
+  };
+  const leave = async () => {
+    setActionError("");
+    try {
+      await leaderboard.leave();
+      await load();
+    } catch (err) {
+      setActionError(err?.message || "Impossible de quitter le classement pour le moment. Réessayez.");
+    }
+  };
+
+  const head = (
+    <header className="cl-page-head cl-page-head--split">
+      <div>
+        <h1>Classement</h1>
+        <p className="cl-muted">Les élèves classés par nombre de cartes maîtrisées.</p>
+      </div>
+      {state.status === "ready" && state.pseudo && (
+        <button type="button" className="cl-btn cl-btn--sm" onClick={load} disabled={state.refreshing}>
+          {state.refreshing ? "Actualisation…" : "Actualiser"}
+        </button>
+      )}
+    </header>
+  );
+
+  if (state.status === "offline") {
+    return (
+      <div className="cl-wrap">
+        {head}
+        <section className="cl-panel">
+          <p>Le classement nécessite un compte : connectez-vous sur le site CardLearn pour affronter les autres élèves.</p>
+          <p className="cl-muted">Vous avez pour l'instant {plural(summary.mastered, "carte maîtrisée", "cartes maîtrisées")}.</p>
+        </section>
+      </div>
+    );
+  }
+  if (state.status === "loading") {
+    return (
+      <div className="cl-wrap">
+        {head}
+        <p className="cl-loading cl-loading--inline" role="status">
+          <span className="cl-spinner" aria-hidden="true" />
+          Chargement du classement…
+        </p>
+      </div>
+    );
+  }
+  if (state.status === "error") {
+    return (
+      <div className="cl-wrap">
+        {head}
+        <section className="cl-panel">
+          <p role="alert">{state.message}</p>
+          <button type="button" className="cl-btn" onClick={load}>
+            Réessayer
+          </button>
+        </section>
+      </div>
+    );
+  }
+
+  const entries = state.entries || [];
+  const me = entries.find((e) => e.is_me);
+
+  if (!state.pseudo) {
+    return (
+      <div className="cl-wrap">
+        {head}
+        <section className="cl-panel cl-join" aria-labelledby="join-title">
+          <Trophy medal="gold" size={48} />
+          <h2 id="join-title">Entrez dans la compétition</h2>
+          <p className="cl-muted">
+            Choisissez un pseudo pour apparaître dans le classement avec vos {plural(summary.mastered, "carte maîtrisée", "cartes maîtrisées")}.
+            {entries.length ? ` ${plural(entries.length, "élève y participe", "élèves y participent")} déjà.` : ""}
+          </p>
+          <PseudoForm submitLabel="Rejoindre le classement" onSubmit={join} />
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="cl-wrap">
-      <header className="cl-page-head">
-        <p className="cl-eyebrow">Bientôt disponible</p>
-        <h1>Classement</h1>
-      </header>
-      <section className="cl-panel" aria-labelledby="ranking-title">
-        <h2 id="ranking-title">Défiez les autres élèves</h2>
-        <p className="cl-muted">
-          Le classement mettra les élèves en compétition : chacun gagnera des places en maîtrisant des cartes et en révisant chaque
-          jour. Il arrive dans une prochaine version. Voici vos chiffres actuels.
+      {head}
+      {me && (
+        <p className="cl-rank-summary">
+          Vous êtes <strong>{ordinal(me.rank)}</strong> sur {entries.length} avec {plural(me.mastered, "carte maîtrisée", "cartes maîtrisées")}.
         </p>
-        <dl className="cl-stats cl-stats--3">
-          <div>
-            <dt>Cartes maîtrisées</dt>
-            <dd>
-              {summary.mastered}&nbsp;/&nbsp;{TOTAL}
-            </dd>
+      )}
+      <Podium entries={entries} />
+      {entries.length > 3 && (
+        <ol className="cl-board" start={4} aria-label="Suite du classement">
+          {entries.slice(3).map((entry, i) => (
+            <li key={`${entry.pseudo}-${i}`} className={cls(entry.is_me && "is-me")}>
+              <span className="cl-board-rank">{entry.rank}</span>
+              <span className="cl-board-name">
+                {entry.pseudo}
+                {entry.is_me && <span className="cl-me-tag">vous</span>}
+              </span>
+              <span className="cl-board-score">{plural(entry.mastered, "carte", "cartes")}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+      <section className="cl-panel cl-pseudo-panel" aria-label="Votre pseudo">
+        {editing ? (
+          <PseudoForm initial={state.pseudo} submitLabel="Enregistrer" onSubmit={join} onCancel={() => setEditing(false)} />
+        ) : (
+          <div className="cl-pseudo-current">
+            <span>
+              Votre pseudo : <strong>{state.pseudo}</strong>
+            </span>
+            <span className="cl-actions">
+              <button type="button" className="cl-btn cl-btn--sm" onClick={() => setEditing(true)}>
+                Modifier
+              </button>
+              <button type="button" className="cl-btn cl-btn--sm cl-btn--danger-outline" onClick={leave}>
+                Quitter le classement
+              </button>
+            </span>
           </div>
-          <div>
-            <dt>Série en cours</dt>
-            <dd>{plural(summary.streak, "jour", "jours")}</dd>
-          </div>
-          <div>
-            <dt>Note estimée</dt>
-            <dd className="cl-grade-ink" data-grade={summary.grade}>
-              {summary.grade}
-            </dd>
-          </div>
-        </dl>
+        )}
+        {actionError && (
+          <p className="cl-confirm-error" role="alert">
+            {actionError}
+          </p>
+        )}
       </section>
     </div>
   );
@@ -1399,8 +1619,8 @@ function Profile({ progress, summary, onReset, storage, account, onDeleteAccount
 
 /* --------------------------------------------------------------------- App -- */
 
-// account / onSignOut / onDeleteAccount : fournis par le site (connexion Supabase). Absents dans un artifact.
-export default function CardLearn({ account = null, onSignOut = null, onDeleteAccount = null } = {}) {
+// account / onSignOut / onDeleteAccount / leaderboard : fournis par le site (connexion Supabase). Absents dans un artifact.
+export default function CardLearn({ account = null, onSignOut = null, onDeleteAccount = null, leaderboard = null } = {}) {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(emptyProgress);
   const [storage, setStorage] = useState("ok"); // ok | unavailable | error
@@ -1564,7 +1784,7 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
       />
     );
   } else if (screen === "ranking") {
-    content = <Ranking summary={summary} />;
+    content = <Ranking summary={summary} leaderboard={leaderboard} />;
   } else {
     content = (
       <Home
@@ -1628,6 +1848,12 @@ const STYLES = `
   --grade-b: #4a6b09;
   --grade-c: #995200;
   --grade-d: #bf3329;
+  --gold: #f6c343;
+  --gold-edge: #8f6200;
+  --silver: #d5dbe4;
+  --silver-edge: #5f6b7c;
+  --bronze: #e3a272;
+  --bronze-edge: #85461b;
   --shadow: 0 1px 2px rgba(22, 26, 44, 0.06), 0 10px 28px rgba(22, 26, 44, 0.09);
   --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -1660,6 +1886,12 @@ const STYLES = `
     --grade-b: #a8d45a;
     --grade-c: #f2a541;
     --grade-d: #f27b6f;
+    --gold: #f6c343;
+    --gold-edge: #8f6200;
+    --silver: #d5dbe4;
+    --silver-edge: #5f6b7c;
+    --bronze: #e3a272;
+    --bronze-edge: #85461b;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.38);
     color-scheme: dark;
   }
@@ -1690,6 +1922,12 @@ const STYLES = `
   --grade-b: #a8d45a;
   --grade-c: #f2a541;
   --grade-d: #f27b6f;
+  --gold: #f6c343;
+  --gold-edge: #8f6200;
+  --silver: #d5dbe4;
+  --silver-edge: #5f6b7c;
+  --bronze: #e3a272;
+  --bronze-edge: #85461b;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.38);
   color-scheme: dark;
 }
@@ -2027,6 +2265,62 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-grade-scale li.is-current { border-color: var(--g); color: var(--ink); background: color-mix(in srgb, var(--g) 12%, var(--surface)); }
 .cl-grade-scale-letter { font: 700 18px/1.1 var(--font-display); color: var(--g); }
 .cl-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+/* Classement */
+.cl-page-head--split { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.cl-page-head--split > div { display: grid; gap: 4px; }
+.cl-loading--inline { min-height: 0; justify-content: flex-start; padding: 24px 0; }
+.cl-rank-summary { font-size: 16px; color: var(--ink-2); }
+.cl-rank-summary strong { color: var(--ink); font-family: var(--font-display); font-size: 20px; }
+[data-medal="gold"] { --medal: var(--gold); --medal-edge: var(--gold-edge); }
+[data-medal="silver"] { --medal: var(--silver); --medal-edge: var(--silver-edge); }
+[data-medal="bronze"] { --medal: var(--bronze); --medal-edge: var(--bronze-edge); }
+[data-medal="none"] { --medal: var(--play-tile-on); --medal-edge: var(--play-line); }
+.cl-trophy { flex: none; }
+.cl-trophy path { fill: var(--medal); stroke: var(--medal-edge); stroke-width: 1.4; stroke-linejoin: round; }
+.cl-trophy .cl-trophy-handles { fill: none; stroke: var(--medal); stroke-width: 1.8; stroke-linecap: round; }
+
+.cl-podium {
+  position: relative; overflow: hidden;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 10px;
+  padding: 32px 16px 0; border-radius: 16px;
+  background: var(--play-bg); color: var(--play-ink);
+  box-shadow: var(--shadow);
+}
+.cl-podium-slot { display: grid; justify-items: center; align-content: end; gap: 6px; min-width: 0; text-align: center; }
+.cl-podium-slot[data-place="1"] { order: 2; }
+.cl-podium-slot[data-place="2"] { order: 1; }
+.cl-podium-slot[data-place="3"] { order: 3; }
+.cl-podium-name { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 6px; max-width: 100%; font: 700 16px/1.2 var(--font-display); overflow-wrap: anywhere; }
+.cl-podium-slot[data-place="1"] .cl-podium-name { font-size: 19px; }
+.cl-podium-score { font: 600 13px/1.3 var(--font-mono); color: var(--play-muted); font-variant-numeric: tabular-nums; }
+.cl-podium-empty { font-size: 13px; color: var(--play-muted); padding-bottom: 6px; }
+.cl-podium-spacer { height: 44px; }
+.cl-podium-step {
+  display: grid; place-items: center; width: 100%; margin-top: 4px;
+  border-radius: 10px 10px 0 0;
+  background: var(--play-tile-on); border-top: 4px solid var(--medal);
+  font: 800 30px/1 var(--font-display); color: var(--play-ink);
+}
+.cl-podium-slot[data-place="1"] .cl-podium-step { height: 112px; }
+.cl-podium-slot[data-place="2"] .cl-podium-step { height: 84px; }
+.cl-podium-slot[data-place="3"] .cl-podium-step { height: 64px; }
+.cl-me-tag { padding: 1px 7px; border-radius: 999px; background: var(--cta); color: var(--cta-ink); font: 700 11px/1.5 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; }
+
+.cl-board { display: grid; gap: 6px; }
+.cl-board li { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); }
+.cl-board li.is-me { border-color: var(--accent); background: var(--accent-soft); }
+.cl-board-rank { font: 700 16px/1 var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.cl-board-name { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.cl-board-score { font: 600 14px/1 var(--font-mono); color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.cl-join { justify-items: start; }
+.cl-pseudo-form { display: grid; gap: 8px; width: 100%; }
+.cl-pseudo-form label { font: 600 12px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.cl-pseudo-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.cl-pseudo-input { flex: 1 1 200px; min-width: 0; min-height: 46px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: 600 16px/1.2 var(--font-body); }
+.cl-pseudo-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.cl-pseudo-hint { font-size: 13px; color: var(--ink-3); }
+.cl-pseudo-current { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
 .cl-stats.cl-stats--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .cl-stats div { display: grid; gap: 4px; padding: 12px; border-radius: 8px; background: var(--surface-2); min-width: 0; }
 .cl-stats dt { font-size: 13px; color: var(--ink-2); }
@@ -2115,6 +2409,10 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   .cl-main { padding-block: 16px calc(40px + env(safe-area-inset-bottom, 0px)); }
   .cl-app h1 { font-size: 28px; }
   .cl-grid-2 { grid-template-columns: minmax(0, 1fr); }
+  .cl-podium { gap: 6px; padding: 18px 10px 0; }
+  .cl-podium-name { font-size: 14px; }
+  .cl-podium-slot[data-place="1"] .cl-podium-name { font-size: 16px; }
+  .cl-podium-step { font-size: 24px; }
   .cl-rules { grid-template-columns: minmax(0, 1fr); }
   .cl-play { padding: 18px; gap: 16px; }
   .cl-play::before { width: 96px; height: 68px; top: -30px; right: -30px; }
