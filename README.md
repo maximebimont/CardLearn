@@ -17,7 +17,8 @@ npm run build    # génère dist/
 Sans configuration Supabase, l'application tourne **en mode local** : pas de connexion, et la
 progression reste dans le navigateur (`localStorage`).
 
-Avec Supabase, il faut **se connecter** par lien magique envoyé par e-mail, et en option avec GitHub.
+Avec Supabase, il faut **se connecter** : adresse e-mail et mot de passe (création de compte et
+« mot de passe oublié » compris), lien de connexion envoyé par e-mail, ou GitHub en option.
 La progression est alors enregistrée dans la table `progress`, une ligne par personne, et retrouvée sur
 tous les appareils. Une copie reste dans le navigateur : les réponses données hors ligne sont envoyées
 au serveur dès que la connexion revient.
@@ -52,6 +53,13 @@ Pour le développement local, copiez `.env.example` en `.env.local` et remplisse
 
 N'utilisez jamais la clé `service_role` dans le site : seule la clé `anon` (ou `publishable`) est
 publique.
+
+**Comptes par mot de passe.** Le fournisseur *Email* est actif par défaut dans Supabase
+(*Authentication → Sign In / Providers*). Avec l'option *Confirm email* (activée par défaut), un
+nouveau compte doit cliquer sur le lien reçu avant de pouvoir se connecter ; désactivez-la pour
+une connexion immédiate après l'inscription. L'application demande 8 caractères minimum. Le lien
+« mot de passe oublié » ramène sur le site, qui demande alors le nouveau mot de passe : son adresse
+doit figurer dans les *Redirect URLs*.
 
 L'envoi d'e-mails intégré à Supabase est limité à quelques messages par heure. Pour plus
 d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Emails*.
