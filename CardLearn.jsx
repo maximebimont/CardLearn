@@ -2240,7 +2240,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-missed-hint { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ink-3); white-space: nowrap; }
 .cl-missed-hint .cl-icon { transition: transform .2s; }
 .cl-missed.is-open .cl-missed-hint .cl-icon { transform: rotate(180deg); }
-.cl-attempts { display: grid; gap: 6px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); }
+.cl-app .cl-attempts { display: grid; gap: 6px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); }
 .cl-attempts li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; gap: 4px 14px; font-size: 14px; }
 .cl-attempt-turn { font: 600 12px/1.4 var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .cl-attempt-answer { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; font: 500 14px/1.4 var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
@@ -2279,7 +2279,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-trophy path { fill: var(--medal); stroke: var(--medal-edge); stroke-width: 1.4; stroke-linejoin: round; }
 .cl-trophy .cl-trophy-handles { fill: none; stroke: var(--medal); stroke-width: 1.8; stroke-linecap: round; }
 
-.cl-podium {
+.cl-app .cl-podium {
   position: relative; overflow: hidden;
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 10px;
   padding: 32px 16px 0; border-radius: 16px;
@@ -2409,7 +2409,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   .cl-main { padding-block: 16px calc(40px + env(safe-area-inset-bottom, 0px)); }
   .cl-app h1 { font-size: 28px; }
   .cl-grid-2 { grid-template-columns: minmax(0, 1fr); }
-  .cl-podium { gap: 6px; padding: 18px 10px 0; }
+  .cl-app .cl-podium { gap: 6px; padding: 24px 10px 0; }
   .cl-podium-name { font-size: 14px; }
   .cl-podium-slot[data-place="1"] .cl-podium-name { font-size: 16px; }
   .cl-podium-step { font-size: 24px; }
