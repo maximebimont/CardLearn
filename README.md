@@ -88,7 +88,7 @@ d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Em
 - **Fin de partie** : score et cartes ratées, regroupées par carte. Un clic sur une carte affiche
   le détail de ses tentatives : réponse donnée, réussie ou non, boîte avant et après.
 - **Navigation** : une barre d'icônes centrée en haut mène à l'accueil, au profil et au classement.
-  Une fois connecté, l'icône de déconnexion se trouve tout à gauche.
+  Le logo (à gauche) ramène à l'accueil ; une fois connecté, l'icône de déconnexion est à droite.
 - **Classement** (à venir) : il mettra les élèves en compétition selon leurs cartes maîtrisées et
   leur régularité. Pour l'instant, la page affiche vos chiffres.
 

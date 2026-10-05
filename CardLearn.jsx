@@ -719,13 +719,20 @@ const NAV_ITEMS = [
   { id: "ranking", label: "Classement (bientôt)", Glyph: IconPodium },
 ];
 
-// Icônes seules, centrées ; la déconnexion est à gauche.
+// Logo à gauche, icônes centrées, déconnexion à droite.
 function NavBar({ screen, onNavigate, account, onSignOut, leaving }) {
   const active = screen === "session" || screen === "summary" ? "home" : screen;
   const logoutLabel = leaving ? "Déconnexion en cours" : account?.email ? `Se déconnecter (${account.email})` : "Se déconnecter";
   return (
     <header className="cl-nav">
       <nav className="cl-nav-inner" aria-label="Navigation principale">
+        <button type="button" className="cl-nav-logo" onClick={() => onNavigate("home")} aria-label="CardLearn, accueil" title="CardLearn">
+          <span className="cl-logo" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+        </button>
         {onSignOut && (
           <button type="button" className="cl-nav-logout" onClick={onSignOut} disabled={leaving} aria-label={logoutLabel} title={logoutLabel}>
             <IconLogout size={22} />
@@ -1540,7 +1547,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   border-bottom: 1px solid var(--line);
 }
 .cl-nav-inner { max-width: 960px; margin-inline: auto; padding-inline: 16px; min-height: 60px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
-.cl-nav-links { grid-column: 2; display: flex; align-items: center; gap: 10px; }
+.cl-nav-links { grid-column: 2; grid-row: 1; display: flex; align-items: center; gap: 10px; }
 .cl-nav-link, .cl-nav-logout {
   display: inline-grid; place-items: center;
   width: 52px; height: 44px;
@@ -1551,10 +1558,17 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 }
 .cl-nav-link:hover { background: var(--surface-2); color: var(--ink); }
 .cl-nav-link[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
-.cl-nav-logout { grid-column: 1; justify-self: start; width: 44px; color: var(--ink-3); }
+.cl-nav-logo { grid-column: 1; justify-self: start; display: grid; place-items: center; width: 48px; height: 44px; border: 0; border-radius: 10px; background: none; cursor: pointer; }
+.cl-nav-logo:hover { background: var(--surface-2); }
+.cl-logo { position: relative; width: 30px; height: 27px; flex: none; }
+.cl-logo span { position: absolute; left: 0; width: 25px; height: 18px; border-radius: 3px; border: 1.5px solid var(--ink); background: var(--surface); }
+.cl-logo span:nth-child(1) { top: 0; left: 5px; opacity: .35; }
+.cl-logo span:nth-child(2) { top: 4px; left: 2.5px; opacity: .6; }
+.cl-logo span:nth-child(3) { top: 8px; box-shadow: inset 0 5px 0 -3.5px var(--rule); }
+.cl-nav-logout { grid-column: 3; grid-row: 1; justify-self: end; width: 44px; color: var(--ink-3); }
 .cl-nav-logout:hover:not(:disabled) { background: var(--bad-soft); color: var(--bad); }
 .cl-nav-logout:disabled { opacity: .55; cursor: progress; }
-.cl-nav-link:focus-visible, .cl-nav-logout:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.cl-nav-logo:focus-visible, .cl-nav-link:focus-visible, .cl-nav-logout:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 [data-cat="mots"] { --c: var(--cat-mots); }
 [data-cat="expr"] { --c: var(--cat-expr); }
