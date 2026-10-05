@@ -10,6 +10,10 @@ const key =
   env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
+// Retour d'un lien « mot de passe oublié » : à lire avant que le client n'efface l'adresse.
+export const recoveryInUrl =
+  typeof window !== "undefined" && new URLSearchParams(window.location.hash.slice(1)).get("type") === "recovery";
+
 // Sans configuration, l'application tourne en mode local (null).
 export const supabase =
   url && key

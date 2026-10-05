@@ -95,7 +95,7 @@ body { font: 16px/1.55 var(--font-body); -webkit-font-smoothing: antialiased; }
 .sh-logo span:nth-child(2) { top: 5px; left: 3px; opacity: 0.6; }
 .sh-logo span:nth-child(3) { top: 10px; box-shadow: inset 0 6px 0 -4.5px var(--rule); }
 
-.sh-form { display: grid; gap: 10px; }
+.sh-form { display: grid; gap: 14px; }
 .sh-form label { font: 600 12px/1.4 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
 .sh-form input {
   min-height: 50px;
@@ -131,6 +131,37 @@ body { font: 16px/1.55 var(--font-body); -webkit-font-smoothing: antialiased; }
 .sh-btn--primary:hover:not(:disabled) { border-color: var(--accent); filter: brightness(1.08); }
 .sh-btn--quiet { background: transparent; color: var(--ink-2); justify-self: start; }
 .sh-btn--sm { min-height: 34px; padding: 6px 12px; font-size: 14px; }
+
+.sh-field { display: grid; gap: 8px; min-width: 0; }
+.sh-password { position: relative; }
+.sh-form .sh-password input { padding-right: 96px; }
+.sh-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  min-height: 34px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font: 600 13px/1 var(--font-body);
+  cursor: pointer;
+}
+.sh-toggle:hover { color: var(--ink); }
+.sh-toggle:focus-visible, .sh-link:focus-visible, .sh-tabs button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.sh-login .sh-hint { font-size: 13px; color: var(--ink-3); }
+.sh-ink { color: var(--ink); overflow-wrap: anywhere; }
+
+.sh-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--line); }
+.sh-tabs button { min-height: 40px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font: 700 14px/1.2 var(--font-body); cursor: pointer; }
+@media (max-width: 380px) { .sh-tabs button { font-size: 13px; } }
+.sh-tabs button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(22, 26, 44, 0.14); }
+
+.sh-link { justify-self: start; padding: 4px 0; border: 0; background: none; color: var(--accent); font: 700 14px/1.4 var(--font-body); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.sh-link--end { justify-self: end; margin-top: -4px; }
+.sh-alt { display: grid; gap: 10px; }
 
 .sh-or { text-align: center; font-size: 14px; color: var(--ink-3) !important; }
 .sh-sent { display: grid; gap: 8px; padding: 14px; border-radius: 8px; background: var(--ok-soft); }
