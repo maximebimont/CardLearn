@@ -318,6 +318,16 @@ const GRADES = [
   { grade: "C", min: 50, max: 74 },
   { grade: "D", min: 0, max: 49 },
 ];
+// Les 5 boîtes de Leitner, présentées comme des niveaux.
+const LEVEL_NAMES = ["À apprendre", "En cours", "Retenue", "Solide", "Maîtrisée"];
+
+// Ce que devient une carte après une réponse, en une courte phrase.
+function levelMove(from, to, ok) {
+  if (!ok) return from === 1 ? "Reste au niveau 1" : `Niveau ${from} → 1`;
+  if (from === MAX_BOX) return "Niveau 5 · maîtrisée";
+  return `Niveau ${from} → ${to}${to === MAX_BOX ? " · maîtrisée" : ""}`;
+}
+
 const gradeFor = (mastered) => GRADES.find((g) => mastered >= g.min).grade;
 
 function summarize(progress) {
@@ -576,12 +586,7 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
   const backCount = Math.min(3, upcoming);
   const shift = phase === "exiting" ? 1 : 0;
 
-  let boxMeta = `Boîte ${boxOf(progress, card.id)}`;
-  if (verdict) {
-    if (!verdict.ok) boxMeta = verdict.from === 1 ? "Reste en boîte 1" : `Boîte ${verdict.from} → 1`;
-    else if (verdict.from === MAX_BOX) boxMeta = "Boîte 5 · maîtrisée";
-    else boxMeta = `Boîte ${verdict.from} → ${verdict.to}${verdict.to === MAX_BOX ? " · maîtrisée" : ""}`;
-  }
+  const boxMeta = verdict ? levelMove(verdict.from, verdict.to, verdict.ok) : `Niveau ${boxOf(progress, card.id)}`;
 
   return (
     <div className="cl-wrap cl-wrap--session">
@@ -919,9 +924,7 @@ function Attempts({ id, attempts }) {
             {a.ok ? <IconCheck size={16} /> : <IconCross size={16} />}
             {a.input ? a.ok ? <span>{a.input}</span> : <s>{a.input}</s> : <em>Je ne sais pas</em>}
           </span>
-          <span className="cl-attempt-box">
-            Boîte {a.from} → {a.to}
-          </span>
+          <span className="cl-attempt-box">{levelMove(a.from, a.to, a.ok)}</span>
         </li>
       ))}
     </ol>
@@ -966,7 +969,7 @@ function Summary({ result, canReplay, onReplay, onHome }) {
         <div className="cl-score-text">
           <p className="cl-score-pct">{percent(good, total)}&nbsp;% de bonnes réponses</p>
           <p className="cl-muted">
-            {plural(promoted, "carte montée", "cartes montées")} de boîte
+            {plural(promoted, "carte montée", "cartes montées")} de niveau
             {newlyMastered ? ` · ${plural(newlyMastered, "nouvelle carte maîtrisée", "nouvelles cartes maîtrisées")}` : ""}
             {missed.length ? ` · ${plural(missed.length, "carte", "cartes")} à retravailler` : ""}
           </p>
@@ -1025,13 +1028,13 @@ function BoxChart({ boxes, unseen }) {
   return (
     <div className="cl-boxchart">
       <table className="cl-boxchart-table">
-        <caption className="cl-sr">Nombre de cartes par boîte de Leitner</caption>
+        <caption className="cl-sr">Nombre de cartes à chaque niveau</caption>
         <tbody>
           {boxes.map((n, i) => (
-            <tr key={i} title={`Boîte ${i + 1} : ${plural(n, "carte", "cartes")}`}>
+            <tr key={i} title={`Niveau ${i + 1} (${LEVEL_NAMES[i].toLowerCase()})\u00a0: ${plural(n, "carte", "cartes")}`}>
               <th scope="row">
-                Boîte {i + 1}
-                {i === MAX_BOX - 1 && <span className="cl-boxchart-tag">maîtrisées</span>}
+                <span className="cl-level-num">{i + 1}</span>
+                <span className="cl-level-name">{LEVEL_NAMES[i]}</span>
               </th>
               <td>
                 <span className="cl-boxchart-track">
@@ -1043,8 +1046,40 @@ function BoxChart({ boxes, unseen }) {
           ))}
         </tbody>
       </table>
-      <p className="cl-chart-note">La boîte 1 contient {plural(unseen, "carte jamais vue", "cartes jamais vues")}.</p>
+      {unseen > 0 && <p className="cl-chart-note">Dont {plural(unseen, "carte jamais jouée", "cartes jamais jouées")} au niveau 1.</p>}
     </div>
+  );
+}
+
+// Les règles de progression, en trois phrases.
+function LevelRules() {
+  return (
+    <ul className="cl-rules">
+      <li>
+        <span className="cl-rule-icon" data-tone="ok">
+          <IconCheck size={16} />
+        </span>
+        <span>
+          <strong>Bonne réponse</strong> : la carte monte d'un niveau.
+        </span>
+      </li>
+      <li>
+        <span className="cl-rule-icon" data-tone="bad">
+          <IconCross size={16} />
+        </span>
+        <span>
+          <strong>Erreur</strong> : elle redescend au niveau 1.
+        </span>
+      </li>
+      <li>
+        <span className="cl-rule-icon" data-tone="mastered">
+          <IconStack size={16} />
+        </span>
+        <span>
+          <strong>Niveau 5</strong> : la carte est maîtrisée et compte pour votre note.
+        </span>
+      </li>
+    </ul>
   );
 }
 
@@ -1114,7 +1149,12 @@ function Profile({ progress, summary, onReset, storage }) {
       </div>
 
       <section className="cl-panel" aria-labelledby="boxes-title">
-        <h2 id="boxes-title">Répartition par boîte</h2>
+        <h2 id="boxes-title">Niveau de vos cartes</h2>
+        <p className="cl-muted">
+          Chaque carte a un niveau de 1 à 5. Les cartes des premiers niveaux reviennent plus souvent dans vos parties, pour que vous les
+          travailliez davantage.
+        </p>
+        <LevelRules />
         <BoxChart boxes={summary.boxes} unseen={summary.unseen} />
       </section>
 
@@ -1122,7 +1162,7 @@ function Profile({ progress, summary, onReset, storage }) {
         <h2 id="stats-title">Statistiques</h2>
         <dl className="cl-stats">
           <div>
-            <dt>Sessions jouées</dt>
+            <dt>Parties jouées</dt>
             <dd>{stats.sessions}</dd>
           </div>
           <div>
@@ -1179,11 +1219,11 @@ function Profile({ progress, summary, onReset, storage }) {
 
       <section className="cl-panel cl-danger" aria-labelledby="reset-title">
         <h2 id="reset-title">Réinitialiser</h2>
-        {resetDone && !confirming ? <p role="status">Progression réinitialisée. Toutes les cartes sont de retour en boîte 1.</p> : null}
+        {resetDone && !confirming ? <p role="status">Progression réinitialisée. Toutes les cartes sont de retour au niveau 1.</p> : null}
         {confirming ? (
           <div className="cl-confirm" role="alertdialog" aria-labelledby="reset-confirm-text">
             <p id="reset-confirm-text">
-              Toutes les cartes reviendront en boîte 1 et vos statistiques, séries et erreurs seront effacées. Cette action est définitive.
+              Toutes les cartes reviendront au niveau 1 et vos statistiques, séries et erreurs seront effacées. Cette action est définitive.
             </p>
             <div className="cl-actions">
               <button
@@ -1809,14 +1849,23 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-boxchart { display: grid; gap: 10px; }
 .cl-boxchart-table { width: 100%; border-collapse: collapse; }
 .cl-boxchart-table th { width: 1%; padding: 6px 14px 6px 0; text-align: left; white-space: nowrap; font: 600 14px/1.3 var(--font-body); color: var(--ink); vertical-align: middle; }
+.cl-boxchart-table th > span { vertical-align: middle; }
+.cl-level-num { display: inline-grid; place-items: center; width: 24px; height: 24px; margin-right: 8px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); font: 700 13px/1 var(--font-mono); color: var(--ink); }
+.cl-level-name { display: inline-block; min-width: 88px; }
 .cl-boxchart-table td { padding: 6px 0; }
 .cl-boxchart-table tr:hover th { color: var(--accent); }
-.cl-boxchart-tag { display: block; font: 500 12px/1.2 var(--font-mono); color: var(--ink-3); }
 .cl-boxchart-track { display: flex; align-items: center; gap: 8px; }
 .cl-boxchart-bar { display: block; height: 20px; width: calc((100% - 48px) * var(--r)); border-radius: 0 4px 4px 0; background: var(--accent); transition: width .5s ease; }
 .cl-boxchart-bar.is-mastered { background: var(--ok); }
 .cl-boxchart-value { font: 600 14px/1 var(--font-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
 .cl-chart-note { font-size: 13px; color: var(--ink-3); }
+.cl-rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cl-rules li { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); font-size: 14px; line-height: 1.4; color: var(--ink-2); }
+.cl-rules strong { color: var(--ink); }
+.cl-rule-icon { display: grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 7px; }
+.cl-rule-icon[data-tone="ok"] { background: var(--ok-soft); color: var(--ok); }
+.cl-rule-icon[data-tone="bad"] { background: var(--bad-soft); color: var(--bad); }
+.cl-rule-icon[data-tone="mastered"] { background: var(--accent-soft); color: var(--accent); }
 
 .cl-danger { border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
 .cl-danger .cl-btn { justify-self: start; }
@@ -1856,6 +1905,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   .cl-main { padding-block: 16px 40px; }
   .cl-app h1 { font-size: 28px; }
   .cl-grid-2 { grid-template-columns: minmax(0, 1fr); }
+  .cl-rules { grid-template-columns: minmax(0, 1fr); }
   .cl-play { padding: 18px; gap: 16px; }
   .cl-play::before { width: 96px; height: 68px; top: -30px; right: -30px; }
   .cl-play::after { display: none; }
