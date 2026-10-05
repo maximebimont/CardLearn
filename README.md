@@ -35,7 +35,9 @@ enregistre la progression avec `window.storage` sous la clé `vocab-progress`. S
    projet sur supabase.com.
 2. **Créer la table.** Dans Supabase, ouvrez *SQL Editor*, collez le contenu de
    [`supabase/schema.sql`](supabase/schema.sql) et cliquez sur *Run*. La sécurité au niveau des lignes
-   (RLS) est activée : chacun ne lit et n'écrit que sa propre progression.
+   (RLS) est activée : chacun ne lit et n'écrit que sa propre progression. Le script crée aussi la
+   fonction `delete_my_account`, utilisée par le bouton « Supprimer mon compte » du profil ; elle ne
+   peut supprimer que le compte connecté. Le script peut être relancé sans risque.
 3. **Autoriser les redirections.** Dans *Authentication → URL Configuration* :
    - *Site URL* : `https://votre-app.vercel.app`
    - *Redirect URLs* : `https://votre-app.vercel.app/**` et `http://localhost:5173/**`
@@ -74,8 +76,10 @@ d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Em
   de 4 à 9 secondes selon sa longueur (Entrée ou « Continuer » pour passer plus vite), puis la carte
   glisse sur le côté.
   « Je ne sais pas » compte comme une erreur.
-- **Leitner** : 5 boîtes. Une bonne réponse fait monter la carte d'une boîte, une erreur la renvoie
-  en boîte 1. La boîte 5 correspond aux cartes maîtrisées. Le tirage favorise les boîtes basses
+- **Leitner** : 5 boîtes, présentées dans l'appli comme des **niveaux** (1 À apprendre, 2 En cours,
+  3 Retenue, 4 Solide, 5 Maîtrisée). Une bonne réponse fait monter la carte d'un niveau, une erreur la
+  renvoie au niveau 1. Le niveau 5 correspond aux cartes maîtrisées. Dans le profil, le bouton ⓘ à
+  côté de « Niveau de vos cartes » ouvre une fenêtre qui explique ces règles. Le tirage favorise les boîtes basses
   (poids 16 / 8 / 4 / 2 / 1).
 - **Dans une partie** : une carte ratée revient 3 à 5 cartes plus loin. Une carte réussie revient
   8 à 12 cartes plus loin en boîte 2, 14 à 18 en boîte 3 et 20 à 26 en boîte 4. Elle ne revient pas
@@ -86,9 +90,11 @@ d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Em
   Le « to » initial des verbes est facultatif. Les fautes de frappe ne sont pas tolérées.
 - **Définitions** : le terme français est masqué dans la définition. Le bouton « Indice » le révèle.
 - **Fin de partie** : score et cartes ratées, regroupées par carte. Un clic sur une carte affiche
-  le détail de ses tentatives : réponse donnée, réussie ou non, boîte avant et après.
+  le détail de ses tentatives : réponse donnée, réussie ou non, niveau avant et après.
 - **Navigation** : une barre d'icônes centrée en haut mène à l'accueil, au profil et au classement.
-  Une fois connecté, l'icône de déconnexion se trouve tout à gauche.
+  Le logo (à gauche) ramène à l'accueil ; une fois connecté, l'icône de déconnexion est à droite.
+- **Suppression de compte** (site connecté à Supabase) : dans le profil, « Supprimer mon compte »
+  demande de taper SUPPRIMER, puis efface le compte, sa progression et ses copies locales.
 - **Classement** (à venir) : il mettra les élèves en compétition selon leurs cartes maîtrisées et
   leur régularité. Pour l'instant, la page affiche vos chiffres.
 

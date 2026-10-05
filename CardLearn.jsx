@@ -318,6 +318,16 @@ const GRADES = [
   { grade: "C", min: 50, max: 74 },
   { grade: "D", min: 0, max: 49 },
 ];
+// Les 5 boîtes de Leitner, présentées comme des niveaux.
+const LEVEL_NAMES = ["À apprendre", "En cours", "Retenue", "Solide", "Maîtrisée"];
+
+// Ce que devient une carte après une réponse, en une courte phrase.
+function levelMove(from, to, ok) {
+  if (!ok) return from === 1 ? "Reste au niveau 1" : `Niveau ${from} → 1`;
+  if (from === MAX_BOX) return "Niveau 5 · maîtrisée";
+  return `Niveau ${from} → ${to}${to === MAX_BOX ? " · maîtrisée" : ""}`;
+}
+
 const gradeFor = (mastered) => GRADES.find((g) => mastered >= g.min).grade;
 
 function summarize(progress) {
@@ -447,6 +457,7 @@ const Icon = ({ d, size = 18 }) => (
 const IconCheck = (p) => <Icon d="M5 12.5l4.5 4.5L19 7.5" {...p} />;
 const IconCross = (p) => <Icon d="M6 6l12 12M18 6L6 18" {...p} />;
 const IconChevron = (p) => <Icon d="M6 9l6 6 6-6" {...p} />;
+const IconInfo = (p) => <Icon d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5.5M12 7.5v.01" {...p} />;
 const IconFlame = (p) => <Icon d="M12 3c.4 3.2 5 5 5 10a5 5 0 0 1-10 0c0-2.4 1.1-3.9 2.4-5.3.3 1.5 1 2.4 2.1 2.9C11.2 8.3 10.9 5.6 12 3z" {...p} />;
 const IconStack = (p) => <Icon d="M9 3.5h10v13H9zM5.5 7v13.5h10" {...p} />;
 const IconBubble = (p) => <Icon d="M4 5h16v11H10l-5 4v-4H4z" {...p} />;
@@ -576,12 +587,7 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
   const backCount = Math.min(3, upcoming);
   const shift = phase === "exiting" ? 1 : 0;
 
-  let boxMeta = `Boîte ${boxOf(progress, card.id)}`;
-  if (verdict) {
-    if (!verdict.ok) boxMeta = verdict.from === 1 ? "Reste en boîte 1" : `Boîte ${verdict.from} → 1`;
-    else if (verdict.from === MAX_BOX) boxMeta = "Boîte 5 · maîtrisée";
-    else boxMeta = `Boîte ${verdict.from} → ${verdict.to}${verdict.to === MAX_BOX ? " · maîtrisée" : ""}`;
-  }
+  const boxMeta = verdict ? levelMove(verdict.from, verdict.to, verdict.ok) : `Niveau ${boxOf(progress, card.id)}`;
 
   return (
     <div className="cl-wrap cl-wrap--session">
@@ -719,13 +725,20 @@ const NAV_ITEMS = [
   { id: "ranking", label: "Classement (bientôt)", Glyph: IconPodium },
 ];
 
-// Icônes seules, centrées ; la déconnexion est à gauche.
+// Logo à gauche, icônes centrées, déconnexion à droite.
 function NavBar({ screen, onNavigate, account, onSignOut, leaving }) {
   const active = screen === "session" || screen === "summary" ? "home" : screen;
   const logoutLabel = leaving ? "Déconnexion en cours" : account?.email ? `Se déconnecter (${account.email})` : "Se déconnecter";
   return (
     <header className="cl-nav">
       <nav className="cl-nav-inner" aria-label="Navigation principale">
+        <button type="button" className="cl-nav-logo" onClick={() => onNavigate("home")} aria-label="CardLearn, accueil" title="CardLearn">
+          <span className="cl-logo" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+        </button>
         {onSignOut && (
           <button type="button" className="cl-nav-logout" onClick={onSignOut} disabled={leaving} aria-label={logoutLabel} title={logoutLabel}>
             <IconLogout size={22} />
@@ -778,7 +791,9 @@ function Ranking({ summary }) {
           </div>
           <div>
             <dt>Note estimée</dt>
-            <dd>{summary.grade}</dd>
+            <dd className="cl-grade-ink" data-grade={summary.grade}>
+              {summary.grade}
+            </dd>
           </div>
         </dl>
       </section>
@@ -819,7 +834,7 @@ function Home({ progress, summary, cats, onCatsChange, onSizeChange, onStart, st
           </span>
         </div>
         <div className="cl-hud-item">
-          <span className="cl-hud-grade" aria-hidden="true">
+          <span className="cl-hud-grade" data-grade={summary.grade} aria-hidden="true">
             {summary.grade}
           </span>
           <span className="cl-hud-text">
@@ -912,9 +927,7 @@ function Attempts({ id, attempts }) {
             {a.ok ? <IconCheck size={16} /> : <IconCross size={16} />}
             {a.input ? a.ok ? <span>{a.input}</span> : <s>{a.input}</s> : <em>Je ne sais pas</em>}
           </span>
-          <span className="cl-attempt-box">
-            Boîte {a.from} → {a.to}
-          </span>
+          <span className="cl-attempt-box">{levelMove(a.from, a.to, a.ok)}</span>
         </li>
       ))}
     </ol>
@@ -959,7 +972,7 @@ function Summary({ result, canReplay, onReplay, onHome }) {
         <div className="cl-score-text">
           <p className="cl-score-pct">{percent(good, total)}&nbsp;% de bonnes réponses</p>
           <p className="cl-muted">
-            {plural(promoted, "carte montée", "cartes montées")} de boîte
+            {plural(promoted, "carte montée", "cartes montées")} de niveau
             {newlyMastered ? ` · ${plural(newlyMastered, "nouvelle carte maîtrisée", "nouvelles cartes maîtrisées")}` : ""}
             {missed.length ? ` · ${plural(missed.length, "carte", "cartes")} à retravailler` : ""}
           </p>
@@ -1018,13 +1031,13 @@ function BoxChart({ boxes, unseen }) {
   return (
     <div className="cl-boxchart">
       <table className="cl-boxchart-table">
-        <caption className="cl-sr">Nombre de cartes par boîte de Leitner</caption>
+        <caption className="cl-sr">Nombre de cartes à chaque niveau</caption>
         <tbody>
           {boxes.map((n, i) => (
-            <tr key={i} title={`Boîte ${i + 1} : ${plural(n, "carte", "cartes")}`}>
+            <tr key={i} title={`Niveau ${i + 1} (${LEVEL_NAMES[i].toLowerCase()})\u00a0: ${plural(n, "carte", "cartes")}`}>
               <th scope="row">
-                Boîte {i + 1}
-                {i === MAX_BOX - 1 && <span className="cl-boxchart-tag">maîtrisées</span>}
+                <span className="cl-level-num">{i + 1}</span>
+                <span className="cl-level-name">{LEVEL_NAMES[i]}</span>
               </th>
               <td>
                 <span className="cl-boxchart-track">
@@ -1036,13 +1049,170 @@ function BoxChart({ boxes, unseen }) {
           ))}
         </tbody>
       </table>
-      <p className="cl-chart-note">La boîte 1 contient {plural(unseen, "carte jamais vue", "cartes jamais vues")}.</p>
+      {unseen > 0 && <p className="cl-chart-note">Dont {plural(unseen, "carte jamais jouée", "cartes jamais jouées")} au niveau 1.</p>}
     </div>
   );
 }
 
-function Profile({ progress, summary, onReset, storage }) {
+// Fenêtre modale d'information ; un clic sur le fond la ferme aussi.
+function InfoDialog({ open, onClose, id, title, children }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (open && !dialog.open) {
+      try {
+        dialog.showModal();
+      } catch (err) {
+        dialog.setAttribute("open", "");
+      }
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
+  return (
+    <dialog
+      ref={ref}
+      id={id}
+      className="cl-dialog"
+      aria-labelledby={`${id}-title`}
+      onClose={onClose}
+      onClick={(event) => {
+        if (event.target === ref.current) onClose();
+      }}
+    >
+      <div className="cl-dialog-body">
+        <div className="cl-dialog-head">
+          <h2 id={`${id}-title`}>{title}</h2>
+          <button type="button" className="cl-dialog-close" onClick={onClose} aria-label="Fermer">
+            <IconCross size={18} />
+          </button>
+        </div>
+        {children}
+        <button type="button" className="cl-btn cl-btn--primary cl-dialog-ok" onClick={onClose}>
+          J'ai compris
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
+// Les règles de progression, en trois phrases.
+function LevelRules() {
+  return (
+    <ul className="cl-rules">
+      <li>
+        <span className="cl-rule-icon" data-tone="ok">
+          <IconCheck size={16} />
+        </span>
+        <span>
+          <strong>Bonne réponse</strong> : la carte monte d'un niveau.
+        </span>
+      </li>
+      <li>
+        <span className="cl-rule-icon" data-tone="bad">
+          <IconCross size={16} />
+        </span>
+        <span>
+          <strong>Erreur</strong> : elle redescend au niveau 1.
+        </span>
+      </li>
+      <li>
+        <span className="cl-rule-icon" data-tone="mastered">
+          <IconStack size={16} />
+        </span>
+        <span>
+          <strong>Niveau 5</strong> : la carte est maîtrisée et compte pour votre note.
+        </span>
+      </li>
+    </ul>
+  );
+}
+
+// Suppression définitive du compte : il faut taper SUPPRIMER pour confirmer.
+const DELETE_WORD = "SUPPRIMER";
+
+function DeleteAccount({ account, onDelete }) {
   const [confirming, setConfirming] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const ready = typed.trim().toUpperCase() === DELETE_WORD;
+
+  const cancel = () => {
+    setConfirming(false);
+    setTyped("");
+    setError("");
+  };
+  const confirm = async () => {
+    if (!ready || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onDelete();
+    } catch (err) {
+      setError(err?.message || "La suppression du compte a échoué. Réessayez dans un moment.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="cl-panel cl-danger" aria-labelledby="delete-title">
+      <h2 id="delete-title">Supprimer mon compte</h2>
+      <p className="cl-muted">Votre compte et toute votre progression seront effacés, sur tous vos appareils.</p>
+      {confirming ? (
+        <form
+          className="cl-confirm"
+          role="alertdialog"
+          aria-labelledby="delete-confirm-text"
+          onSubmit={(event) => {
+            event.preventDefault();
+            confirm();
+          }}
+        >
+          <p id="delete-confirm-text">
+            Le compte <strong>{account?.email || "connecté"}</strong> sera supprimé définitivement, avec ses niveaux, ses statistiques et ses
+            séries. Cette action ne peut pas être annulée.
+          </p>
+          <label htmlFor="delete-confirm" className="cl-confirm-label">
+            Pour confirmer, tapez <strong>{DELETE_WORD}</strong>
+          </label>
+          <input
+            id="delete-confirm"
+            className="cl-confirm-input"
+            value={typed}
+            onChange={(event) => setTyped(event.target.value)}
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            autoFocus
+          />
+          {error && (
+            <p className="cl-confirm-error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="cl-actions">
+            <button type="submit" className="cl-btn cl-btn--danger" disabled={!ready || busy}>
+              {busy ? "Suppression…" : "Supprimer définitivement"}
+            </button>
+            <button type="button" className="cl-btn" onClick={cancel} disabled={busy}>
+              Annuler
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button type="button" className="cl-btn cl-btn--danger-outline" onClick={() => setConfirming(true)}>
+          Supprimer mon compte
+        </button>
+      )}
+    </section>
+  );
+}
+
+function Profile({ progress, summary, onReset, storage, account, onDeleteAccount }) {
+  const [confirming, setConfirming] = useState(false);
+  const [levelsHelp, setLevelsHelp] = useState(false);
   const [resetDone, setResetDone] = useState(false);
   const { stats } = progress;
   const nextGrade = GRADES.slice().reverse().find((g) => g.min > summary.mastered);
@@ -1095,7 +1265,7 @@ function Profile({ progress, summary, onReset, storage }) {
           </div>
           <ol className="cl-grade-scale">
             {GRADES.map((g) => (
-              <li key={g.grade} className={cls(g.grade === summary.grade && "is-current")}>
+              <li key={g.grade} className={cls(g.grade === summary.grade && "is-current")} data-grade={g.grade}>
                 <span className="cl-grade-scale-letter">{g.grade}</span>
                 <span>
                   {g.min}–{g.max} cartes
@@ -1107,15 +1277,35 @@ function Profile({ progress, summary, onReset, storage }) {
       </div>
 
       <section className="cl-panel" aria-labelledby="boxes-title">
-        <h2 id="boxes-title">Répartition par boîte</h2>
+        <div className="cl-heading-row">
+          <h2 id="boxes-title">Niveau de vos cartes</h2>
+          <button
+            type="button"
+            className="cl-info-btn"
+            onClick={() => setLevelsHelp(true)}
+            aria-label="Comment fonctionnent les niveaux ?"
+            aria-haspopup="dialog"
+            aria-controls="levels-help"
+            title="Comment fonctionnent les niveaux ?"
+          >
+            <IconInfo size={20} />
+          </button>
+        </div>
         <BoxChart boxes={summary.boxes} unseen={summary.unseen} />
+        <InfoDialog id="levels-help" open={levelsHelp} onClose={() => setLevelsHelp(false)} title="Comment fonctionnent les niveaux ?">
+          <p className="cl-muted">
+            Chaque carte a un niveau de 1 à 5. Les cartes des premiers niveaux reviennent plus souvent dans vos parties, pour que vous les
+            travailliez davantage.
+          </p>
+          <LevelRules />
+        </InfoDialog>
       </section>
 
       <section className="cl-panel" aria-labelledby="stats-title">
         <h2 id="stats-title">Statistiques</h2>
         <dl className="cl-stats">
           <div>
-            <dt>Sessions jouées</dt>
+            <dt>Parties jouées</dt>
             <dd>{stats.sessions}</dd>
           </div>
           <div>
@@ -1172,11 +1362,11 @@ function Profile({ progress, summary, onReset, storage }) {
 
       <section className="cl-panel cl-danger" aria-labelledby="reset-title">
         <h2 id="reset-title">Réinitialiser</h2>
-        {resetDone && !confirming ? <p role="status">Progression réinitialisée. Toutes les cartes sont de retour en boîte 1.</p> : null}
+        {resetDone && !confirming ? <p role="status">Progression réinitialisée. Toutes les cartes sont de retour au niveau 1.</p> : null}
         {confirming ? (
           <div className="cl-confirm" role="alertdialog" aria-labelledby="reset-confirm-text">
             <p id="reset-confirm-text">
-              Toutes les cartes reviendront en boîte 1 et vos statistiques, séries et erreurs seront effacées. Cette action est définitive.
+              Toutes les cartes reviendront au niveau 1 et vos statistiques, séries et erreurs seront effacées. Cette action est définitive.
             </p>
             <div className="cl-actions">
               <button
@@ -1201,14 +1391,16 @@ function Profile({ progress, summary, onReset, storage }) {
           </button>
         )}
       </section>
+
+      {onDeleteAccount && <DeleteAccount account={account} onDelete={onDeleteAccount} />}
     </div>
   );
 }
 
 /* --------------------------------------------------------------------- App -- */
 
-// account / onSignOut : fournis par le site (connexion Supabase). Absents dans un artifact.
-export default function CardLearn({ account = null, onSignOut = null } = {}) {
+// account / onSignOut / onDeleteAccount : fournis par le site (connexion Supabase). Absents dans un artifact.
+export default function CardLearn({ account = null, onSignOut = null, onDeleteAccount = null } = {}) {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(emptyProgress);
   const [storage, setStorage] = useState("ok"); // ok | unavailable | error
@@ -1303,13 +1495,17 @@ export default function CardLearn({ account = null, onSignOut = null } = {}) {
     setScreen(target);
   };
 
-  const signOut = async () => {
-    if (!onSignOut || leaving) return;
-    setLeaving(true);
-    // Laisse partir la dernière sauvegarde avant de se déconnecter.
+  // Laisse partir la dernière sauvegarde (3 s au plus).
+  const waitForSaves = async () => {
     for (let i = 0; i < 30 && (dirty.current || saver.current.busy || saver.current.pending); i++) {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
+  };
+
+  const signOut = async () => {
+    if (!onSignOut || leaving) return;
+    setLeaving(true);
+    await waitForSaves();
     try {
       await onSignOut();
     } catch (err) {
@@ -1350,7 +1546,23 @@ export default function CardLearn({ account = null, onSignOut = null } = {}) {
       />
     );
   } else if (screen === "profile") {
-    content = <Profile progress={progress} summary={summary} storage={storage} onReset={() => update((p) => emptyProgress(p.settings.size))} />;
+    content = (
+      <Profile
+        progress={progress}
+        summary={summary}
+        storage={storage}
+        account={account}
+        onReset={() => update((p) => emptyProgress(p.settings.size))}
+        onDeleteAccount={
+          onDeleteAccount
+            ? async () => {
+                await waitForSaves();
+                await onDeleteAccount();
+              }
+            : null
+        }
+      />
+    );
   } else if (screen === "ranking") {
     content = <Ranking summary={summary} />;
   } else {
@@ -1412,6 +1624,10 @@ const STYLES = `
   --cta-shade: #c9921a;
   --flame: #d4570f;
   --flame-soft: #fde9dc;
+  --grade-a: #1b7a37;
+  --grade-b: #4a6b09;
+  --grade-c: #995200;
+  --grade-d: #bf3329;
   --shadow: 0 1px 2px rgba(22, 26, 44, 0.06), 0 10px 28px rgba(22, 26, 44, 0.09);
   --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -1440,6 +1656,10 @@ const STYLES = `
     --play-bg: #282c6e;
     --flame: #ff8f4d;
     --flame-soft: rgba(255, 143, 77, 0.15);
+    --grade-a: #5cc97c;
+    --grade-b: #a8d45a;
+    --grade-c: #f2a541;
+    --grade-d: #f27b6f;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.38);
     color-scheme: dark;
   }
@@ -1466,6 +1686,10 @@ const STYLES = `
   --play-bg: #282c6e;
   --flame: #ff8f4d;
   --flame-soft: rgba(255, 143, 77, 0.15);
+  --grade-a: #5cc97c;
+  --grade-b: #a8d45a;
+  --grade-c: #f2a541;
+  --grade-d: #f27b6f;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.38);
   color-scheme: dark;
 }
@@ -1540,7 +1764,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   border-bottom: 1px solid var(--line);
 }
 .cl-nav-inner { max-width: 960px; margin-inline: auto; padding-inline: 16px; min-height: 60px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
-.cl-nav-links { grid-column: 2; display: flex; align-items: center; gap: 10px; }
+.cl-nav-links { grid-column: 2; grid-row: 1; display: flex; align-items: center; gap: 10px; }
 .cl-nav-link, .cl-nav-logout {
   display: inline-grid; place-items: center;
   width: 52px; height: 44px;
@@ -1551,10 +1775,17 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 }
 .cl-nav-link:hover { background: var(--surface-2); color: var(--ink); }
 .cl-nav-link[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
-.cl-nav-logout { grid-column: 1; justify-self: start; width: 44px; color: var(--ink-3); }
+.cl-nav-logo { grid-column: 1; justify-self: start; display: grid; place-items: center; width: 48px; height: 44px; border: 0; border-radius: 10px; background: none; cursor: pointer; }
+.cl-nav-logo:hover { background: var(--surface-2); }
+.cl-logo { position: relative; width: 30px; height: 27px; flex: none; }
+.cl-logo span { position: absolute; left: 0; width: 25px; height: 18px; border-radius: 3px; border: 1.5px solid var(--ink); background: var(--surface); }
+.cl-logo span:nth-child(1) { top: 0; left: 5px; opacity: .35; }
+.cl-logo span:nth-child(2) { top: 4px; left: 2.5px; opacity: .6; }
+.cl-logo span:nth-child(3) { top: 8px; box-shadow: inset 0 5px 0 -3.5px var(--rule); }
+.cl-nav-logout { grid-column: 3; grid-row: 1; justify-self: end; width: 44px; color: var(--ink-3); }
 .cl-nav-logout:hover:not(:disabled) { background: var(--bad-soft); color: var(--bad); }
 .cl-nav-logout:disabled { opacity: .55; cursor: progress; }
-.cl-nav-link:focus-visible, .cl-nav-logout:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.cl-nav-logo:focus-visible, .cl-nav-link:focus-visible, .cl-nav-logout:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 [data-cat="mots"] { --c: var(--cat-mots); }
 [data-cat="expr"] { --c: var(--cat-expr); }
@@ -1568,7 +1799,13 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-hud-icon { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 10px; }
 .cl-hud-icon[data-tone="streak"] { background: var(--flame-soft); color: var(--flame); }
 .cl-hud-icon[data-tone="mastered"] { background: var(--ok-soft); color: var(--ok); }
-.cl-hud-grade { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 10px; border: 2px solid var(--ink); font: 800 21px/1 var(--font-display); color: var(--ink); }
+/* Code couleur des notes : A vert, B vert-jaune, C orange, D rouge */
+[data-grade="A"] { --g: var(--grade-a); }
+[data-grade="B"] { --g: var(--grade-b); }
+[data-grade="C"] { --g: var(--grade-c); }
+[data-grade="D"] { --g: var(--grade-d); }
+.cl-grade-ink { color: var(--g, var(--ink)); }
+.cl-hud-grade { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 10px; border: 2px solid var(--g, var(--ink)); background: color-mix(in srgb, var(--g, var(--ink)) 12%, var(--surface)); font: 800 21px/1 var(--font-display); color: var(--g, var(--ink)); }
 .cl-hud-text { display: grid; gap: 1px; min-width: 0; }
 .cl-hud-value { font: 800 22px/1.1 var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
 .cl-hud-value small { font-size: 14px; font-weight: 600; color: var(--ink-3); }
@@ -1781,11 +2018,11 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-cat-progress-label { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
 .cl-cat-progress-value { font: 500 14px/1.3 var(--font-mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .cl-grade { display: flex; align-items: center; gap: 16px; }
-.cl-grade-letter { display: grid; place-items: center; width: 76px; height: 76px; flex: none; border-radius: 10px; border: 2px solid var(--ink); font: 800 46px/1 var(--font-display); color: var(--ink); background: var(--surface-2); }
+.cl-grade-letter { display: grid; place-items: center; width: 76px; height: 76px; flex: none; border-radius: 10px; border: 2px solid var(--g, var(--ink)); font: 800 46px/1 var(--font-display); color: var(--g, var(--ink)); background: color-mix(in srgb, var(--g, var(--ink)) 12%, var(--surface)); }
 .cl-grade-scale { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.cl-grade-scale li { display: grid; gap: 2px; padding: 8px; border-radius: 6px; border: 1px solid var(--line); font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.cl-grade-scale li.is-current { border-color: var(--ink); color: var(--ink); background: var(--surface-2); }
-.cl-grade-scale-letter { font: 700 18px/1.1 var(--font-display); color: var(--ink); }
+.cl-grade-scale li { display: grid; gap: 2px; padding: 8px; border-radius: 6px; border: 1px solid var(--line); border-top: 4px solid var(--g); font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.cl-grade-scale li.is-current { border-color: var(--g); color: var(--ink); background: color-mix(in srgb, var(--g) 12%, var(--surface)); }
+.cl-grade-scale-letter { font: 700 18px/1.1 var(--font-display); color: var(--g); }
 .cl-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .cl-stats.cl-stats--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .cl-stats div { display: grid; gap: 4px; padding: 12px; border-radius: 8px; background: var(--surface-2); min-width: 0; }
@@ -1795,18 +2032,51 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-boxchart { display: grid; gap: 10px; }
 .cl-boxchart-table { width: 100%; border-collapse: collapse; }
 .cl-boxchart-table th { width: 1%; padding: 6px 14px 6px 0; text-align: left; white-space: nowrap; font: 600 14px/1.3 var(--font-body); color: var(--ink); vertical-align: middle; }
+.cl-boxchart-table th > span { vertical-align: middle; }
+.cl-level-num { display: inline-grid; place-items: center; width: 24px; height: 24px; margin-right: 8px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); font: 700 13px/1 var(--font-mono); color: var(--ink); }
+.cl-level-name { display: inline-block; min-width: 88px; }
 .cl-boxchart-table td { padding: 6px 0; }
 .cl-boxchart-table tr:hover th { color: var(--accent); }
-.cl-boxchart-tag { display: block; font: 500 12px/1.2 var(--font-mono); color: var(--ink-3); }
 .cl-boxchart-track { display: flex; align-items: center; gap: 8px; }
 .cl-boxchart-bar { display: block; height: 20px; width: calc((100% - 48px) * var(--r)); border-radius: 0 4px 4px 0; background: var(--accent); transition: width .5s ease; }
 .cl-boxchart-bar.is-mastered { background: var(--ok); }
 .cl-boxchart-value { font: 600 14px/1 var(--font-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
 .cl-chart-note { font-size: 13px; color: var(--ink-3); }
+.cl-heading-row { display: flex; align-items: center; gap: 8px; }
+.cl-info-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink-3); cursor: pointer; transition: background-color .15s, color .15s; }
+.cl-info-btn:hover { background: var(--accent-soft); color: var(--accent); }
+.cl-info-btn:focus-visible, .cl-dialog-close:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+
+.cl-dialog {
+  width: min(460px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
+  padding: 0; border: 1px solid var(--line); border-radius: 16px;
+  background: var(--surface); color: var(--ink);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .3);
+}
+.cl-dialog[open] { animation: cl-dialog-in .18s ease-out; }
+.cl-dialog::backdrop { background: rgba(10, 12, 24, .55); }
+.cl-dialog-body { display: grid; gap: 14px; padding: 20px; }
+.cl-dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.cl-dialog-close { display: grid; place-items: center; width: 36px; height: 36px; flex: none; margin: -6px -6px 0 0; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink-3); cursor: pointer; }
+.cl-dialog-close:hover { background: var(--surface-2); color: var(--ink); }
+.cl-dialog-ok { justify-self: end; }
+.cl-dialog .cl-rules { grid-template-columns: minmax(0, 1fr); }
+@keyframes cl-dialog-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+.cl-rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cl-rules li { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); font-size: 14px; line-height: 1.4; color: var(--ink-2); }
+.cl-rules strong { color: var(--ink); }
+.cl-rule-icon { display: grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 7px; }
+.cl-rule-icon[data-tone="ok"] { background: var(--ok-soft); color: var(--ok); }
+.cl-rule-icon[data-tone="bad"] { background: var(--bad-soft); color: var(--bad); }
+.cl-rule-icon[data-tone="mastered"] { background: var(--accent-soft); color: var(--accent); }
 
 .cl-danger { border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
 .cl-danger .cl-btn { justify-self: start; }
 .cl-confirm { display: grid; gap: 12px; padding: 14px; border-radius: 8px; background: var(--bad-soft); }
+.cl-confirm-label { font-size: 14px; color: var(--ink); }
+.cl-confirm-input { max-width: 260px; min-height: 46px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: 600 16px/1.2 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
+.cl-confirm-input:focus { outline: none; border-color: var(--bad); box-shadow: 0 0 0 3px var(--bad-soft); }
+.cl-confirm-error { font-size: 14px; font-weight: 700; color: var(--bad); }
 
 /* Chargement */
 .cl-loading { min-height: 60vh; display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--ink-2); }
@@ -1842,6 +2112,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   .cl-main { padding-block: 16px 40px; }
   .cl-app h1 { font-size: 28px; }
   .cl-grid-2 { grid-template-columns: minmax(0, 1fr); }
+  .cl-rules { grid-template-columns: minmax(0, 1fr); }
   .cl-play { padding: 18px; gap: 16px; }
   .cl-play::before { width: 96px; height: 68px; top: -30px; right: -30px; }
   .cl-play::after { display: none; }
@@ -1876,5 +2147,6 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   .cl-card--front.is-correct, .cl-card--front.is-wrong, .cl-card--back { animation: none; }
   .cl-card--front.is-exit-fade { animation: cl-fade-out .18s linear forwards; }
   .cl-spinner { animation-duration: 2s; }
+  .cl-dialog[open] { animation: none; }
 }
 `;
