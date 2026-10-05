@@ -35,7 +35,9 @@ enregistre la progression avec `window.storage` sous la clé `vocab-progress`. S
    projet sur supabase.com.
 2. **Créer la table.** Dans Supabase, ouvrez *SQL Editor*, collez le contenu de
    [`supabase/schema.sql`](supabase/schema.sql) et cliquez sur *Run*. La sécurité au niveau des lignes
-   (RLS) est activée : chacun ne lit et n'écrit que sa propre progression.
+   (RLS) est activée : chacun ne lit et n'écrit que sa propre progression. Le script crée aussi la
+   fonction `delete_my_account`, utilisée par le bouton « Supprimer mon compte » du profil ; elle ne
+   peut supprimer que le compte connecté. Le script peut être relancé sans risque.
 3. **Autoriser les redirections.** Dans *Authentication → URL Configuration* :
    - *Site URL* : `https://votre-app.vercel.app`
    - *Redirect URLs* : `https://votre-app.vercel.app/**` et `http://localhost:5173/**`
@@ -91,6 +93,8 @@ d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Em
   le détail de ses tentatives : réponse donnée, réussie ou non, niveau avant et après.
 - **Navigation** : une barre d'icônes centrée en haut mène à l'accueil, au profil et au classement.
   Le logo (à gauche) ramène à l'accueil ; une fois connecté, l'icône de déconnexion est à droite.
+- **Suppression de compte** (site connecté à Supabase) : dans le profil, « Supprimer mon compte »
+  demande de taper SUPPRIMER, puis efface le compte, sa progression et ses copies locales.
 - **Classement** (à venir) : il mettra les élèves en compétition selon leurs cartes maîtrisées et
   leur régularité. Pour l'instant, la page affiche vos chiffres.
 

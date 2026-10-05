@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import CardLearn from "../CardLearn.jsx";
 import { githubEnabled, recoveryInUrl, supabase } from "./supabase.js";
-import { createLocalStorage, createSupabaseStorage } from "./storage.js";
+import { createLocalStorage, createSupabaseStorage, forgetLocalCopies } from "./storage.js";
 
 const MIN_PASSWORD = 8;
 
@@ -104,7 +104,7 @@ function PasswordField({ id, value, onChange, autoComplete, label = "Mot de pass
 }
 
 const SCREENS = {
-  signin: { title: "Connexion", intro: "Retrouvez vos boîtes, vos erreurs et vos statistiques sur tous vos appareils.", submit: "Se connecter" },
+  signin: { title: "Connexion", intro: "Retrouvez vos niveaux, vos erreurs et vos statistiques sur tous vos appareils.", submit: "Se connecter" },
   signup: { title: "Créer un compte", intro: "Votre progression sera enregistrée et synchronisée sur tous vos appareils.", submit: "Créer mon compte" },
   forgot: { title: "Mot de passe oublié", intro: "Indiquez votre adresse : vous recevrez un lien pour choisir un nouveau mot de passe.", submit: "Envoyer le lien" },
   magic: { title: "Connexion sans mot de passe", intro: "Recevez un lien de connexion par e-mail. Un clic suffit pour vous connecter.", submit: "Recevoir le lien" },
@@ -117,7 +117,7 @@ const FAILURES = {
   magic: "L'envoi du lien a échoué. Vérifiez l'adresse et votre connexion, puis réessayez.",
 };
 
-function Login() {
+function Login({ notice = "" }) {
   const [mode, setMode] = useState("signin"); // signin | signup | forgot | magic
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -181,6 +181,11 @@ function Login() {
     <main className="sh-page">
       <div className="sh-login">
         <Brand />
+        {notice && (
+          <p className="sh-notice" role="status">
+            {notice}
+          </p>
+        )}
 
         {(mode === "signin" || mode === "signup") && (
           <div className="sh-tabs" role="group" aria-label="Connexion ou création de compte">
@@ -323,9 +328,24 @@ function NewPassword({ email, onDone }) {
   );
 }
 
-function SignedIn({ session }) {
+function SignedIn({ session, onAccountDeleted }) {
   const userId = session.user.id;
   const storage = useMemo(() => createSupabaseStorage(supabase, userId), [userId]);
+
+  // Appelée par le profil de CardLearn : fonction SQL delete_my_account (voir supabase/schema.sql).
+  const deleteAccount = async () => {
+    const { error } = await supabase.rpc("delete_my_account");
+    if (error) {
+      throw new Error(
+        error.code === "PGRST202"
+          ? "La suppression de compte n'est pas encore activée sur ce site. Réessayez plus tard."
+          : "La suppression du compte a échoué. Vérifiez votre connexion internet, puis réessayez."
+      );
+    }
+    forgetLocalCopies(userId);
+    onAccountDeleted();
+    await supabase.auth.signOut({ scope: "local" });
+  };
 
   // Appelée par la barre de navigation de CardLearn.
   const signOut = async () => {
@@ -335,7 +355,7 @@ function SignedIn({ session }) {
 
   return (
     <StorageScope key={userId} storage={storage}>
-      <CardLearn account={{ email: session.user.email || "Compte GitHub" }} onSignOut={signOut} />
+      <CardLearn account={{ email: session.user.email || "Compte GitHub" }} onSignOut={signOut} onDeleteAccount={deleteAccount} />
     </StorageScope>
   );
 }
@@ -343,6 +363,7 @@ function SignedIn({ session }) {
 function WithAccount() {
   const [session, setSession] = useState(undefined); // undefined : vérification en cours
   const [recovery, setRecovery] = useState(recoveryInUrl);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -367,9 +388,9 @@ function WithAccount() {
       </main>
     );
   }
-  if (!session) return <Login />;
+  if (!session) return <Login notice={notice} />;
   if (recovery) return <NewPassword email={session.user.email} onDone={() => setRecovery(false)} />;
-  return <SignedIn session={session} />;
+  return <SignedIn session={session} onAccountDeleted={() => setNotice("Votre compte et votre progression ont été supprimés.")} />;
 }
 
 const localStorageBackend = createLocalStorage();

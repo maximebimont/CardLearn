@@ -165,4 +165,5 @@ body { font: 16px/1.55 var(--font-body); -webkit-font-smoothing: antialiased; }
 .sh-or { text-align: center; font-size: 14px; color: var(--ink-3) !important; }
 .sh-sent { display: grid; gap: 8px; padding: 14px; border-radius: 8px; background: var(--ok-soft); }
 .sh-sent p { color: var(--ink) !important; }
+.sh-notice { padding: 10px 14px; border-radius: 8px; background: var(--ok-soft); color: var(--ink); font-size: 15px; }
 .sh-error { padding: 10px 14px; border-radius: 8px; background: var(--bad-soft); color: var(--ink) !important; font-size: 15px; }

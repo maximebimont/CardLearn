@@ -32,3 +32,25 @@ create policy "progress_delete_own" on public.progress
 
 revoke all on public.progress from anon;
 grant select, insert, update, delete on public.progress to authenticated;
+
+-- Suppression de compte par la personne elle-même (bouton « Supprimer mon compte » du profil).
+-- Ne peut supprimer que le compte connecté ; sa progression part avec (on delete cascade).
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  me uuid := auth.uid();
+begin
+  if me is null then
+    raise exception 'Aucun compte connecté';
+  end if;
+  delete from public.progress where user_id = me;
+  delete from auth.users where id = me;
+end;
+$$;
+
+revoke all on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;

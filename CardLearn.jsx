@@ -1129,7 +1129,88 @@ function LevelRules() {
   );
 }
 
-function Profile({ progress, summary, onReset, storage }) {
+// Suppression définitive du compte : il faut taper SUPPRIMER pour confirmer.
+const DELETE_WORD = "SUPPRIMER";
+
+function DeleteAccount({ account, onDelete }) {
+  const [confirming, setConfirming] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const ready = typed.trim().toUpperCase() === DELETE_WORD;
+
+  const cancel = () => {
+    setConfirming(false);
+    setTyped("");
+    setError("");
+  };
+  const confirm = async () => {
+    if (!ready || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onDelete();
+    } catch (err) {
+      setError(err?.message || "La suppression du compte a échoué. Réessayez dans un moment.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="cl-panel cl-danger" aria-labelledby="delete-title">
+      <h2 id="delete-title">Supprimer mon compte</h2>
+      <p className="cl-muted">Votre compte et toute votre progression seront effacés, sur tous vos appareils.</p>
+      {confirming ? (
+        <form
+          className="cl-confirm"
+          role="alertdialog"
+          aria-labelledby="delete-confirm-text"
+          onSubmit={(event) => {
+            event.preventDefault();
+            confirm();
+          }}
+        >
+          <p id="delete-confirm-text">
+            Le compte <strong>{account?.email || "connecté"}</strong> sera supprimé définitivement, avec ses niveaux, ses statistiques et ses
+            séries. Cette action ne peut pas être annulée.
+          </p>
+          <label htmlFor="delete-confirm" className="cl-confirm-label">
+            Pour confirmer, tapez <strong>{DELETE_WORD}</strong>
+          </label>
+          <input
+            id="delete-confirm"
+            className="cl-confirm-input"
+            value={typed}
+            onChange={(event) => setTyped(event.target.value)}
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            autoFocus
+          />
+          {error && (
+            <p className="cl-confirm-error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="cl-actions">
+            <button type="submit" className="cl-btn cl-btn--danger" disabled={!ready || busy}>
+              {busy ? "Suppression…" : "Supprimer définitivement"}
+            </button>
+            <button type="button" className="cl-btn" onClick={cancel} disabled={busy}>
+              Annuler
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button type="button" className="cl-btn cl-btn--danger-outline" onClick={() => setConfirming(true)}>
+          Supprimer mon compte
+        </button>
+      )}
+    </section>
+  );
+}
+
+function Profile({ progress, summary, onReset, storage, account, onDeleteAccount }) {
   const [confirming, setConfirming] = useState(false);
   const [levelsHelp, setLevelsHelp] = useState(false);
   const [resetDone, setResetDone] = useState(false);
@@ -1310,14 +1391,16 @@ function Profile({ progress, summary, onReset, storage }) {
           </button>
         )}
       </section>
+
+      {onDeleteAccount && <DeleteAccount account={account} onDelete={onDeleteAccount} />}
     </div>
   );
 }
 
 /* --------------------------------------------------------------------- App -- */
 
-// account / onSignOut : fournis par le site (connexion Supabase). Absents dans un artifact.
-export default function CardLearn({ account = null, onSignOut = null } = {}) {
+// account / onSignOut / onDeleteAccount : fournis par le site (connexion Supabase). Absents dans un artifact.
+export default function CardLearn({ account = null, onSignOut = null, onDeleteAccount = null } = {}) {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(emptyProgress);
   const [storage, setStorage] = useState("ok"); // ok | unavailable | error
@@ -1412,13 +1495,17 @@ export default function CardLearn({ account = null, onSignOut = null } = {}) {
     setScreen(target);
   };
 
-  const signOut = async () => {
-    if (!onSignOut || leaving) return;
-    setLeaving(true);
-    // Laisse partir la dernière sauvegarde avant de se déconnecter.
+  // Laisse partir la dernière sauvegarde (3 s au plus).
+  const waitForSaves = async () => {
     for (let i = 0; i < 30 && (dirty.current || saver.current.busy || saver.current.pending); i++) {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
+  };
+
+  const signOut = async () => {
+    if (!onSignOut || leaving) return;
+    setLeaving(true);
+    await waitForSaves();
     try {
       await onSignOut();
     } catch (err) {
@@ -1459,7 +1546,23 @@ export default function CardLearn({ account = null, onSignOut = null } = {}) {
       />
     );
   } else if (screen === "profile") {
-    content = <Profile progress={progress} summary={summary} storage={storage} onReset={() => update((p) => emptyProgress(p.settings.size))} />;
+    content = (
+      <Profile
+        progress={progress}
+        summary={summary}
+        storage={storage}
+        account={account}
+        onReset={() => update((p) => emptyProgress(p.settings.size))}
+        onDeleteAccount={
+          onDeleteAccount
+            ? async () => {
+                await waitForSaves();
+                await onDeleteAccount();
+              }
+            : null
+        }
+      />
+    );
   } else if (screen === "ranking") {
     content = <Ranking summary={summary} />;
   } else {
@@ -1970,6 +2073,10 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-danger { border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
 .cl-danger .cl-btn { justify-self: start; }
 .cl-confirm { display: grid; gap: 12px; padding: 14px; border-radius: 8px; background: var(--bad-soft); }
+.cl-confirm-label { font-size: 14px; color: var(--ink); }
+.cl-confirm-input { max-width: 260px; min-height: 46px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: 600 16px/1.2 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
+.cl-confirm-input:focus { outline: none; border-color: var(--bad); box-shadow: 0 0 0 3px var(--bad-soft); }
+.cl-confirm-error { font-size: 14px; font-weight: 700; color: var(--bad); }
 
 /* Chargement */
 .cl-loading { min-height: 60vh; display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--ink-2); }

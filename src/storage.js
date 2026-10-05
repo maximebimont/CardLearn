@@ -33,6 +33,17 @@ function removeLocal(name) {
 
 const time = (iso) => Date.parse(iso) || 0;
 
+// Efface les copies locales d'un compte (après sa suppression).
+export function forgetLocalCopies(userId) {
+  try {
+    Object.keys(localStorage)
+      .filter((name) => name.startsWith(`${PREFIX}:${userId}:`))
+      .forEach((name) => localStorage.removeItem(name));
+  } catch (err) {
+    // stockage local indisponible : rien à effacer
+  }
+}
+
 export function createLocalStorage() {
   const name = (key) => `${PREFIX}:local:${key}`;
   return {
