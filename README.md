@@ -76,7 +76,8 @@ d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Em
   « Je ne sais pas » compte comme une erreur.
 - **Leitner** : 5 boîtes, présentées dans l'appli comme des **niveaux** (1 À apprendre, 2 En cours,
   3 Retenue, 4 Solide, 5 Maîtrisée). Une bonne réponse fait monter la carte d'un niveau, une erreur la
-  renvoie au niveau 1. Le niveau 5 correspond aux cartes maîtrisées. Le profil rappelle ces règles. Le tirage favorise les boîtes basses
+  renvoie au niveau 1. Le niveau 5 correspond aux cartes maîtrisées. Dans le profil, le bouton ⓘ à
+  côté de « Niveau de vos cartes » ouvre une fenêtre qui explique ces règles. Le tirage favorise les boîtes basses
   (poids 16 / 8 / 4 / 2 / 1).
 - **Dans une partie** : une carte ratée revient 3 à 5 cartes plus loin. Une carte réussie revient
   8 à 12 cartes plus loin en boîte 2, 14 à 18 en boîte 3 et 20 à 26 en boîte 4. Elle ne revient pas

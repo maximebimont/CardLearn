@@ -457,6 +457,7 @@ const Icon = ({ d, size = 18 }) => (
 const IconCheck = (p) => <Icon d="M5 12.5l4.5 4.5L19 7.5" {...p} />;
 const IconCross = (p) => <Icon d="M6 6l12 12M18 6L6 18" {...p} />;
 const IconChevron = (p) => <Icon d="M6 9l6 6 6-6" {...p} />;
+const IconInfo = (p) => <Icon d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5.5M12 7.5v.01" {...p} />;
 const IconFlame = (p) => <Icon d="M12 3c.4 3.2 5 5 5 10a5 5 0 0 1-10 0c0-2.4 1.1-3.9 2.4-5.3.3 1.5 1 2.4 2.1 2.9C11.2 8.3 10.9 5.6 12 3z" {...p} />;
 const IconStack = (p) => <Icon d="M9 3.5h10v13H9zM5.5 7v13.5h10" {...p} />;
 const IconBubble = (p) => <Icon d="M4 5h16v11H10l-5 4v-4H4z" {...p} />;
@@ -1051,6 +1052,49 @@ function BoxChart({ boxes, unseen }) {
   );
 }
 
+// Fenêtre modale d'information ; un clic sur le fond la ferme aussi.
+function InfoDialog({ open, onClose, id, title, children }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (open && !dialog.open) {
+      try {
+        dialog.showModal();
+      } catch (err) {
+        dialog.setAttribute("open", "");
+      }
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
+  return (
+    <dialog
+      ref={ref}
+      id={id}
+      className="cl-dialog"
+      aria-labelledby={`${id}-title`}
+      onClose={onClose}
+      onClick={(event) => {
+        if (event.target === ref.current) onClose();
+      }}
+    >
+      <div className="cl-dialog-body">
+        <div className="cl-dialog-head">
+          <h2 id={`${id}-title`}>{title}</h2>
+          <button type="button" className="cl-dialog-close" onClick={onClose} aria-label="Fermer">
+            <IconCross size={18} />
+          </button>
+        </div>
+        {children}
+        <button type="button" className="cl-btn cl-btn--primary cl-dialog-ok" onClick={onClose}>
+          J'ai compris
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
 // Les règles de progression, en trois phrases.
 function LevelRules() {
   return (
@@ -1085,6 +1129,7 @@ function LevelRules() {
 
 function Profile({ progress, summary, onReset, storage }) {
   const [confirming, setConfirming] = useState(false);
+  const [levelsHelp, setLevelsHelp] = useState(false);
   const [resetDone, setResetDone] = useState(false);
   const { stats } = progress;
   const nextGrade = GRADES.slice().reverse().find((g) => g.min > summary.mastered);
@@ -1149,13 +1194,28 @@ function Profile({ progress, summary, onReset, storage }) {
       </div>
 
       <section className="cl-panel" aria-labelledby="boxes-title">
-        <h2 id="boxes-title">Niveau de vos cartes</h2>
-        <p className="cl-muted">
-          Chaque carte a un niveau de 1 à 5. Les cartes des premiers niveaux reviennent plus souvent dans vos parties, pour que vous les
-          travailliez davantage.
-        </p>
-        <LevelRules />
+        <div className="cl-heading-row">
+          <h2 id="boxes-title">Niveau de vos cartes</h2>
+          <button
+            type="button"
+            className="cl-info-btn"
+            onClick={() => setLevelsHelp(true)}
+            aria-label="Comment fonctionnent les niveaux ?"
+            aria-haspopup="dialog"
+            aria-controls="levels-help"
+            title="Comment fonctionnent les niveaux ?"
+          >
+            <IconInfo size={20} />
+          </button>
+        </div>
         <BoxChart boxes={summary.boxes} unseen={summary.unseen} />
+        <InfoDialog id="levels-help" open={levelsHelp} onClose={() => setLevelsHelp(false)} title="Comment fonctionnent les niveaux ?">
+          <p className="cl-muted">
+            Chaque carte a un niveau de 1 à 5. Les cartes des premiers niveaux reviennent plus souvent dans vos parties, pour que vous les
+            travailliez davantage.
+          </p>
+          <LevelRules />
+        </InfoDialog>
       </section>
 
       <section className="cl-panel" aria-labelledby="stats-title">
@@ -1859,6 +1919,26 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-boxchart-bar.is-mastered { background: var(--ok); }
 .cl-boxchart-value { font: 600 14px/1 var(--font-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
 .cl-chart-note { font-size: 13px; color: var(--ink-3); }
+.cl-heading-row { display: flex; align-items: center; gap: 8px; }
+.cl-info-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink-3); cursor: pointer; transition: background-color .15s, color .15s; }
+.cl-info-btn:hover { background: var(--accent-soft); color: var(--accent); }
+.cl-info-btn:focus-visible, .cl-dialog-close:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+
+.cl-dialog {
+  width: min(460px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
+  padding: 0; border: 1px solid var(--line); border-radius: 16px;
+  background: var(--surface); color: var(--ink);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .3);
+}
+.cl-dialog[open] { animation: cl-dialog-in .18s ease-out; }
+.cl-dialog::backdrop { background: rgba(10, 12, 24, .55); }
+.cl-dialog-body { display: grid; gap: 14px; padding: 20px; }
+.cl-dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.cl-dialog-close { display: grid; place-items: center; width: 36px; height: 36px; flex: none; margin: -6px -6px 0 0; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink-3); cursor: pointer; }
+.cl-dialog-close:hover { background: var(--surface-2); color: var(--ink); }
+.cl-dialog-ok { justify-self: end; }
+.cl-dialog .cl-rules { grid-template-columns: minmax(0, 1fr); }
+@keyframes cl-dialog-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
 .cl-rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .cl-rules li { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); font-size: 14px; line-height: 1.4; color: var(--ink-2); }
 .cl-rules strong { color: var(--ink); }
@@ -1940,5 +2020,6 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   .cl-card--front.is-correct, .cl-card--front.is-wrong, .cl-card--back { animation: none; }
   .cl-card--front.is-exit-fade { animation: cl-fade-out .18s linear forwards; }
   .cl-spinner { animation-duration: 2s; }
+  .cl-dialog[open] { animation: none; }
 }
 `;
