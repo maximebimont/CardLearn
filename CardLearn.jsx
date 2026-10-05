@@ -13,7 +13,10 @@ const DEFAULT_SIZE = 20;
 
 // Durées des retours et animations (ms)
 const FEEDBACK_MS = 650; // retour vert avant que la carte parte derrière la pile
-const REVEAL_MS = 2000; // affichage de la bonne réponse après une erreur
+// Après une erreur, la bonne réponse reste affichée le temps de la lire : 4 à 9 s selon la longueur.
+const REVEAL_MIN_MS = 4000;
+const REVEAL_MAX_MS = 9000;
+const revealDelay = (card, input) => Math.min(REVEAL_MAX_MS, Math.max(REVEAL_MIN_MS, 3000 + 45 * (card.en.length + input.length)));
 const EXIT_BACK_MS = 680;
 const EXIT_SIDE_MS = 420;
 const EXIT_REDUCED_MS = 180;
@@ -390,7 +393,7 @@ function sessionReducer(state, action) {
       return { ...state, hint: true };
     case "answer": {
       if (state.phase !== "answering") return state;
-      const verdict = { id: state.queue[0], ok: action.ok, input: action.input, from: action.from, to: action.to };
+      const verdict = { id: state.queue[0], ok: action.ok, input: action.input, from: action.from, to: action.to, revealMs: action.revealMs };
       return { ...state, phase: action.ok ? "correct" : "wrong", verdict, nextQueue: action.nextQueue, results: [...state.results, verdict] };
     }
     case "exit":
@@ -443,8 +446,29 @@ const Icon = ({ d, size = 18 }) => (
 );
 const IconCheck = (p) => <Icon d="M5 12.5l4.5 4.5L19 7.5" {...p} />;
 const IconCross = (p) => <Icon d="M6 6l12 12M18 6L6 18" {...p} />;
+const IconChevron = (p) => <Icon d="M6 9l6 6 6-6" {...p} />;
+const IconFlame = (p) => <Icon d="M12 3c.4 3.2 5 5 5 10a5 5 0 0 1-10 0c0-2.4 1.1-3.9 2.4-5.3.3 1.5 1 2.4 2.1 2.9C11.2 8.3 10.9 5.6 12 3z" {...p} />;
+const IconStack = (p) => <Icon d="M9 3.5h10v13H9zM5.5 7v13.5h10" {...p} />;
+const IconBubble = (p) => <Icon d="M4 5h16v11H10l-5 4v-4H4z" {...p} />;
+const IconBook = (p) => <Icon d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5zM5 19.5A1.5 1.5 0 0 0 6.5 21H19" {...p} />;
+const IconPlay = ({ size = 22 }) => (
+  <svg className="cl-icon" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M8 5.2v13.6a1 1 0 0 0 1.5.86l11-6.8a1 1 0 0 0 0-1.72l-11-6.8A1 1 0 0 0 8 5.2z" fill="currentColor" />
+  </svg>
+);
+
+// Pictogramme de chaque catégorie sur les tuiles de l'accueil.
+function CatGlyph({ cat }) {
+  if (cat === "mots") return <span className="cl-glyph-text">Aa</span>;
+  if (cat === "expr") return <IconBubble size={20} />;
+  return <IconBook size={20} />;
+}
 const IconBack = (p) => <Icon d="M15 5l-7 7 7 7" {...p} />;
 const IconNext = (p) => <Icon d="M5 12h14M13 6l6 6-6 6" {...p} />;
+const IconHome = (p) => <Icon d="M4 10.5L12 4l8 6.5M6 9v11h4.5v-6h3v6H18V9" {...p} />;
+const IconUser = (p) => <Icon d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20.5c.8-3.6 3.8-5.5 7.5-5.5s6.7 1.9 7.5 5.5" {...p} />;
+const IconPodium = (p) => <Icon d="M9 21V9h6v12M3 21v-7h6M15 12h6v9M2 21h20" {...p} />;
+const IconLogout = (p) => <Icon d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9" {...p} />;
 
 /* -------------------------------------------------------------- Composants -- */
 
@@ -508,7 +532,7 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
   useEffect(() => {
     let timer;
     if (phase === "correct") timer = setTimeout(() => dispatch({ type: "exit", kind: "back" }), FEEDBACK_MS);
-    else if (phase === "wrong") timer = setTimeout(() => dispatch({ type: "exit", kind: "side" }), REVEAL_MS);
+    else if (phase === "wrong") timer = setTimeout(() => dispatch({ type: "exit", kind: "side" }), state.verdict.revealMs);
     else if (phase === "exiting") {
       const duration = reducedMotion ? EXIT_REDUCED_MS : state.exit === "back" ? EXIT_BACK_MS : EXIT_SIDE_MS;
       timer = setTimeout(() => dispatch({ type: "advance", size: config.size }), duration);
@@ -529,7 +553,7 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
     const to = ok ? Math.min(MAX_BOX, from + 1) : 1;
     onAnswer(card, ok, state.turn === 0);
     revealedAt.current = Date.now();
-    dispatch({ type: "answer", ok, input, from, to, nextQueue: requeue(state.queue, card.id, ok, to) });
+    dispatch({ type: "answer", ok, input, from, to, revealMs: ok ? 0 : revealDelay(card, input), nextQueue: requeue(state.queue, card.id, ok, to) });
   };
 
   const submit = (event) => {
@@ -567,7 +591,7 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
         </button>
         <div className="cl-session-progress">
           <span className="cl-session-count">
-            {config.mode === "errors" ? "Révision des erreurs · " : ""}Carte {state.turn + 1}&nbsp;/&nbsp;{total}
+            {config.mode === "errors" ? "Revanche · " : ""}Carte {state.turn + 1}&nbsp;/&nbsp;{total}
           </span>
           <Meter value={answered} max={total} />
         </div>
@@ -636,7 +660,7 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
                       "Carte passée avec « Je ne sais pas »."
                     )}
                   </span>
-                  {phase === "wrong" && <span className="cl-countdown" style={{ animationDuration: `${REVEAL_MS}ms` }} />}
+                  {phase === "wrong" && <span className="cl-countdown" style={{ animationDuration: `${verdict.revealMs}ms` }} />}
                 </div>
               )}
             </div>
@@ -689,130 +713,242 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
   );
 }
 
-function Home({ progress, summary, cats, onCatsChange, onSizeChange, onStart, onProfile, storage }) {
+const NAV_ITEMS = [
+  { id: "home", label: "Accueil", Glyph: IconHome },
+  { id: "profile", label: "Profil", Glyph: IconUser },
+  { id: "ranking", label: "Classement (bientôt)", Glyph: IconPodium },
+];
+
+// Icônes seules, centrées ; la déconnexion est à gauche.
+function NavBar({ screen, onNavigate, account, onSignOut, leaving }) {
+  const active = screen === "session" || screen === "summary" ? "home" : screen;
+  const logoutLabel = leaving ? "Déconnexion en cours" : account?.email ? `Se déconnecter (${account.email})` : "Se déconnecter";
+  return (
+    <header className="cl-nav">
+      <nav className="cl-nav-inner" aria-label="Navigation principale">
+        {onSignOut && (
+          <button type="button" className="cl-nav-logout" onClick={onSignOut} disabled={leaving} aria-label={logoutLabel} title={logoutLabel}>
+            <IconLogout size={22} />
+          </button>
+        )}
+        <ul className="cl-nav-links">
+          {NAV_ITEMS.map(({ id, label, Glyph }) => (
+            <li key={id}>
+              <button
+                type="button"
+                className="cl-nav-link"
+                aria-current={active === id ? "page" : undefined}
+                aria-label={label}
+                title={label}
+                onClick={() => onNavigate(id)}
+              >
+                <Glyph size={22} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </header>
+  );
+}
+
+function Ranking({ summary }) {
+  return (
+    <div className="cl-wrap">
+      <header className="cl-page-head">
+        <p className="cl-eyebrow">Bientôt disponible</p>
+        <h1>Classement</h1>
+      </header>
+      <section className="cl-panel" aria-labelledby="ranking-title">
+        <h2 id="ranking-title">Défiez les autres élèves</h2>
+        <p className="cl-muted">
+          Le classement mettra les élèves en compétition : chacun gagnera des places en maîtrisant des cartes et en révisant chaque
+          jour. Il arrive dans une prochaine version. Voici vos chiffres actuels.
+        </p>
+        <dl className="cl-stats cl-stats--3">
+          <div>
+            <dt>Cartes maîtrisées</dt>
+            <dd>
+              {summary.mastered}&nbsp;/&nbsp;{TOTAL}
+            </dd>
+          </div>
+          <div>
+            <dt>Série en cours</dt>
+            <dd>{plural(summary.streak, "jour", "jours")}</dd>
+          </div>
+          <div>
+            <dt>Note estimée</dt>
+            <dd>{summary.grade}</dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+  );
+}
+
+function Home({ progress, summary, cats, onCatsChange, onSizeChange, onStart, storage }) {
   const size = progress.settings.size;
-  const selected = CARDS.filter((card) => cats.includes(card.cat)).length;
+  const pool = CARDS.filter((card) => cats.includes(card.cat)).length;
   const toggle = (cat) => onCatsChange(cats.includes(cat) ? cats.filter((c) => c !== cat) : CAT_KEYS.filter((c) => c === cat || cats.includes(c)));
   const nextGrade = GRADES.slice().reverse().find((g) => g.min > summary.mastered);
 
   return (
-    <div className="cl-wrap">
-      <header className="cl-topbar">
-        <div className="cl-brand">
-          <span className="cl-logo" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
-          <div>
-            <h1 className="cl-brand-name">CardLearn</h1>
-            <p className="cl-brand-sub">Vocabulaire anglais technique · {TOTAL}&nbsp;cartes</p>
-          </div>
-        </div>
-      </header>
-
+    <div className="cl-wrap cl-home">
       <StorageNotice state={storage} />
 
-      <section className="cl-panel cl-panel--main" aria-labelledby="learn-title">
-        <div className="cl-panel-head">
-          <h2 id="learn-title">Apprentissage</h2>
-          <p>Les cartes des boîtes basses reviennent plus souvent. Une carte ratée revient quelques cartes plus loin.</p>
+      <section className="cl-hud" aria-label="Vos scores">
+        <div className="cl-hud-item">
+          <span className="cl-hud-icon" data-tone="streak">
+            <IconFlame size={20} />
+          </span>
+          <span className="cl-hud-text">
+            <span className="cl-hud-value">{summary.streak}</span>
+            <span className="cl-hud-label">{summary.streak > 1 ? "jours de suite" : "jour de suite"}</span>
+          </span>
         </div>
-
-        <fieldset className="cl-field">
-          <legend>Catégories</legend>
-          <div className="cl-cats">
-            {CAT_KEYS.map((cat) => (
-              <label key={cat} className={cls("cl-cat-option", cats.includes(cat) && "is-on")} data-cat={cat}>
-                <input type="checkbox" id={`cat-${cat}`} checked={cats.includes(cat)} onChange={() => toggle(cat)} />
-                <span className="cl-cat-dot" aria-hidden="true" />
-                <span className="cl-cat-text">
-                  <span className="cl-cat-name">{CATEGORIES[cat].label}</span>
-                  <span className="cl-cat-meta">
-                    {CAT_TOTAL[cat]} cartes · {summary.masteredByCat[cat]} maîtrisées
-                  </span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        <fieldset className="cl-field">
-          <legend>Cartes par session</legend>
-          <div className="cl-segmented" role="radiogroup" aria-label="Cartes par session">
-            {SESSION_SIZES.map((n) => (
-              <button key={n} type="button" role="radio" aria-checked={size === n} className={cls(size === n && "is-on")} onClick={() => onSizeChange(n)}>
-                {n}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
-        <div className="cl-panel-foot">
-          <button type="button" className="cl-btn cl-btn--primary cl-btn--lg" disabled={!cats.length} onClick={() => onStart("learn")}>
-            Commencer la session <IconNext size={18} />
-          </button>
-          <span className="cl-foot-note">{cats.length ? `${selected} cartes dans le tirage` : "Cochez au moins une catégorie."}</span>
+        <div className="cl-hud-item">
+          <span className="cl-hud-icon" data-tone="mastered">
+            <IconStack size={20} />
+          </span>
+          <span className="cl-hud-text">
+            <span className="cl-hud-value">
+              {summary.mastered}
+              <small>/{TOTAL}</small>
+            </span>
+            <span className="cl-hud-label">maîtrisées</span>
+          </span>
+        </div>
+        <div className="cl-hud-item">
+          <span className="cl-hud-grade" aria-hidden="true">
+            {summary.grade}
+          </span>
+          <span className="cl-hud-text">
+            <span className="cl-hud-value cl-hud-value--word">Note {summary.grade}</span>
+            <span className="cl-hud-label">{nextGrade ? `encore ${nextGrade.min - summary.mastered} pour ${nextGrade.grade}` : "note maximale"}</span>
+          </span>
         </div>
       </section>
 
-      <div className="cl-duo">
-        <section className="cl-panel" aria-labelledby="errors-title">
-          <h2 id="errors-title">Revoir mes erreurs</h2>
-          <p className="cl-big-number">{summary.toReview}</p>
-          <p className="cl-muted">
-            {summary.toReview
-              ? `${summary.toReview > 1 ? "cartes ratées" : "carte ratée"} au moins une fois et pas encore ${summary.toReview > 1 ? "maîtrisées" : "maîtrisée"}.`
-              : "Aucune erreur à revoir pour le moment."}
-          </p>
-          <button type="button" className="cl-btn" disabled={!summary.toReview} onClick={() => onStart("errors")}>
-            Revoir mes erreurs
-          </button>
-        </section>
+      <section className="cl-play" aria-labelledby="play-title">
+        <div className="cl-play-head">
+          <h1 id="play-title">Nouvelle partie</h1>
+          <p>{TOTAL} cartes de vocabulaire anglais technique</p>
+        </div>
 
-        <section className="cl-panel" aria-labelledby="profile-title">
-          <h2 id="profile-title">Profil</h2>
-          <p className="cl-big-number">
-            {summary.mastered}
-            <span>&nbsp;/&nbsp;{TOTAL}</span>
-          </p>
-          <Meter value={summary.mastered} max={TOTAL} tone="ok" />
-          <p className="cl-muted">
-            maîtrisées · série de {plural(summary.streak, "jour", "jours")} · note estimée <strong className="cl-ink">{summary.grade}</strong>
-            {nextGrade && summary.grade !== "A" ? ` (encore ${nextGrade.min - summary.mastered} pour ${nextGrade.grade})` : ""}
-          </p>
-          <button type="button" className="cl-btn" onClick={onProfile}>
-            Voir mon profil
+        <fieldset className="cl-modes">
+          <legend className="cl-sr">Catégories</legend>
+          {CAT_KEYS.map((cat) => {
+            const on = cats.includes(cat);
+            return (
+              <label key={cat} className={cls("cl-mode", on && "is-on")} data-cat={cat}>
+                <input type="checkbox" id={`cat-${cat}`} className="cl-mode-input" checked={on} onChange={() => toggle(cat)} />
+                <span className="cl-mode-glyph" aria-hidden="true">
+                  <CatGlyph cat={cat} />
+                </span>
+                <span className="cl-mode-check" aria-hidden="true">
+                  <IconCheck size={14} />
+                </span>
+                <span className="cl-mode-name">{CATEGORIES[cat].label}</span>
+                <span className="cl-mode-meta">
+                  {summary.masteredByCat[cat]}/{CAT_TOTAL[cat]} maîtrisées
+                </span>
+                <span className="cl-mode-bar" aria-hidden="true">
+                  <span style={{ width: `${(summary.masteredByCat[cat] / CAT_TOTAL[cat]) * 100}%` }} />
+                </span>
+              </label>
+            );
+          })}
+        </fieldset>
+
+        <div className="cl-play-foot">
+          <div className="cl-rounds">
+            <span className="cl-rounds-label" id="rounds-label">
+              Cartes par partie
+            </span>
+            <div className="cl-rounds-options" role="radiogroup" aria-labelledby="rounds-label">
+              {SESSION_SIZES.map((n) => (
+                <button key={n} type="button" role="radio" aria-checked={size === n} className={cls(size === n && "is-on")} onClick={() => onSizeChange(n)}>
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button type="button" className="cl-play-btn" disabled={!cats.length} onClick={() => onStart("learn")}>
+            <IconPlay size={22} />
+            Jouer
           </button>
-        </section>
-      </div>
+        </div>
+        <p className="cl-play-note">{cats.length ? `${Math.min(size, pool)} cartes tirées parmi ${pool}` : "Choisissez au moins une catégorie pour jouer."}</p>
+      </section>
+
+      <section className={cls("cl-rematch", !summary.toReview && "is-empty")} aria-labelledby="rematch-title">
+        <span className="cl-rematch-count" id="errors-count">
+          {summary.toReview}
+        </span>
+        <div className="cl-rematch-text">
+          <h2 id="rematch-title">Revanche</h2>
+          <p>
+            {summary.toReview
+              ? `${plural(summary.toReview, "carte ratée", "cartes ratées")} à reprendre jusqu'à la maîtrise.`
+              : "Aucune erreur à reprendre. Bien joué\u00a0!"}
+          </p>
+        </div>
+        <button type="button" className="cl-btn cl-rematch-btn" disabled={!summary.toReview} onClick={() => onStart("errors")}>
+          Revoir mes erreurs
+        </button>
+      </section>
     </div>
+  );
+}
+
+// Toutes les tentatives d'une carte pendant la session, dans l'ordre.
+function Attempts({ id, attempts }) {
+  return (
+    <ol id={`attempts-${id}`} className="cl-attempts">
+      {attempts.map((a) => (
+        <li key={a.turn} className={a.ok ? "is-ok" : "is-bad"}>
+          <span className="cl-attempt-turn">Carte {a.turn}</span>
+          <span className="cl-attempt-answer">
+            {a.ok ? <IconCheck size={16} /> : <IconCross size={16} />}
+            {a.input ? a.ok ? <span>{a.input}</span> : <s>{a.input}</s> : <em>Je ne sais pas</em>}
+          </span>
+          <span className="cl-attempt-box">
+            Boîte {a.from} → {a.to}
+          </span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
 function Summary({ result, canReplay, onReplay, onHome }) {
   const { results, completed, mode } = result;
+  const [open, setOpen] = useState(() => new Set());
   const total = results.length;
   const good = results.filter((r) => r.ok).length;
   const missed = [];
   const byId = new Map();
-  for (const r of results) {
-    if (r.ok) continue;
-    if (byId.has(r.id)) byId.get(r.id).count += 1;
-    else {
-      const entry = { id: r.id, count: 1 };
-      byId.set(r.id, entry);
-      missed.push(entry);
-    }
-  }
+  results.forEach((r, i) => {
+    const attempt = { ...r, turn: i + 1 };
+    if (byId.has(r.id)) byId.get(r.id).attempts.push(attempt);
+    else byId.set(r.id, { id: r.id, attempts: [attempt] });
+  });
+  for (const entry of byId.values()) if (entry.attempts.some((a) => !a.ok)) missed.push(entry);
+  const toggle = (id) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const promoted = new Set(results.filter((r) => r.ok && r.to > r.from).map((r) => r.id)).size;
   const newlyMastered = new Set(results.filter((r) => r.ok && r.to === MAX_BOX && r.from < MAX_BOX).map((r) => r.id)).size;
 
   return (
     <div className="cl-wrap">
       <header className="cl-page-head">
-        <p className="cl-eyebrow">{mode === "errors" ? "Révision des erreurs" : "Apprentissage"}</p>
-        <h1>{completed ? "Session terminée" : "Session interrompue"}</h1>
+        <p className="cl-eyebrow">{mode === "errors" ? "Revanche" : "Nouvelle partie"}</p>
+        <h1>{completed ? "Partie terminée" : "Partie interrompue"}</h1>
       </header>
 
       <section className="cl-panel cl-score">
@@ -834,22 +970,33 @@ function Summary({ result, canReplay, onReplay, onHome }) {
         <h2 id="missed-title">Cartes ratées</h2>
         {missed.length ? (
           <ul className="cl-list">
-            {missed.map(({ id, count }) => {
+            {missed.map(({ id, attempts }) => {
               const card = CARD_BY_ID[id];
+              const isOpen = open.has(id);
+              const errors = attempts.filter((a) => !a.ok).length;
               return (
-                <li key={id} className="cl-list-item">
-                  <div className="cl-list-main">
-                    <Badge cat={card.cat} />
-                    <span className="cl-list-fr">{card.cat === "def" ? card.hint : card.fr}</span>
-                    <span className="cl-list-en">{card.en}</span>
-                  </div>
-                  {count > 1 && <span className="cl-list-count">×{count}</span>}
+                <li key={id} className={cls("cl-list-item", "cl-missed", isOpen && "is-open")}>
+                  <button type="button" className="cl-missed-toggle" aria-expanded={isOpen} aria-controls={`attempts-${id}`} onClick={() => toggle(id)}>
+                    <span className="cl-list-main">
+                      <Badge cat={card.cat} />
+                      <span className="cl-list-fr">{card.cat === "def" ? card.hint : card.fr}</span>
+                      <span className="cl-list-en">{card.en}</span>
+                    </span>
+                    <span className="cl-missed-meta">
+                      <span className="cl-list-count">{plural(errors, "erreur", "erreurs")}</span>
+                      <span className="cl-missed-hint">
+                        {plural(attempts.length, "tentative", "tentatives")}
+                        <IconChevron size={16} />
+                      </span>
+                    </span>
+                  </button>
+                  {isOpen && <Attempts id={id} attempts={attempts} />}
                 </li>
               );
             })}
           </ul>
         ) : (
-          <p className="cl-muted">Aucune erreur pendant cette session.</p>
+          <p className="cl-muted">Aucune erreur pendant cette partie.</p>
         )}
       </section>
 
@@ -894,7 +1041,7 @@ function BoxChart({ boxes, unseen }) {
   );
 }
 
-function Profile({ progress, summary, onBack, onReset, storage }) {
+function Profile({ progress, summary, onReset, storage }) {
   const [confirming, setConfirming] = useState(false);
   const [resetDone, setResetDone] = useState(false);
   const { stats } = progress;
@@ -905,10 +1052,7 @@ function Profile({ progress, summary, onBack, onReset, storage }) {
 
   return (
     <div className="cl-wrap cl-wrap--wide">
-      <header className="cl-page-head cl-page-head--row">
-        <button type="button" className="cl-btn cl-btn--ghost cl-btn--sm" onClick={onBack}>
-          <IconBack size={16} /> Accueil
-        </button>
+      <header className="cl-page-head">
         <h1>Profil</h1>
       </header>
 
@@ -1063,17 +1207,19 @@ function Profile({ progress, summary, onBack, onReset, storage }) {
 
 /* --------------------------------------------------------------------- App -- */
 
-export default function CardLearn() {
+// account / onSignOut : fournis par le site (connexion Supabase). Absents dans un artifact.
+export default function CardLearn({ account = null, onSignOut = null } = {}) {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(emptyProgress);
   const [storage, setStorage] = useState("ok"); // ok | unavailable | error
-  const [screen, setScreen] = useState("home"); // home | session | summary | profile
+  const [screen, setScreen] = useState("home"); // home | session | summary | profile | ranking
   const [cats, setCats] = useState(CAT_KEYS);
   const [session, setSession] = useState(null);
   const [result, setResult] = useState(null);
   const dirty = useRef(false);
   const saver = useRef({ busy: false, pending: null });
   const reducedMotion = usePrefersReducedMotion();
+  const [leaving, setLeaving] = useState(false);
 
   // Chargement de la progression au démarrage.
   useEffect(() => {
@@ -1151,6 +1297,26 @@ export default function CardLearn() {
     setScreen("session");
   };
 
+  // Quitter une session par la barre : les réponses données sont déjà enregistrées.
+  const navigate = (target) => {
+    setSession(null);
+    setScreen(target);
+  };
+
+  const signOut = async () => {
+    if (!onSignOut || leaving) return;
+    setLeaving(true);
+    // Laisse partir la dernière sauvegarde avant de se déconnecter.
+    for (let i = 0; i < 30 && (dirty.current || saver.current.busy || saver.current.pending); i++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    try {
+      await onSignOut();
+    } catch (err) {
+      setLeaving(false);
+    }
+  };
+
   const handleAnswer = useCallback((card, ok, firstOfSession) => update((p) => recordAnswer(p, card, ok, firstOfSession)), [update]);
 
   const handleEnd = (results, completed) => {
@@ -1184,7 +1350,9 @@ export default function CardLearn() {
       />
     );
   } else if (screen === "profile") {
-    content = <Profile progress={progress} summary={summary} storage={storage} onBack={() => setScreen("home")} onReset={() => update((p) => emptyProgress(p.settings.size))} />;
+    content = <Profile progress={progress} summary={summary} storage={storage} onReset={() => update((p) => emptyProgress(p.settings.size))} />;
+  } else if (screen === "ranking") {
+    content = <Ranking summary={summary} />;
   } else {
     content = (
       <Home
@@ -1195,7 +1363,6 @@ export default function CardLearn() {
         onCatsChange={setCats}
         onSizeChange={(size) => update((p) => ({ ...p, settings: { ...p.settings, size } }))}
         onStart={startSession}
-        onProfile={() => setScreen("profile")}
       />
     );
   }
@@ -1203,7 +1370,8 @@ export default function CardLearn() {
   return (
     <div className="cl-app">
       <style>{STYLES}</style>
-      {content}
+      {!loading && <NavBar screen={screen} onNavigate={navigate} account={account} onSignOut={onSignOut ? signOut : null} leaving={leaving} />}
+      <main className="cl-main">{content}</main>
     </div>
   );
 }
@@ -1233,6 +1401,17 @@ const STYLES = `
   --cat-expr: #eb6834;
   --cat-def: #1baf7a;
   --rule: rgba(191, 51, 41, 0.32);
+  --play-bg: #262a74;
+  --play-ink: #ffffff;
+  --play-muted: rgba(255, 255, 255, 0.74);
+  --play-line: rgba(255, 255, 255, 0.2);
+  --play-tile: rgba(255, 255, 255, 0.07);
+  --play-tile-on: rgba(255, 255, 255, 0.15);
+  --cta: #ffc93c;
+  --cta-ink: #231a00;
+  --cta-shade: #c9921a;
+  --flame: #d4570f;
+  --flame-soft: #fde9dc;
   --shadow: 0 1px 2px rgba(22, 26, 44, 0.06), 0 10px 28px rgba(22, 26, 44, 0.09);
   --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -1258,6 +1437,9 @@ const STYLES = `
     --cat-expr: #d95926;
     --cat-def: #199e70;
     --rule: rgba(242, 123, 111, 0.34);
+    --play-bg: #282c6e;
+    --flame: #ff8f4d;
+    --flame-soft: rgba(255, 143, 77, 0.15);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.38);
     color-scheme: dark;
   }
@@ -1281,6 +1463,9 @@ const STYLES = `
   --cat-expr: #d95926;
   --cat-def: #199e70;
   --rule: rgba(242, 123, 111, 0.34);
+  --play-bg: #282c6e;
+  --flame: #ff8f4d;
+  --flame-soft: rgba(255, 143, 77, 0.15);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.38);
   color-scheme: dark;
 }
@@ -1289,8 +1474,6 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-app {
   min-height: 100vh;
   box-sizing: border-box;
-  padding-inline: 16px;
-  padding-block: 24px 56px;
   overflow-x: clip;
   background: var(--bg);
   color: var(--ink);
@@ -1308,6 +1491,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-muted { color: var(--ink-2); font-size: 15px; }
 .cl-ink { color: var(--ink); }
 
+.cl-main { padding-inline: 16px; padding-block: 24px 56px; }
 .cl-wrap { max-width: 640px; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 .cl-wrap--wide { max-width: 760px; }
 .cl-wrap--session { max-width: 600px; gap: 16px; }
@@ -1324,7 +1508,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 }
 .cl-btn:hover:not(:disabled) { border-color: var(--ink-3); }
 .cl-btn:active:not(:disabled) { transform: translateY(1px); }
-.cl-btn:focus-visible, .cl-app input:focus-visible, .cl-segmented button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.cl-btn:focus-visible, .cl-app input:focus-visible, .cl-rounds-options button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .cl-btn:disabled { opacity: .45; cursor: not-allowed; }
 .cl-btn--primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .cl-btn--primary:hover:not(:disabled) { border-color: var(--accent); filter: brightness(1.08); }
@@ -1338,54 +1522,128 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 
 /* Panneaux */
 .cl-panel { display: grid; gap: 14px; align-content: start; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
-.cl-panel--main { gap: 20px; padding: 24px; box-shadow: var(--shadow); }
-.cl-panel-head { display: grid; gap: 6px; }
-.cl-panel-head h2 { font-size: 26px; }
-.cl-panel-head p { color: var(--ink-2); max-width: 52ch; }
-.cl-panel-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
-.cl-foot-note { color: var(--ink-3); font-size: 14px; }
-.cl-duo, .cl-grid-2 { display: grid; gap: 20px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.cl-duo .cl-panel .cl-btn { justify-self: start; }
+.cl-grid-2 { display: grid; gap: 20px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .cl-big-number { font: 700 40px/1 var(--font-body); font-variant-numeric: tabular-nums; color: var(--ink); }
 .cl-big-number span { font-size: 16px; font-weight: 400; color: var(--ink-2); }
 .cl-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .cl-notice { padding: 10px 14px; border-radius: 8px; background: var(--bad-soft); color: var(--ink); font-size: 14px; }
 .cl-eyebrow { font: 600 12px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
 .cl-page-head { display: grid; gap: 6px; }
-.cl-page-head--row { grid-template-columns: auto 1fr; align-items: center; gap: 12px; }
 .cl-app .cl-subhead { font-size: 15px; font-family: var(--font-body); font-weight: 700; color: var(--ink-2); margin-top: 4px; }
 
-/* En-tête de l'accueil */
-.cl-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.cl-brand { display: flex; align-items: center; gap: 14px; }
-.cl-app .cl-brand-name { font-size: 30px; line-height: 1; }
-.cl-app .cl-brand-sub { margin-top: 4px; color: var(--ink-3); font-size: 14px; }
-.cl-logo { position: relative; width: 40px; height: 36px; flex: none; }
-.cl-logo span { position: absolute; left: 0; width: 34px; height: 24px; border-radius: 4px; border: 1.5px solid var(--ink); background: var(--surface); }
-.cl-logo span:nth-child(1) { top: 0; left: 6px; opacity: .35; }
-.cl-logo span:nth-child(2) { top: 5px; left: 3px; opacity: .6; }
-.cl-logo span:nth-child(3) { top: 10px; box-shadow: inset 0 6px 0 -4.5px var(--rule); }
+/* Barre de navigation */
+.cl-nav {
+  position: sticky; top: 0; z-index: 40;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.cl-nav-inner { max-width: 960px; margin-inline: auto; padding-inline: 16px; min-height: 60px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+.cl-nav-links { grid-column: 2; display: flex; align-items: center; gap: 10px; }
+.cl-nav-link, .cl-nav-logout {
+  display: inline-grid; place-items: center;
+  width: 52px; height: 44px;
+  border: 0; border-radius: 10px;
+  background: none; color: var(--ink-2);
+  cursor: pointer;
+  transition: background-color .15s, color .15s;
+}
+.cl-nav-link:hover { background: var(--surface-2); color: var(--ink); }
+.cl-nav-link[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
+.cl-nav-logout { grid-column: 1; justify-self: start; width: 44px; color: var(--ink-3); }
+.cl-nav-logout:hover:not(:disabled) { background: var(--bad-soft); color: var(--bad); }
+.cl-nav-logout:disabled { opacity: .55; cursor: progress; }
+.cl-nav-link:focus-visible, .cl-nav-logout:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
-/* Choix des catégories et de la taille */
-.cl-field { border: 0; padding: 0; display: grid; gap: 10px; min-width: 0; }
-.cl-field legend { padding: 0; margin-bottom: 10px; font: 600 12px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
-.cl-cats { display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.cl-cat-option { --c: var(--cat-mots); position: relative; display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; background: var(--surface); transition: border-color .15s, background-color .15s; }
-.cl-cat-option.is-on { border-color: var(--c); background: color-mix(in srgb, var(--c) 8%, var(--surface)); }
-.cl-cat-option input { margin: 3px 0 0; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
-.cl-cat-option:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
-.cl-cat-option input:focus-visible { outline: none; }
-.cl-cat-text { display: grid; gap: 2px; min-width: 0; }
-.cl-cat-name { font-weight: 700; line-height: 1.25; }
-.cl-cat-meta { font-size: 13px; color: var(--ink-3); }
-.cl-cat-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
-.cl-cat-option .cl-cat-dot { position: absolute; top: 12px; right: 12px; }
 [data-cat="mots"] { --c: var(--cat-mots); }
 [data-cat="expr"] { --c: var(--cat-expr); }
 [data-cat="def"] { --c: var(--cat-def); }
-.cl-segmented { display: inline-flex; padding: 3px; gap: 3px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--line); justify-self: start; }
-.cl-segmented button { min-width: 64px; min-height: 40px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font: 600 15px/1 var(--font-mono); cursor: pointer; }
-.cl-segmented button.is-on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(22, 26, 44, .14); }
+.cl-cat-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+
+/* Accueil façon jeu : tableau de scores, plateau « Nouvelle partie », revanche */
+.cl-home { gap: 16px; }
+.cl-hud { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.cl-hud-item { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 12px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
+.cl-hud-icon { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 10px; }
+.cl-hud-icon[data-tone="streak"] { background: var(--flame-soft); color: var(--flame); }
+.cl-hud-icon[data-tone="mastered"] { background: var(--ok-soft); color: var(--ok); }
+.cl-hud-grade { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 10px; border: 2px solid var(--ink); font: 800 21px/1 var(--font-display); color: var(--ink); }
+.cl-hud-text { display: grid; gap: 1px; min-width: 0; }
+.cl-hud-value { font: 800 22px/1.1 var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.cl-hud-value small { font-size: 14px; font-weight: 600; color: var(--ink-3); }
+.cl-hud-value--word { font-size: 17px; }
+.cl-hud-label { font-size: 12.5px; line-height: 1.3; color: var(--ink-3); }
+
+.cl-play {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: grid; gap: 18px;
+  padding: 24px;
+  border-radius: 16px;
+  background: var(--play-bg); color: var(--play-ink);
+  box-shadow: var(--shadow);
+}
+/* Fiches décoratives dans le coin du plateau */
+.cl-play::before, .cl-play::after {
+  content: ""; position: absolute; z-index: -1;
+  width: 150px; height: 104px; border-radius: 10px;
+  border: 2px solid var(--play-line); background: var(--play-tile);
+  top: -26px; right: -34px; transform: rotate(14deg);
+}
+.cl-play::after { top: -6px; right: 30px; transform: rotate(-8deg); }
+.cl-play-head { display: grid; gap: 4px; }
+.cl-app .cl-play-head h1 { color: var(--play-ink); font-size: 36px; font-weight: 800; letter-spacing: -0.02em; }
+.cl-play-head p { color: var(--play-muted); font-size: 15px; }
+
+.cl-modes { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.cl-mode {
+  position: relative; display: grid; gap: 6px; align-content: start;
+  padding: 14px; border-radius: 12px;
+  background: var(--play-tile); border: 2px solid var(--play-line);
+  color: var(--play-ink); cursor: pointer; user-select: none;
+  transition: background-color .15s, border-color .15s, transform .12s;
+}
+.cl-mode:hover { background: var(--play-tile-on); }
+.cl-mode:active { transform: scale(.98); }
+.cl-mode.is-on { background: var(--play-tile-on); border-color: var(--cta); }
+.cl-mode:has(.cl-mode-input:focus-visible) { outline: 3px solid var(--play-ink); outline-offset: 2px; }
+.cl-mode-input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.cl-mode-glyph { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: var(--c); color: #ffffff; margin-bottom: 4px; }
+.cl-glyph-text { font: 800 17px/1 var(--font-display); letter-spacing: -0.02em; }
+.cl-mode-check { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--play-line); color: transparent; }
+.cl-mode.is-on .cl-mode-check { background: var(--cta); border-color: var(--cta); color: var(--cta-ink); }
+.cl-mode-name { font: 700 17px/1.2 var(--font-display); }
+.cl-mode-meta { font-size: 13px; color: var(--play-muted); font-variant-numeric: tabular-nums; }
+.cl-mode-bar { display: block; height: 5px; margin-top: 4px; border-radius: 999px; background: var(--play-line); overflow: hidden; }
+.cl-mode-bar > span { display: block; height: 100%; border-radius: 999px; background: var(--c); }
+
+.cl-play-foot { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.cl-rounds { display: grid; gap: 8px; }
+.cl-rounds-label { font: 600 12px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--play-muted); }
+.cl-rounds-options { display: inline-flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--play-tile); border: 1px solid var(--play-line); }
+.cl-rounds-options button { min-width: 58px; min-height: 42px; border: 0; border-radius: 8px; background: transparent; color: var(--play-ink); font: 700 16px/1 var(--font-mono); cursor: pointer; }
+.cl-rounds-options button.is-on { background: var(--play-ink); color: var(--play-bg); }
+.cl-play-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-width: 200px; min-height: 60px; padding: 0 34px;
+  border: 0; border-radius: 14px;
+  background: var(--cta); color: var(--cta-ink);
+  font: 800 24px/1 var(--font-display); letter-spacing: -0.01em;
+  box-shadow: 0 5px 0 var(--cta-shade);
+  cursor: pointer; transition: transform .08s, box-shadow .08s, filter .15s;
+}
+.cl-play-btn:hover:not(:disabled) { filter: brightness(1.05); }
+.cl-play-btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 var(--cta-shade); }
+.cl-play-btn:focus-visible { outline: 3px solid var(--play-ink); outline-offset: 3px; }
+.cl-play-btn:disabled { opacity: .45; cursor: not-allowed; }
+.cl-app .cl-play-note { font-size: 13px; color: var(--play-muted); margin-top: -6px; }
+
+.cl-rematch { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+.cl-rematch-count { display: grid; place-items: center; min-width: 54px; height: 54px; padding: 0 10px; border-radius: 14px; background: var(--bad-soft); color: var(--bad); font: 800 26px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.cl-rematch.is-empty .cl-rematch-count { background: var(--ok-soft); color: var(--ok); }
+.cl-rematch-text { display: grid; gap: 2px; min-width: 0; }
+.cl-rematch-text p { font-size: 14px; color: var(--ink-2); }
+.cl-rematch-btn { white-space: nowrap; }
 
 /* Badge de catégorie */
 .cl-badge { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px 3px 8px; border-radius: 999px; background: color-mix(in srgb, var(--c) 16%, var(--surface)); color: var(--ink); font: 600 11.5px/1.5 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
@@ -1492,6 +1750,28 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-list-fr { font-weight: 700; overflow-wrap: anywhere; }
 .cl-list-en { font: 500 15px/1.4 var(--font-mono); color: var(--ink-2); overflow-wrap: anywhere; }
 .cl-list-count { font: 600 13px/1.6 var(--font-mono); color: var(--bad); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cl-missed { display: grid; gap: 10px; }
+.cl-missed-toggle {
+  display: flex; align-items: flex-start; gap: 12px;
+  margin: -8px; padding: 8px; width: calc(100% + 16px);
+  border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.cl-missed-toggle:hover { background: var(--surface-2); }
+.cl-missed-toggle:focus-visible { outline: 3px solid var(--accent); outline-offset: 0; }
+.cl-missed-meta { display: grid; gap: 4px; justify-items: end; flex: none; }
+.cl-missed-hint { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ink-3); white-space: nowrap; }
+.cl-missed-hint .cl-icon { transition: transform .2s; }
+.cl-missed.is-open .cl-missed-hint .cl-icon { transform: rotate(180deg); }
+.cl-attempts { display: grid; gap: 6px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); }
+.cl-attempts li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; gap: 4px 14px; font-size: 14px; }
+.cl-attempt-turn { font: 600 12px/1.4 var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cl-attempt-answer { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; font: 500 14px/1.4 var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
+.cl-attempt-answer .cl-icon { align-self: center; }
+.cl-attempts .is-ok .cl-attempt-answer .cl-icon { color: var(--ok); }
+.cl-attempts .is-bad .cl-attempt-answer .cl-icon { color: var(--bad); }
+.cl-attempt-answer em { font-family: var(--font-body); color: var(--ink-2); }
+.cl-attempt-answer s { color: var(--ink-2); text-decoration-thickness: 1.5px; }
+.cl-attempt-box { font: 500 12px/1.4 var(--font-mono); color: var(--ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .cl-rank { width: 26px; flex: none; font: 600 15px/1.6 var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
 
 /* Profil */
@@ -1507,6 +1787,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-grade-scale li.is-current { border-color: var(--ink); color: var(--ink); background: var(--surface-2); }
 .cl-grade-scale-letter { font: 700 18px/1.1 var(--font-display); color: var(--ink); }
 .cl-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.cl-stats.cl-stats--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .cl-stats div { display: grid; gap: 4px; padding: 12px; border-radius: 8px; background: var(--surface-2); min-width: 0; }
 .cl-stats dt { font-size: 13px; color: var(--ink-2); }
 .cl-stats dd { font: 700 24px/1.1 var(--font-body); font-variant-numeric: tabular-nums; color: var(--ink); }
@@ -1554,12 +1835,32 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 /* La carte ratée glisse sur le côté. */
 @keyframes cl-slide-out { to { transform: translateX(118%) rotate(8deg); opacity: 0; } }
 
+@media (max-width: 400px) {
+  .cl-stats.cl-stats--3 { grid-template-columns: minmax(0, 1fr); }
+}
 @media (max-width: 640px) {
-  .cl-app { padding-block: 16px 40px; }
+  .cl-main { padding-block: 16px 40px; }
   .cl-app h1 { font-size: 28px; }
-  .cl-cats, .cl-duo, .cl-grid-2 { grid-template-columns: minmax(0, 1fr); }
+  .cl-grid-2 { grid-template-columns: minmax(0, 1fr); }
+  .cl-play { padding: 18px; gap: 16px; }
+  .cl-play::before { width: 96px; height: 68px; top: -30px; right: -30px; }
+  .cl-play::after { display: none; }
+  .cl-app .cl-play-head h1 { font-size: 30px; }
+  .cl-modes { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .cl-mode { grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; row-gap: 2px; padding: 10px 44px 10px 12px; align-items: center; }
+  .cl-mode-glyph { grid-row: span 3; margin-bottom: 0; }
+  .cl-mode-check { top: 50%; transform: translateY(-50%); }
+  .cl-mode-name, .cl-mode-meta, .cl-mode-bar { grid-column: 2; }
+  .cl-play-foot { flex-direction: column; align-items: stretch; }
+  .cl-rounds-options { display: flex; }
+  .cl-rounds-options button { flex: 1; }
+  .cl-play-btn { width: 100%; }
+  .cl-hud { gap: 8px; }
+  .cl-hud-item { flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px; }
+  .cl-rematch { grid-template-columns: auto minmax(0, 1fr); }
+  .cl-rematch-btn { grid-column: 1 / -1; }
   .cl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .cl-panel, .cl-panel--main { padding: 16px; }
+  .cl-panel { padding: 16px; }
   .cl-card--front { min-height: 230px; padding: 14px 16px 20px; }
   .cl-card-fr { font-size: 28px; }
   .cl-card-fr.is-long { font-size: 22px; }
@@ -1567,7 +1868,8 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   .cl-card-def { font-size: 16.5px; }
   .cl-answer-tip { display: none; }
   .cl-score { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-  .cl-panel-foot .cl-btn--lg { width: 100%; }
+  .cl-attempts li { grid-template-columns: auto minmax(0, 1fr); }
+  .cl-attempt-box { grid-column: 2; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cl-app *, .cl-app *::before, .cl-app *::after { transition-duration: .01ms !important; }

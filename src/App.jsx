@@ -326,28 +326,17 @@ function NewPassword({ email, onDone }) {
 function SignedIn({ session }) {
   const userId = session.user.id;
   const storage = useMemo(() => createSupabaseStorage(supabase, userId), [userId]);
-  const [leaving, setLeaving] = useState(false);
 
+  // Appelée par la barre de navigation de CardLearn.
   const signOut = async () => {
-    setLeaving(true);
     await storage.flush().catch(() => {}); // hors ligne : la copie locale sera renvoyée à la prochaine connexion
     await supabase.auth.signOut({ scope: "local" });
   };
 
   return (
-    <div className="sh-signed-in">
-      <div className="sh-account">
-        <span className="sh-account-who">
-          Connecté · <span className="sh-account-email">{session.user.email || "compte GitHub"}</span>
-        </span>
-        <button type="button" className="sh-btn sh-btn--quiet sh-btn--sm" onClick={signOut} disabled={leaving}>
-          {leaving ? "Déconnexion…" : "Se déconnecter"}
-        </button>
-      </div>
-      <StorageScope key={userId} storage={storage}>
-        <CardLearn />
-      </StorageScope>
-    </div>
+    <StorageScope key={userId} storage={storage}>
+      <CardLearn account={{ email: session.user.email || "Compte GitHub" }} onSignOut={signOut} />
+    </StorageScope>
   );
 }
 
