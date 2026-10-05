@@ -791,7 +791,9 @@ function Ranking({ summary }) {
           </div>
           <div>
             <dt>Note estimée</dt>
-            <dd>{summary.grade}</dd>
+            <dd className="cl-grade-ink" data-grade={summary.grade}>
+              {summary.grade}
+            </dd>
           </div>
         </dl>
       </section>
@@ -832,7 +834,7 @@ function Home({ progress, summary, cats, onCatsChange, onSizeChange, onStart, st
           </span>
         </div>
         <div className="cl-hud-item">
-          <span className="cl-hud-grade" aria-hidden="true">
+          <span className="cl-hud-grade" data-grade={summary.grade} aria-hidden="true">
             {summary.grade}
           </span>
           <span className="cl-hud-text">
@@ -1182,7 +1184,7 @@ function Profile({ progress, summary, onReset, storage }) {
           </div>
           <ol className="cl-grade-scale">
             {GRADES.map((g) => (
-              <li key={g.grade} className={cls(g.grade === summary.grade && "is-current")}>
+              <li key={g.grade} className={cls(g.grade === summary.grade && "is-current")} data-grade={g.grade}>
                 <span className="cl-grade-scale-letter">{g.grade}</span>
                 <span>
                   {g.min}–{g.max} cartes
@@ -1519,6 +1521,10 @@ const STYLES = `
   --cta-shade: #c9921a;
   --flame: #d4570f;
   --flame-soft: #fde9dc;
+  --grade-a: #1b7a37;
+  --grade-b: #4a6b09;
+  --grade-c: #995200;
+  --grade-d: #bf3329;
   --shadow: 0 1px 2px rgba(22, 26, 44, 0.06), 0 10px 28px rgba(22, 26, 44, 0.09);
   --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -1547,6 +1553,10 @@ const STYLES = `
     --play-bg: #282c6e;
     --flame: #ff8f4d;
     --flame-soft: rgba(255, 143, 77, 0.15);
+    --grade-a: #5cc97c;
+    --grade-b: #a8d45a;
+    --grade-c: #f2a541;
+    --grade-d: #f27b6f;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.38);
     color-scheme: dark;
   }
@@ -1573,6 +1583,10 @@ const STYLES = `
   --play-bg: #282c6e;
   --flame: #ff8f4d;
   --flame-soft: rgba(255, 143, 77, 0.15);
+  --grade-a: #5cc97c;
+  --grade-b: #a8d45a;
+  --grade-c: #f2a541;
+  --grade-d: #f27b6f;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.38);
   color-scheme: dark;
 }
@@ -1682,7 +1696,13 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-hud-icon { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 10px; }
 .cl-hud-icon[data-tone="streak"] { background: var(--flame-soft); color: var(--flame); }
 .cl-hud-icon[data-tone="mastered"] { background: var(--ok-soft); color: var(--ok); }
-.cl-hud-grade { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 10px; border: 2px solid var(--ink); font: 800 21px/1 var(--font-display); color: var(--ink); }
+/* Code couleur des notes : A vert, B vert-jaune, C orange, D rouge */
+[data-grade="A"] { --g: var(--grade-a); }
+[data-grade="B"] { --g: var(--grade-b); }
+[data-grade="C"] { --g: var(--grade-c); }
+[data-grade="D"] { --g: var(--grade-d); }
+.cl-grade-ink { color: var(--g, var(--ink)); }
+.cl-hud-grade { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 10px; border: 2px solid var(--g, var(--ink)); background: color-mix(in srgb, var(--g, var(--ink)) 12%, var(--surface)); font: 800 21px/1 var(--font-display); color: var(--g, var(--ink)); }
 .cl-hud-text { display: grid; gap: 1px; min-width: 0; }
 .cl-hud-value { font: 800 22px/1.1 var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
 .cl-hud-value small { font-size: 14px; font-weight: 600; color: var(--ink-3); }
@@ -1895,11 +1915,11 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-cat-progress-label { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
 .cl-cat-progress-value { font: 500 14px/1.3 var(--font-mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .cl-grade { display: flex; align-items: center; gap: 16px; }
-.cl-grade-letter { display: grid; place-items: center; width: 76px; height: 76px; flex: none; border-radius: 10px; border: 2px solid var(--ink); font: 800 46px/1 var(--font-display); color: var(--ink); background: var(--surface-2); }
+.cl-grade-letter { display: grid; place-items: center; width: 76px; height: 76px; flex: none; border-radius: 10px; border: 2px solid var(--g, var(--ink)); font: 800 46px/1 var(--font-display); color: var(--g, var(--ink)); background: color-mix(in srgb, var(--g, var(--ink)) 12%, var(--surface)); }
 .cl-grade-scale { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.cl-grade-scale li { display: grid; gap: 2px; padding: 8px; border-radius: 6px; border: 1px solid var(--line); font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.cl-grade-scale li.is-current { border-color: var(--ink); color: var(--ink); background: var(--surface-2); }
-.cl-grade-scale-letter { font: 700 18px/1.1 var(--font-display); color: var(--ink); }
+.cl-grade-scale li { display: grid; gap: 2px; padding: 8px; border-radius: 6px; border: 1px solid var(--line); border-top: 4px solid var(--g); font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.cl-grade-scale li.is-current { border-color: var(--g); color: var(--ink); background: color-mix(in srgb, var(--g) 12%, var(--surface)); }
+.cl-grade-scale-letter { font: 700 18px/1.1 var(--font-display); color: var(--g); }
 .cl-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .cl-stats.cl-stats--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .cl-stats div { display: grid; gap: 4px; padding: 12px; border-radius: 8px; background: var(--surface-2); min-width: 0; }
