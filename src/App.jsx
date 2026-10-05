@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import CardLearn from "../CardLearn.jsx";
-import { githubEnabled, recoveryInUrl, supabase } from "./supabase.js";
+import { githubEnabled, isNative, recoveryInUrl, siteUrl, supabase } from "./supabase.js";
 import { createLocalStorage, createSupabaseStorage, forgetLocalCopies } from "./storage.js";
 
 const MIN_PASSWORD = 8;
@@ -124,7 +124,7 @@ function Login({ notice = "" }) {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(null); // { kind: confirm | reset | magic, email }
   const [error, setError] = useState(errorFromUrl);
-  const redirectTo = window.location.origin + window.location.pathname;
+  const redirectTo = isNative ? siteUrl : window.location.origin + window.location.pathname;
   const screen = SCREENS[mode];
 
   const goTo = (next) => {
@@ -132,6 +132,18 @@ function Login({ notice = "" }) {
     setError("");
     setSent(null);
   };
+
+  // Bouton retour (Android) : revient d'abord à « Se connecter ».
+  useEffect(() => {
+    const onBack = (event) => {
+      if (mode !== "signin" || sent) {
+        event.preventDefault();
+        goTo("signin");
+      }
+    };
+    window.addEventListener("cardlearn:back", onBack);
+    return () => window.removeEventListener("cardlearn:back", onBack);
+  }, [mode, sent]);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -171,11 +183,19 @@ function Login({ notice = "" }) {
     if (authError) setError("La connexion avec GitHub a échoué. Réessayez ou utilisez votre e-mail.");
   };
 
-  const sentText = sent && {
-    confirm: "Ouvrez l'e-mail de confirmation et cliquez sur le lien : votre compte sera activé et vous serez connecté.",
-    reset: "Ouvrez l'e-mail et cliquez sur le lien pour choisir un nouveau mot de passe.",
-    magic: "Ouvrez l'e-mail et cliquez sur le lien pour vous connecter.",
-  }[sent.kind];
+  const sentText =
+    sent &&
+    (isNative
+      ? {
+          confirm: "Ouvrez l'e-mail de confirmation et cliquez sur le lien, puis revenez ici et connectez-vous.",
+          reset: "Le lien de l'e-mail ouvre le site CardLearn pour choisir un nouveau mot de passe. Revenez ensuite ici pour vous connecter.",
+          magic: "Ouvrez l'e-mail et cliquez sur le lien pour vous connecter.",
+        }
+      : {
+          confirm: "Ouvrez l'e-mail de confirmation et cliquez sur le lien : votre compte sera activé et vous serez connecté.",
+          reset: "Ouvrez l'e-mail et cliquez sur le lien pour choisir un nouveau mot de passe.",
+          magic: "Ouvrez l'e-mail et cliquez sur le lien pour vous connecter.",
+        })[sent.kind];
 
   return (
     <main className="sh-page">
@@ -261,7 +281,8 @@ function Login({ notice = "" }) {
           </button>
         )}
 
-        {(mode === "signin" || mode === "signup") && (
+        {/* Lien par e-mail et GitHub reviennent sur le site : proposés seulement sur le web. */}
+        {(mode === "signin" || mode === "signup") && !isNative && (
           <div className="sh-alt">
             <p className="sh-or">ou</p>
             <button type="button" className="sh-btn" onClick={() => goTo("magic")}>

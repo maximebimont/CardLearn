@@ -1502,6 +1502,18 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
     }
   };
 
+  // Bouton retour de l'appli Android (événement envoyé par le site) : revient à l'accueil.
+  useEffect(() => {
+    const onBack = (event) => {
+      if (screen === "home") return;
+      event.preventDefault();
+      setSession(null);
+      setScreen("home");
+    };
+    window.addEventListener("cardlearn:back", onBack);
+    return () => window.removeEventListener("cardlearn:back", onBack);
+  }, [screen]);
+
   const signOut = async () => {
     if (!onSignOut || leaving) return;
     setLeaving(true);
@@ -1715,7 +1727,10 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-muted { color: var(--ink-2); font-size: 15px; }
 .cl-ink { color: var(--ink); }
 
-.cl-main { padding-inline: 16px; padding-block: 24px 56px; }
+.cl-main {
+  padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px calc(56px + env(safe-area-inset-bottom, 0px));
+}
 .cl-wrap { max-width: 640px; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 .cl-wrap--wide { max-width: 760px; }
 .cl-wrap--session { max-width: 600px; gap: 16px; }
@@ -1763,7 +1778,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
-.cl-nav-inner { max-width: 960px; margin-inline: auto; padding-inline: 16px; min-height: 60px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+.cl-nav-inner { max-width: 960px; margin-inline: auto; padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); min-height: 60px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
 .cl-nav-links { grid-column: 2; grid-row: 1; display: flex; align-items: center; gap: 10px; }
 .cl-nav-link, .cl-nav-logout {
   display: inline-grid; place-items: center;
@@ -2109,7 +2124,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   .cl-stats.cl-stats--3 { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
-  .cl-main { padding-block: 16px 40px; }
+  .cl-main { padding-block: 16px calc(40px + env(safe-area-inset-bottom, 0px)); }
   .cl-app h1 { font-size: 28px; }
   .cl-grid-2 { grid-template-columns: minmax(0, 1fr); }
   .cl-rules { grid-template-columns: minmax(0, 1fr); }

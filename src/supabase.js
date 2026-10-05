@@ -1,6 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
+import { Capacitor } from "@capacitor/core";
 
 const env = import.meta.env;
+
+// Appli Android / iOS (Capacitor) : les liens reçus par e-mail ne peuvent pas rouvrir l'appli,
+// ils mènent donc au site web (confirmation d'adresse, nouveau mot de passe).
+export const isNative = Capacitor.isNativePlatform();
+export const siteUrl = `${(env.VITE_SITE_URL || "https://cardlearn.vercel.app").replace(/\/+$/, "")}/`;
 
 // Noms Vite (VITE_*) ou ceux créés par l'intégration Supabase de Vercel (NEXT_PUBLIC_*).
 const url = env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;

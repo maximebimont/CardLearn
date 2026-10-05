@@ -66,6 +66,41 @@ doit figurer dans les *Redirect URLs*.
 L'envoi d'e-mails intégré à Supabase est limité à quelques messages par heure. Pour plus
 d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Emails*.
 
+## Applis Android et iOS
+
+L'appli web est emballée en applis natives avec [Capacitor](https://capacitorjs.com) : projets
+`android/` et `ios/`, configuration dans `capacitor.config.json`, icônes et écrans de démarrage
+générés à partir de `assets/` (`npx capacitor-assets generate`).
+
+Les variables Supabase (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) sont intégrées au moment du
+build : mettez-les dans `.env.local` avant de construire une appli. Sans elles, l'appli tourne en
+mode local.
+
+Dans l'appli, la connexion se fait par e-mail et mot de passe. Les liens reçus par e-mail
+(confirmation d'adresse, mot de passe oublié) ouvrent le site web (`VITE_SITE_URL`, par défaut
+`https://cardlearn.vercel.app`), puis on revient dans l'appli pour se connecter. Le bouton retour
+d'Android ramène à l'accueil, et ferme l'appli depuis l'accueil.
+
+### APK Android
+
+- **Sans rien installer** : la GitHub Action [`APK Android`](.github/workflows/android-apk.yml) construit
+  l'APK à chaque push sur `main` ou `dev`. Il se télécharge dans l'onglet *Actions* → dernière
+  exécution → *Artifacts* → `CardLearn-android` (un zip qui contient `app-debug.apk`). Définissez
+  d'abord `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` dans *Settings → Secrets and variables →
+  Actions → Variables*.
+- **Sur votre ordinateur** (Android Studio installé) : `npm run android`, puis *Run* ou
+  *Build → Build APK(s)*.
+
+L'APK de test s'installe directement sur un téléphone (autoriser l'installation d'applis de sources
+inconnues). Pour le Play Store, il faut une version signée : *Build → Generate Signed App Bundle*
+dans Android Studio, et un compte développeur Google Play (25 $, une fois).
+
+### iOS
+
+Il faut un Mac avec Xcode : `npm install`, puis `npm run ios`, choisir son équipe dans *Signing &
+Capabilities* et lancer sur un iPhone branché. Pour TestFlight ou l'App Store, il faut un compte
+Apple Developer Program (99 $ par an).
+
 ## Fonctionnement
 
 - **Accueil** : tableau de scores (série de jours, cartes maîtrisées, note estimée), plateau
@@ -106,7 +141,11 @@ d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Em
 | `src/App.jsx` | Connexion Supabase et choix du stockage (Supabase ou navigateur) |
 | `src/storage.js` | Implémentations de `window.storage` |
 | `src/supabase.js` | Client Supabase, configuré par les variables d'environnement |
-| `supabase/schema.sql` | Table `progress` et règles d'accès |
+| `supabase/schema.sql` | Table `progress`, règles d'accès et suppression de compte |
+| `src/native.js` | Bouton retour Android (applis Capacitor) |
+| `capacitor.config.json`, `android/`, `ios/` | Applis natives Android et iOS |
+| `assets/` | Images sources de l'icône et de l'écran de démarrage |
+| `.github/workflows/android-apk.yml` | Construction automatique de l'APK |
 
 ## Données
 
