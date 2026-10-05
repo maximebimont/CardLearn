@@ -66,6 +66,23 @@ doit figurer dans les *Redirect URLs*.
 L'envoi d'e-mails intégré à Supabase est limité à quelques messages par heure. Pour plus
 d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Emails*.
 
+## Installer sur le téléphone
+
+Le site est une appli web installable : elle s'ouvre en plein écran depuis l'écran d'accueil, avec
+son icône, et démarre même sans connexion (les réponses données hors ligne sont envoyées au retour
+du réseau).
+
+- **iPhone / iPad** (Safari) : bouton **Partager** → **Sur l'écran d'accueil**.
+- **Android** (Chrome) : menu **⋮** → **Ajouter à l'écran d'accueil** ou **Installer l'application**.
+
+Dans l'appli installée, la connexion se fait par e-mail et mot de passe : un lien reçu par e-mail
+s'ouvre dans le navigateur, pas dans l'appli. Les liens de confirmation et de mot de passe oublié
+mènent donc au site, puis on revient dans l'appli pour se connecter.
+
+Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icons/` et
+`src/service-worker.js` (la liste des fichiers à garder hors connexion est ajoutée au build par
+`vite.config.js`).
+
 ## Fonctionnement
 
 - **Accueil** : tableau de scores (série de jours, cartes maîtrisées, note estimée), plateau
@@ -106,7 +123,9 @@ d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Em
 | `src/App.jsx` | Connexion Supabase et choix du stockage (Supabase ou navigateur) |
 | `src/storage.js` | Implémentations de `window.storage` |
 | `src/supabase.js` | Client Supabase, configuré par les variables d'environnement |
-| `supabase/schema.sql` | Table `progress` et règles d'accès |
+| `supabase/schema.sql` | Table `progress`, règles d'accès et suppression de compte |
+| `public/manifest.webmanifest`, `public/icons/` | Appli web installable : nom, icônes, plein écran |
+| `src/service-worker.js` | Démarrage hors connexion |
 
 ## Données
 

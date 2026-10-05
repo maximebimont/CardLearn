@@ -5,6 +5,16 @@ import { createLocalStorage, createSupabaseStorage, forgetLocalCopies } from "./
 
 const MIN_PASSWORD = 8;
 
+// Appli ajoutée à l'écran d'accueil : un lien reçu par e-mail s'ouvre dans le navigateur, pas dans
+// l'appli (sur iPhone notamment). On y propose donc la connexion par mot de passe uniquement.
+const installedApp = (() => {
+  try {
+    return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  } catch (err) {
+    return false;
+  }
+})();
+
 // Installe window.storage avant de monter CardLearn, qui le lit au démarrage.
 function StorageScope({ storage, children }) {
   const [ready, setReady] = useState(false);
@@ -171,11 +181,19 @@ function Login({ notice = "" }) {
     if (authError) setError("La connexion avec GitHub a échoué. Réessayez ou utilisez votre e-mail.");
   };
 
-  const sentText = sent && {
-    confirm: "Ouvrez l'e-mail de confirmation et cliquez sur le lien : votre compte sera activé et vous serez connecté.",
-    reset: "Ouvrez l'e-mail et cliquez sur le lien pour choisir un nouveau mot de passe.",
-    magic: "Ouvrez l'e-mail et cliquez sur le lien pour vous connecter.",
-  }[sent.kind];
+  const sentText =
+    sent &&
+    (installedApp
+      ? {
+          confirm: "Ouvrez l'e-mail de confirmation et cliquez sur le lien, puis revenez dans l'appli et connectez-vous.",
+          reset: "Le lien de l'e-mail ouvre CardLearn dans le navigateur pour choisir un nouveau mot de passe. Revenez ensuite dans l'appli pour vous connecter.",
+          magic: "Ouvrez l'e-mail et cliquez sur le lien pour vous connecter.",
+        }
+      : {
+          confirm: "Ouvrez l'e-mail de confirmation et cliquez sur le lien : votre compte sera activé et vous serez connecté.",
+          reset: "Ouvrez l'e-mail et cliquez sur le lien pour choisir un nouveau mot de passe.",
+          magic: "Ouvrez l'e-mail et cliquez sur le lien pour vous connecter.",
+        })[sent.kind];
 
   return (
     <main className="sh-page">
@@ -261,7 +279,7 @@ function Login({ notice = "" }) {
           </button>
         )}
 
-        {(mode === "signin" || mode === "signup") && (
+        {(mode === "signin" || mode === "signup") && !installedApp && (
           <div className="sh-alt">
             <p className="sh-or">ou</p>
             <button type="button" className="sh-btn" onClick={() => goTo("magic")}>

@@ -3,6 +3,11 @@ import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
 import "./app.css";
 
+// Appli installée sur l'écran d'accueil : démarrage même sans connexion.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+}
+
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <App />
