@@ -67,8 +67,9 @@ d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Em
 ## Fonctionnement
 
 - **Cartes** : le texte français s'affiche, vous tapez la réponse anglaise puis validez avec Entrée.
-  Une bonne réponse passe derrière la pile. Une erreur affiche la bonne réponse pendant 2 secondes
-  (Entrée ou « Continuer » pour passer plus vite), puis la carte glisse sur le côté.
+  Une bonne réponse passe derrière la pile. Une erreur affiche la bonne réponse le temps de la lire,
+  de 4 à 9 secondes selon sa longueur (Entrée ou « Continuer » pour passer plus vite), puis la carte
+  glisse sur le côté.
   « Je ne sais pas » compte comme une erreur.
 - **Leitner** : 5 boîtes. Une bonne réponse fait monter la carte d'une boîte, une erreur la renvoie
   en boîte 1. La boîte 5 correspond aux cartes maîtrisées. Le tirage favorise les boîtes basses
@@ -81,6 +82,8 @@ d'utilisateurs, configurez votre propre serveur SMTP dans *Authentication → Em
   (« Application Programming Interface - API »), on accepte la forme longue, le sigle ou les deux.
   Le « to » initial des verbes est facultatif. Les fautes de frappe ne sont pas tolérées.
 - **Définitions** : le terme français est masqué dans la définition. Le bouton « Indice » le révèle.
+- **Fin de session** : score et cartes ratées, regroupées par carte. Un clic sur une carte affiche
+  le détail de ses tentatives : réponse donnée, réussie ou non, boîte avant et après.
 - **Navigation** : une barre d'icônes centrée en haut mène à l'accueil, au profil et au classement.
   Une fois connecté, l'icône de déconnexion se trouve tout à gauche.
 - **Classement** (à venir) : il mettra les élèves en compétition selon leurs cartes maîtrisées et

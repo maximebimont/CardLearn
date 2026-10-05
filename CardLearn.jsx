@@ -13,7 +13,10 @@ const DEFAULT_SIZE = 20;
 
 // Durées des retours et animations (ms)
 const FEEDBACK_MS = 650; // retour vert avant que la carte parte derrière la pile
-const REVEAL_MS = 2000; // affichage de la bonne réponse après une erreur
+// Après une erreur, la bonne réponse reste affichée le temps de la lire : 4 à 9 s selon la longueur.
+const REVEAL_MIN_MS = 4000;
+const REVEAL_MAX_MS = 9000;
+const revealDelay = (card, input) => Math.min(REVEAL_MAX_MS, Math.max(REVEAL_MIN_MS, 3000 + 45 * (card.en.length + input.length)));
 const EXIT_BACK_MS = 680;
 const EXIT_SIDE_MS = 420;
 const EXIT_REDUCED_MS = 180;
@@ -390,7 +393,7 @@ function sessionReducer(state, action) {
       return { ...state, hint: true };
     case "answer": {
       if (state.phase !== "answering") return state;
-      const verdict = { id: state.queue[0], ok: action.ok, input: action.input, from: action.from, to: action.to };
+      const verdict = { id: state.queue[0], ok: action.ok, input: action.input, from: action.from, to: action.to, revealMs: action.revealMs };
       return { ...state, phase: action.ok ? "correct" : "wrong", verdict, nextQueue: action.nextQueue, results: [...state.results, verdict] };
     }
     case "exit":
@@ -443,6 +446,7 @@ const Icon = ({ d, size = 18 }) => (
 );
 const IconCheck = (p) => <Icon d="M5 12.5l4.5 4.5L19 7.5" {...p} />;
 const IconCross = (p) => <Icon d="M6 6l12 12M18 6L6 18" {...p} />;
+const IconChevron = (p) => <Icon d="M6 9l6 6 6-6" {...p} />;
 const IconBack = (p) => <Icon d="M15 5l-7 7 7 7" {...p} />;
 const IconNext = (p) => <Icon d="M5 12h14M13 6l6 6-6 6" {...p} />;
 const IconHome = (p) => <Icon d="M4 10.5L12 4l8 6.5M6 9v11h4.5v-6h3v6H18V9" {...p} />;
@@ -512,7 +516,7 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
   useEffect(() => {
     let timer;
     if (phase === "correct") timer = setTimeout(() => dispatch({ type: "exit", kind: "back" }), FEEDBACK_MS);
-    else if (phase === "wrong") timer = setTimeout(() => dispatch({ type: "exit", kind: "side" }), REVEAL_MS);
+    else if (phase === "wrong") timer = setTimeout(() => dispatch({ type: "exit", kind: "side" }), state.verdict.revealMs);
     else if (phase === "exiting") {
       const duration = reducedMotion ? EXIT_REDUCED_MS : state.exit === "back" ? EXIT_BACK_MS : EXIT_SIDE_MS;
       timer = setTimeout(() => dispatch({ type: "advance", size: config.size }), duration);
@@ -533,7 +537,7 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
     const to = ok ? Math.min(MAX_BOX, from + 1) : 1;
     onAnswer(card, ok, state.turn === 0);
     revealedAt.current = Date.now();
-    dispatch({ type: "answer", ok, input, from, to, nextQueue: requeue(state.queue, card.id, ok, to) });
+    dispatch({ type: "answer", ok, input, from, to, revealMs: ok ? 0 : revealDelay(card, input), nextQueue: requeue(state.queue, card.id, ok, to) });
   };
 
   const submit = (event) => {
@@ -640,7 +644,7 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
                       "Carte passée avec « Je ne sais pas »."
                     )}
                   </span>
-                  {phase === "wrong" && <span className="cl-countdown" style={{ animationDuration: `${REVEAL_MS}ms` }} />}
+                  {phase === "wrong" && <span className="cl-countdown" style={{ animationDuration: `${verdict.revealMs}ms` }} />}
                 </div>
               )}
             </div>
@@ -858,21 +862,46 @@ function Home({ progress, summary, cats, onCatsChange, onSizeChange, onStart, on
   );
 }
 
+// Toutes les tentatives d'une carte pendant la session, dans l'ordre.
+function Attempts({ id, attempts }) {
+  return (
+    <ol id={`attempts-${id}`} className="cl-attempts">
+      {attempts.map((a) => (
+        <li key={a.turn} className={a.ok ? "is-ok" : "is-bad"}>
+          <span className="cl-attempt-turn">Carte {a.turn}</span>
+          <span className="cl-attempt-answer">
+            {a.ok ? <IconCheck size={16} /> : <IconCross size={16} />}
+            {a.input ? a.ok ? <span>{a.input}</span> : <s>{a.input}</s> : <em>Je ne sais pas</em>}
+          </span>
+          <span className="cl-attempt-box">
+            Boîte {a.from} → {a.to}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function Summary({ result, canReplay, onReplay, onHome }) {
   const { results, completed, mode } = result;
+  const [open, setOpen] = useState(() => new Set());
   const total = results.length;
   const good = results.filter((r) => r.ok).length;
   const missed = [];
   const byId = new Map();
-  for (const r of results) {
-    if (r.ok) continue;
-    if (byId.has(r.id)) byId.get(r.id).count += 1;
-    else {
-      const entry = { id: r.id, count: 1 };
-      byId.set(r.id, entry);
-      missed.push(entry);
-    }
-  }
+  results.forEach((r, i) => {
+    const attempt = { ...r, turn: i + 1 };
+    if (byId.has(r.id)) byId.get(r.id).attempts.push(attempt);
+    else byId.set(r.id, { id: r.id, attempts: [attempt] });
+  });
+  for (const entry of byId.values()) if (entry.attempts.some((a) => !a.ok)) missed.push(entry);
+  const toggle = (id) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const promoted = new Set(results.filter((r) => r.ok && r.to > r.from).map((r) => r.id)).size;
   const newlyMastered = new Set(results.filter((r) => r.ok && r.to === MAX_BOX && r.from < MAX_BOX).map((r) => r.id)).size;
 
@@ -902,16 +931,27 @@ function Summary({ result, canReplay, onReplay, onHome }) {
         <h2 id="missed-title">Cartes ratées</h2>
         {missed.length ? (
           <ul className="cl-list">
-            {missed.map(({ id, count }) => {
+            {missed.map(({ id, attempts }) => {
               const card = CARD_BY_ID[id];
+              const isOpen = open.has(id);
+              const errors = attempts.filter((a) => !a.ok).length;
               return (
-                <li key={id} className="cl-list-item">
-                  <div className="cl-list-main">
-                    <Badge cat={card.cat} />
-                    <span className="cl-list-fr">{card.cat === "def" ? card.hint : card.fr}</span>
-                    <span className="cl-list-en">{card.en}</span>
-                  </div>
-                  {count > 1 && <span className="cl-list-count">×{count}</span>}
+                <li key={id} className={cls("cl-list-item", "cl-missed", isOpen && "is-open")}>
+                  <button type="button" className="cl-missed-toggle" aria-expanded={isOpen} aria-controls={`attempts-${id}`} onClick={() => toggle(id)}>
+                    <span className="cl-list-main">
+                      <Badge cat={card.cat} />
+                      <span className="cl-list-fr">{card.cat === "def" ? card.hint : card.fr}</span>
+                      <span className="cl-list-en">{card.en}</span>
+                    </span>
+                    <span className="cl-missed-meta">
+                      <span className="cl-list-count">{plural(errors, "erreur", "erreurs")}</span>
+                      <span className="cl-missed-hint">
+                        {plural(attempts.length, "tentative", "tentatives")}
+                        <IconChevron size={16} />
+                      </span>
+                    </span>
+                  </button>
+                  {isOpen && <Attempts id={id} attempts={attempts} />}
                 </li>
               );
             })}
@@ -1594,6 +1634,28 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-list-fr { font-weight: 700; overflow-wrap: anywhere; }
 .cl-list-en { font: 500 15px/1.4 var(--font-mono); color: var(--ink-2); overflow-wrap: anywhere; }
 .cl-list-count { font: 600 13px/1.6 var(--font-mono); color: var(--bad); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cl-missed { display: grid; gap: 10px; }
+.cl-missed-toggle {
+  display: flex; align-items: flex-start; gap: 12px;
+  margin: -8px; padding: 8px; width: calc(100% + 16px);
+  border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.cl-missed-toggle:hover { background: var(--surface-2); }
+.cl-missed-toggle:focus-visible { outline: 3px solid var(--accent); outline-offset: 0; }
+.cl-missed-meta { display: grid; gap: 4px; justify-items: end; flex: none; }
+.cl-missed-hint { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ink-3); white-space: nowrap; }
+.cl-missed-hint .cl-icon { transition: transform .2s; }
+.cl-missed.is-open .cl-missed-hint .cl-icon { transform: rotate(180deg); }
+.cl-attempts { display: grid; gap: 6px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); }
+.cl-attempts li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; gap: 4px 14px; font-size: 14px; }
+.cl-attempt-turn { font: 600 12px/1.4 var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cl-attempt-answer { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; font: 500 14px/1.4 var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
+.cl-attempt-answer .cl-icon { align-self: center; }
+.cl-attempts .is-ok .cl-attempt-answer .cl-icon { color: var(--ok); }
+.cl-attempts .is-bad .cl-attempt-answer .cl-icon { color: var(--bad); }
+.cl-attempt-answer em { font-family: var(--font-body); color: var(--ink-2); }
+.cl-attempt-answer s { color: var(--ink-2); text-decoration-thickness: 1.5px; }
+.cl-attempt-box { font: 500 12px/1.4 var(--font-mono); color: var(--ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .cl-rank { width: 26px; flex: none; font: 600 15px/1.6 var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
 
 /* Profil */
@@ -1673,6 +1735,8 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   .cl-card-def { font-size: 16.5px; }
   .cl-answer-tip { display: none; }
   .cl-score { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .cl-attempts li { grid-template-columns: auto minmax(0, 1fr); }
+  .cl-attempt-box { grid-column: 2; }
   .cl-panel-foot .cl-btn--lg { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
