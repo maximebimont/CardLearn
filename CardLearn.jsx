@@ -18,13 +18,16 @@ const NEAR_MS = 2600; // réponse acceptée à quelques fautes près : le temps 
 const REVEAL_MIN_MS = 4000;
 const REVEAL_MAX_MS = 9000;
 const revealDelay = (card, input) => Math.min(REVEAL_MAX_MS, Math.max(REVEAL_MIN_MS, 3000 + 45 * (card.en.length + input.length)));
+const CHOICES = 4; // propositions par carte en QCM
+const MAX_REMATCH_ERRORS = 3; // Revanche : à la 3e erreur, la carte ne revient plus dans la partie et reste en Revanche
 const EXIT_BACK_MS = 680;
 const EXIT_SIDE_MS = 420;
 const EXIT_REDUCED_MS = 180;
 
 const CATEGORIES = {
   mots: { label: "Mots métier", badge: "Mot métier", instruction: "Traduisez en anglais" },
-  expr: { label: "Expressions", badge: "Expression", instruction: "Traduisez l'expression en anglais" },
+  // choices : la carte se joue en QCM (4 propositions, une seule juste) au lieu d'être tapée.
+  expr: { label: "Expressions", badge: "Expression", instruction: "Choisissez la bonne traduction anglaise", choices: true },
   def: { label: "Définitions", badge: "Définition", instruction: "Quel terme anglais correspond à cette définition ?" },
 };
 const CAT_KEYS = Object.keys(CATEGORIES);
@@ -400,6 +403,36 @@ for (const card of CARDS) {
   for (const key of card.accepted) OTHER_ANSWERS.set(key, [...(OTHER_ANSWERS.get(key) || []), card.id]);
 }
 
+/* -------------------------------------------------------------------- QCM -- */
+
+const STOP_WORDS = new Set(["a", "an", "the", "to", "of", "and", "or", "in", "on", "for", "by", "as", "at", "into", "be", "with"]);
+const contentWords = (text) => new Set(toWords(text).filter((word) => !STOP_WORDS.has(word)));
+
+function shuffle(items) {
+  const list = [...items];
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+}
+
+// La bonne réponse et 3 autres réponses de la même catégorie, choisies vraisemblables :
+// de longueur proche et partageant des mots avec elle, avec une part de hasard.
+function makeChoices(card) {
+  const words = contentWords(card.en);
+  const decoys = CARDS.filter((other) => other.cat === card.cat && other.en !== card.en)
+    .map((other) => {
+      const shared = [...contentWords(other.en)].filter((word) => words.has(word)).length;
+      const length = Math.min(other.en.length, card.en.length) / Math.max(other.en.length, card.en.length);
+      return { en: other.en, score: shared + 1.5 * length + 0.8 * Math.random() };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, CHOICES - 1)
+    .map((other) => other.en);
+  return shuffle([card.en, ...decoys]);
+}
+
 const CARD_BY_ID = Object.fromEntries(CARDS.map((card) => [card.id, card]));
 const TOTAL = CARDS.length;
 const CAT_TOTAL = Object.fromEntries(CAT_KEYS.map((cat) => [cat, CARDS.filter((card) => card.cat === cat).length]));
@@ -726,10 +759,71 @@ function Marked({ segments }) {
 
 const TYPO_WORDS = ["", "une faute", "deux fautes", "trois fautes"];
 
+// Les propositions d'une carte en QCM ; touches 1 à 4 pour choisir au clavier.
+function Choices({ card, verdict, disabled, onChoose }) {
+  const [options] = useState(() => makeChoices(card));
+  useEffect(() => {
+    if (disabled) return undefined;
+    const onKey = (event) => {
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || document.querySelector("dialog[open]")) return;
+      const n = Number(event.key);
+      if (n >= 1 && n <= options.length) {
+        event.preventDefault();
+        onChoose(options[n - 1]);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [disabled, options, onChoose]);
+  return (
+    <div className="cl-choices" role="group" aria-labelledby="cl-choices-label">
+      <span id="cl-choices-label" className="cl-answer-label">
+        Propositions
+      </span>
+      {options.map((text, i) => {
+        const right = verdict && text === card.en;
+        const chosen = verdict && text === verdict.input;
+        return (
+          <button
+            key={text}
+            type="button"
+            className={cls("cl-choice", right && "is-right", chosen && !right && "is-wrong", verdict && !right && !chosen && "is-off")}
+            disabled={disabled}
+            aria-keyshortcuts={String(i + 1)}
+            onClick={() => onChoose(text)}
+          >
+            <span className="cl-choice-key" aria-hidden="true">
+              {i + 1}
+            </span>
+            <span className="cl-choice-text">{text}</span>
+            {right && <IconCheck size={18} />}
+            {chosen && !right && <IconCross size={18} />}
+            {chosen && <span className="cl-sr">{right ? " (votre choix, juste)" : " (votre choix)"}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Revanche : erreurs faites sur cette carte pendant la partie.
+function Strikes({ count }) {
+  return (
+    <span className="cl-strikes" role="img" aria-label={`${count} erreur${count > 1 ? "s" : ""} sur ${MAX_REMATCH_ERRORS} pour cette carte`}>
+      {Array.from({ length: MAX_REMATCH_ERRORS }, (_, i) => (
+        <span key={i} className={cls("cl-strike", i < count && "is-used")}>
+          <IconCross size={11} />
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
   const [state, dispatch] = useReducer(sessionReducer, { config, progress: initialProgress }, initSession);
   const { progress } = state;
   const inputRef = useRef(null);
+  const nextRef = useRef(null);
   const revealedAt = useRef(0);
   const onEndRef = useRef(onEnd);
   onEndRef.current = onEnd;
@@ -749,31 +843,41 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
     return () => clearTimeout(timer);
   }, [phase, state.exit, state.turn, state.results, state.progress, config.size, reducedMotion]);
 
-  // Le focus revient dans le champ à chaque nouvelle carte.
+  // Après une erreur ou une faute de frappe, la bonne réponse reste affichée : Entrée ou « Continuer » passe à la suite.
+  const lingering = phase === "wrong" || (phase === "correct" && !!verdict?.near);
+
+  // Le focus revient dans le champ à chaque nouvelle carte ; en QCM, sur « Continuer » après une erreur.
   useEffect(() => {
     if (phase === "answering") inputRef.current?.focus({ preventScroll: true });
-  }, [phase, state.turn]);
+    else if (lingering) nextRef.current?.focus({ preventScroll: true });
+  }, [phase, lingering, state.turn]);
 
   if (phase === "done" || !card) return null;
+  const choice = !!CATEGORIES[card.cat].choices;
+  const rematch = config.mode === "errors";
+  const misses = state.results.filter((r) => r.id === card.id && !r.ok).length; // erreurs sur cette carte dans la partie
 
-  // input vide : « Je ne sais pas ».
+  // input vide : « Je ne sais pas ». En QCM, input est la proposition choisie.
   const answer = (input) => {
     if (phase !== "answering") return;
-    const result = input ? grade(card, input) : { ok: false, near: false, typos: 0, given: null, expected: null };
+    const result = !input
+      ? { ok: false, near: false, typos: 0, given: null, expected: null }
+      : choice
+        ? { ok: input === card.en, near: false, typos: 0, given: null, expected: null }
+        : grade(card, input);
     const from = boxOf(progress, card.id);
     const to = result.ok ? Math.min(MAX_BOX, from + 1) : 1;
     const revealMs = !result.ok ? revealDelay(card, input) : result.near ? NEAR_MS : FEEDBACK_MS;
+    // Revanche : à la 3e erreur, la carte est mise de côté jusqu'à la prochaine partie.
+    const setAside = rematch && !result.ok && misses + 1 >= MAX_REMATCH_ERRORS;
     revealedAt.current = Date.now();
     dispatch({
       type: "answer",
-      verdict: { id: card.id, input, ...result, from, to, revealMs },
+      verdict: { id: card.id, input, ...result, from, to, revealMs, setAside },
       progress: recordAnswer(progress, card, result.ok, state.turn === 0),
-      nextQueue: requeue(state.queue, card.id, result.ok, to),
+      nextQueue: setAside ? state.queue.slice(1) : requeue(state.queue, card.id, result.ok, to),
     });
   };
-
-  // Après une erreur ou une faute de frappe, la bonne réponse reste affichée : Entrée ou « Continuer » passe à la suite.
-  const lingering = phase === "wrong" || (phase === "correct" && verdict.near);
 
   const submit = (event) => {
     event.preventDefault();
@@ -832,7 +936,10 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
         >
           <header className="cl-card-head">
             <Badge cat={card.cat} />
-            <span className="cl-card-box">{boxMeta}</span>
+            <span className="cl-card-head-end">
+              {rematch && <Strikes count={misses} />}
+              <span className="cl-card-box">{boxMeta}</span>
+            </span>
           </header>
           <div className="cl-card-body">
             <p className="cl-card-instruction">{CATEGORIES[card.cat].instruction}</p>
@@ -868,15 +975,19 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
                   </span>
                   <span className="cl-verdict-label">Réponse attendue</span>
                   <span className="cl-answer-text">{verdict.expected ? <Marked segments={verdict.expected} /> : card.en}</span>
-                  <span className="cl-given">
-                    {verdict.input ? (
-                      <>
-                        Votre réponse&nbsp;: {verdict.given ? <Marked segments={verdict.given} /> : verdict.input}
-                      </>
-                    ) : (
-                      "Carte passée avec « Je ne sais pas »."
-                    )}
-                  </span>
+                  {verdict.input && !choice && (
+                    <span className="cl-given">
+                      Votre réponse&nbsp;: {verdict.given ? <Marked segments={verdict.given} /> : verdict.input}
+                    </span>
+                  )}
+                  {!verdict.input && <span className="cl-given">Carte passée avec « Je ne sais pas ».</span>}
+                  {rematch && (
+                    <span className="cl-strike-note">
+                      {verdict.setAside
+                        ? `Erreur ${MAX_REMATCH_ERRORS} sur ${MAX_REMATCH_ERRORS} : la carte reste dans la Revanche pour la prochaine fois.`
+                        : `Erreur ${misses} sur ${MAX_REMATCH_ERRORS}${misses === MAX_REMATCH_ERRORS - 1 ? " : plus qu'une chance." : "."}`}
+                    </span>
+                  )}
                   {lingering && <span className="cl-countdown" style={{ animationDuration: `${verdict.revealMs}ms` }} />}
                 </div>
               )}
@@ -886,34 +997,40 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
       </div>
 
       <form className="cl-answer" onSubmit={submit} autoComplete="off">
-        <label htmlFor="cl-answer-input" className="cl-answer-label">
-          Votre réponse en anglais
-        </label>
-        <div className="cl-answer-row">
-          <input
-            id="cl-answer-input"
-            ref={inputRef}
-            className={cls("cl-input", verdict && (verdict.ok ? "is-correct" : "is-wrong"))}
-            value={state.input}
-            onChange={(event) => dispatch({ type: "input", value: event.target.value })}
-            readOnly={phase !== "answering"}
-            placeholder="Tapez votre réponse…"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            enterKeyHint="done"
-          />
-          {lingering ? (
-            <button type="submit" className="cl-btn cl-btn--primary" onMouseDown={keepFocus}>
-              Continuer <IconNext size={16} />
-            </button>
-          ) : (
-            <button type="submit" className="cl-btn cl-btn--primary" onMouseDown={keepFocus} disabled={phase !== "answering" || !state.input.trim()}>
-              Valider
-            </button>
-          )}
-        </div>
+        {choice ? (
+          <Choices key={`c${state.turn}`} card={card} verdict={verdict} disabled={phase !== "answering"} onChoose={answer} />
+        ) : (
+          <>
+            <label htmlFor="cl-answer-input" className="cl-answer-label">
+              Votre réponse en anglais
+            </label>
+            <div className="cl-answer-row">
+              <input
+                id="cl-answer-input"
+                ref={inputRef}
+                className={cls("cl-input", verdict && (verdict.ok ? "is-correct" : "is-wrong"))}
+                value={state.input}
+                onChange={(event) => dispatch({ type: "input", value: event.target.value })}
+                readOnly={phase !== "answering"}
+                placeholder="Tapez votre réponse…"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                enterKeyHint="done"
+              />
+              {lingering ? (
+                <button type="submit" className="cl-btn cl-btn--primary" onMouseDown={keepFocus}>
+                  Continuer <IconNext size={16} />
+                </button>
+              ) : (
+                <button type="submit" className="cl-btn cl-btn--primary" onMouseDown={keepFocus} disabled={phase !== "answering" || !state.input.trim()}>
+                  Valider
+                </button>
+              )}
+            </div>
+          </>
+        )}
         <div className="cl-answer-actions">
           <button type="button" className="cl-btn cl-btn--quiet" onMouseDown={keepFocus} onClick={() => answer("")} disabled={phase !== "answering"}>
             Je ne sais pas
@@ -923,7 +1040,13 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
               Indice
             </button>
           )}
-          <span className="cl-answer-tip">Entrée pour valider</span>
+          {choice && lingering ? (
+            <button type="submit" ref={nextRef} className="cl-btn cl-btn--primary cl-answer-next">
+              Continuer <IconNext size={16} />
+            </button>
+          ) : (
+            <span className="cl-answer-tip">{choice ? "Touches 1 à 4 pour choisir" : "Entrée pour valider"}</span>
+          )}
         </div>
       </form>
     </div>
@@ -1437,6 +1560,7 @@ function Summary({ result, canReplay, onReplay, onHome }) {
               const card = CARD_BY_ID[id];
               const isOpen = open.has(id);
               const errors = attempts.filter((a) => !a.ok).length;
+              const stays = !attempts[attempts.length - 1].ok; // dernière réponse fausse : la carte reste en Revanche
               return (
                 <li key={id} className={cls("cl-list-item", "cl-missed", isOpen && "is-open")}>
                   <button type="button" className="cl-missed-toggle" aria-expanded={isOpen} aria-controls={`attempts-${id}`} onClick={() => toggle(id)}>
@@ -1447,6 +1571,7 @@ function Summary({ result, canReplay, onReplay, onHome }) {
                     </span>
                     <span className="cl-missed-meta">
                       <span className="cl-list-count">{plural(errors, "erreur", "erreurs")}</span>
+                      {stays && <span className="cl-missed-stay">Reste en Revanche</span>}
                       <span className="cl-missed-hint">
                         {plural(attempts.length, "tentative", "tentatives")}
                         <IconChevron size={16} />
@@ -2000,7 +2125,7 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
 
   const stayInSession = () => {
     setQuitting(false);
-    setTimeout(() => document.getElementById("cl-answer-input")?.focus({ preventScroll: true }), 0);
+    setTimeout(() => (document.getElementById("cl-answer-input") || document.querySelector(".cl-answer-next, .cl-choice:not(:disabled)"))?.focus({ preventScroll: true }), 0);
   };
 
   // Laisse partir la dernière sauvegarde (3 s au plus).
@@ -2530,6 +2655,39 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-input.is-wrong { border-color: var(--bad); background: var(--bad-soft); }
 .cl-answer-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .cl-answer-tip { margin-left: auto; font-size: 13px; color: var(--ink-3); }
+.cl-answer-next { margin-left: auto; }
+
+/* QCM */
+.cl-choices { display: grid; gap: 8px; }
+.cl-choice {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  width: 100%; min-height: 52px; padding: 10px 14px;
+  border: 1.5px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--ink);
+  font: 600 15.5px/1.35 var(--font-body); text-align: left;
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s, opacity .2s, transform .1s;
+}
+.cl-choice:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.cl-choice:active:not(:disabled) { transform: scale(.99); }
+.cl-choice:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.cl-choice:disabled { cursor: default; }
+.cl-choice-key { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-2); font: 700 13px/1 var(--font-mono); }
+.cl-choice-text { overflow-wrap: anywhere; }
+.cl-choice.is-right { border-color: var(--ok); background: var(--ok-soft); color: var(--ink); }
+.cl-choice.is-right .cl-choice-key { background: var(--ok); box-shadow: none; color: var(--surface); }
+.cl-choice.is-right > .cl-icon { color: var(--ok); }
+.cl-choice.is-wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--ink); }
+.cl-choice.is-wrong .cl-choice-key { background: var(--bad); box-shadow: none; color: var(--surface); }
+.cl-choice.is-wrong > .cl-icon { color: var(--bad); }
+.cl-choice.is-off { opacity: .5; }
+
+/* Revanche : erreurs sur la carte */
+.cl-card-head-end { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.cl-strikes { display: inline-flex; gap: 3px; }
+.cl-strike { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); color: transparent; }
+.cl-strike.is-used { background: var(--bad); box-shadow: none; color: var(--surface); }
+.cl-strike-note { font-size: 14px; font-weight: 700; color: var(--bad); }
 
 /* Fin de session */
 .cl-score { grid-template-columns: auto 1fr; align-items: center; gap: 20px; }
@@ -2555,6 +2713,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-missed-toggle:hover { background: var(--surface-2); }
 .cl-missed-toggle:focus-visible { outline: 3px solid var(--accent); outline-offset: 0; }
 .cl-missed-meta { display: grid; gap: 4px; justify-items: end; flex: none; }
+.cl-missed-stay { font-size: 12px; font-weight: 700; color: var(--ink-2); padding: 1px 8px; border-radius: 999px; background: var(--bad-soft); white-space: nowrap; }
 .cl-missed-hint { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ink-3); white-space: nowrap; }
 .cl-missed-hint .cl-icon { transition: transform .2s; }
 .cl-missed.is-open .cl-missed-hint .cl-icon { transform: rotate(180deg); }
