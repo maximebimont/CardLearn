@@ -13,6 +13,7 @@ const DEFAULT_SIZE = 20;
 
 // Durées des retours et animations (ms)
 const FEEDBACK_MS = 650; // retour vert avant que la carte parte derrière la pile
+const NEAR_MS = 2600; // réponse acceptée à quelques fautes près : le temps de voir la bonne orthographe
 // Après une erreur, la bonne réponse reste affichée le temps de la lire : 4 à 9 s selon la longueur.
 const REVEAL_MIN_MS = 4000;
 const REVEAL_MAX_MS = 9000;
@@ -215,17 +216,189 @@ function acceptedKeys(en) {
   return keys;
 }
 
-function isCorrect(card, input) {
+// Formes acceptées écrites telles quelles dans la réponse : entière, chaque alternative, forme longue, sigle.
+// Chacune est un intervalle [début, fin) du texte, pour y situer les lettres à corriger.
+function answerForms(en) {
+  const forms = [[0, en.length]];
+  const add = (start, end) => {
+    if (!forms.some(([s, e]) => s === start && e === end)) forms.push([start, end]);
+  };
+  let at = 0;
+  for (const raw of en.split("/")) {
+    const start = at + raw.length - raw.trimStart().length;
+    const part = raw.trim();
+    at += raw.length + 1;
+    if (!part) continue;
+    add(start, start + part.length);
+    const match = part.match(ACRONYM);
+    if (match && /[A-Z].*[A-Z]/.test(match[2])) {
+      add(start, start + match[1].length);
+      add(start + part.length - match[2].length, start + part.length);
+    }
+  }
+  return forms;
+}
+
+// Lettres et chiffres comparés, avec leur position dans le texte (mêmes règles que answerKey).
+function keyChars(text) {
+  const words = [];
+  let word = null;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i].toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    if (/^[a-z0-9]$/.test(c)) {
+      if (!word) words.push((word = []));
+      word.push({ i, c });
+    } else if (c && !/['’‘`´]/.test(c)) {
+      word = null;
+    }
+  }
+  if (words.length > 1 && words[0].map((x) => x.c).join("") === "to") words.shift();
+  return words.flat();
+}
+
+// Fautes tolérées selon la longueur de la réponse attendue (lettres et chiffres).
+function typoAllowance(length) {
+  if (length <= 4) return 0;
+  if (length <= 10) return 1;
+  if (length <= 20) return 2;
+  return 3;
+}
+
+// Distance d'édition entre deux suites de lettres (deux lettres voisines inversées comptent pour une faute),
+// avec, pour chaque lettre, si elle est fausse (a) ou à corriger (b), et où manquent des lettres de b dans a.
+function align(a, b) {
+  const n = a.length;
+  const m = b.length;
+  const d = Array.from({ length: n + 1 }, (_, i) => Array.from({ length: m + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)));
+  const swapped = (i, j) => i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1] && a[i - 1] !== b[j - 1];
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (swapped(i, j)) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  }
+  const badA = new Array(n).fill(false);
+  const badB = new Array(m).fill(false);
+  const pairs = []; // lettres identiques alignées [i, j]
+  const missing = []; // lettre j de b absente de a, à insérer avant la lettre i de a
+  // Remontée depuis la fin : à coût égal, les lettres en trop ou manquantes sont placées le plus loin possible,
+  // pour qu'une réponse commencée (« data » pour « database ») reste alignée sur le début.
+  let i = n;
+  let j = m;
+  while (i > 0 || j > 0) {
+    if (i > 0 && d[i][j] === d[i - 1][j] + 1) {
+      badA[--i] = true;
+    } else if (j > 0 && d[i][j] === d[i][j - 1] + 1) {
+      badB[--j] = true;
+      missing.push([i, j]);
+    } else if (a[i - 1] === b[j - 1] && d[i][j] === d[i - 1][j - 1]) {
+      pairs.push([--i, --j]);
+    } else if (swapped(i, j) && d[i][j] === d[i - 2][j - 2] + 1) {
+      badA[i - 1] = badA[i - 2] = badB[j - 1] = badB[j - 2] = true;
+      i -= 2;
+      j -= 2;
+    } else {
+      badA[--i] = badB[--j] = true;
+    }
+  }
+  // Lettre manquante au milieu de la réponse, dans une suite de lettres identiques (« company's strategy ») :
+  // c'est la première qui manque. En fin de réponse (réponse inachevée), elle reste à la fin.
+  const pairOfB = new Map(pairs.map((pair) => [pair[1], pair]));
+  for (const gap of missing) {
+    while (gap[0] < n && gap[1] > 0 && b[gap[1] - 1] === b[gap[1]] && pairOfB.get(gap[1] - 1)?.[0] === gap[0] - 1) {
+      const pair = pairOfB.get(gap[1] - 1);
+      pairOfB.delete(pair[1]);
+      pair[1] = gap[1];
+      pairOfB.set(pair[1], pair);
+      badB[gap[1]] = false;
+      gap[0] -= 1;
+      gap[1] -= 1;
+      badB[gap[1]] = true;
+    }
+  }
+  return { distance: d[n][m], badA, badB, pairs, missing };
+}
+
+// Texte découpé en segments : null (normal), "bad" (lettre fausse), "gap" (lettre manquante), "fix" (lettre à corriger).
+function segment(text, kindAt, gaps = new Map()) {
+  const segments = [];
+  const push = (kind, piece) => {
+    const last = segments[segments.length - 1];
+    if (last && last.kind === kind) last.text += piece;
+    else segments.push({ kind, text: piece });
+  };
+  for (let i = 0; i <= text.length; i++) {
+    if (gaps.has(i)) push("gap", gaps.get(i) > 3 ? "___…" : "_".repeat(gaps.get(i)));
+    if (i < text.length) push(kindAt(i), text[i]);
+  }
+  return segments;
+}
+
+// Compare la réponse à la forme attendue la plus proche. ok : exacte, ou à quelques fautes près (near).
+// given / expected : la réponse et la forme attendue, avec les lettres à revoir mises en évidence.
+function grade(card, input) {
   const key = answerKey(input);
-  if (!key) return false;
-  return card.accepted.has(key) || (key.startsWith("to") && card.accepted.has(key.slice(2)));
+  if (!key) return { ok: false, near: false, typos: 0, given: null, expected: null };
+  if (card.accepted.has(key) || (key.startsWith("to") && card.accepted.has(key.slice(2)))) {
+    return { ok: true, near: false, typos: 0, given: null, expected: null };
+  }
+  const typed = keyChars(input);
+  if (!typed.length) return { ok: false, near: false, typos: 0, given: null, expected: null };
+  let best = null;
+  for (const [start, end] of card.forms) {
+    const target = keyChars(card.en.slice(start, end)).map(({ i, c }) => ({ i: i + start, c }));
+    const result = align(typed.map((x) => x.c), target.map((x) => x.c));
+    const within = result.distance <= typoAllowance(target.length);
+    if (!best || within > best.within || (within === best.within && result.distance < best.distance)) best = { ...result, target, within };
+  }
+  // Une autre carte de la liste, écrite sans faute, n'est pas une faute de frappe.
+  const near = best.within && !OTHER_ANSWERS.get(key)?.some((id) => id !== card.id);
+  const { badA, badB, pairs, target } = best;
+
+  // Une lettre juste isolée au milieu d'erreurs n'est qu'une coïncidence : elle compte comme fausse.
+  const isBadA = (i) => i < 0 || i >= typed.length || badA[i];
+  const isBadB = (j) => j < 0 || j >= target.length || badB[j];
+  const stray = pairs.filter(([i, j]) => typed.length > 1 && target.length > 1 && isBadA(i - 1) && isBadA(i + 1) && isBadB(j - 1) && isBadB(j + 1));
+  for (const [i, j] of stray) badA[i] = badB[j] = true;
+  const matched = pairs.length - stray.length;
+
+  // Réponse sans rapport avec la forme attendue : toute la réponse est fausse, rien n'est détaillé.
+  if (matched * 2 < typed.length && matched * 2 < target.length) {
+    const typedAt = new Set(typed.map((x) => x.i));
+    return { ok: false, near: false, typos: best.distance, given: segment(input, (i) => (typedAt.has(i) ? "bad" : null)), expected: null };
+  }
+
+  const badAt = new Set(typed.filter((_, i) => badA[i]).map((x) => x.i));
+  const fixAt = new Set(target.filter((_, j) => badB[j]).map((x) => x.i));
+  // Lettre manquante : en début de mot, avant le mot suivant de la réponse ; sinon juste après la lettre précédente.
+  // Entre deux lettres fausses, elle n'apprend rien de plus : elle n'est pas montrée.
+  const gaps = new Map();
+  for (const [i, j] of best.missing) {
+    if (isBadA(i - 1) && isBadA(i)) continue;
+    const startsWord = j === 0 || /[^'’‘`´̀-ͯ]/.test(card.en.slice(target[j - 1].i + 1, target[j].i));
+    const at = i === 0 ? typed[0].i : i === typed.length || !startsWord ? typed[i - 1].i + 1 : typed[i].i;
+    gaps.set(at, (gaps.get(at) || 0) + 1);
+  }
+  return {
+    ok: near,
+    near,
+    typos: best.distance,
+    given: segment(input, (i) => (badAt.has(i) ? "bad" : null), gaps),
+    expected: segment(card.en, (i) => (fixAt.has(i) ? "fix" : null)),
+  };
 }
 
 const CARDS = [
   ...MOTS.map(([id, fr, en]) => ({ id, cat: "mots", fr, en })),
   ...EXPRESSIONS.map(([id, fr, en]) => ({ id, cat: "expr", fr, en })),
   ...DEFINITIONS.map(([id, term, fr, en, masks = []]) => ({ id, cat: "def", fr, en, hint: term, masks: [term, ...masks] })),
-].map((card) => ({ ...card, accepted: acceptedKeys(card.en) }));
+].map((card) => ({ ...card, accepted: acceptedKeys(card.en), forms: answerForms(card.en) }));
+
+// Réponses exactes de chaque carte : clé → cartes.
+const OTHER_ANSWERS = new Map();
+for (const card of CARDS) {
+  for (const key of card.accepted) OTHER_ANSWERS.set(key, [...(OTHER_ANSWERS.get(key) || []), card.id]);
+}
 
 const CARD_BY_ID = Object.fromEntries(CARDS.map((card) => [card.id, card]));
 const TOTAL = CARDS.length;
@@ -341,7 +514,7 @@ function summarize(progress) {
     boxes[box - 1] += 1;
     if (!entry || !entry.s) unseen += 1;
     if (box === MAX_BOX) masteredByCat[card.cat] += 1;
-    if (entry && entry.w > 0 && box < MAX_BOX) toReview += 1;
+    if (entry && entry.w > 0 && box === 1) toReview += 1; // dernière réponse fausse
   }
   const mastered = boxes[MAX_BOX - 1];
   return { boxes, unseen, mastered, masteredByCat, toReview, streak: currentStreak(progress.days), grade: gradeFor(mastered) };
@@ -358,10 +531,11 @@ const RETURN_POSITION = { 2: [8, 12], 3: [14, 18], 4: [20, 26] };
 const randInt = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
 
 function buildPool(mode, cats, progress) {
+  // Revanche : les cartes dont la dernière réponse est fausse (une erreur renvoie au niveau 1).
   if (mode === "errors") {
     return CARDS.filter((card) => {
       const entry = progress.cards[card.id];
-      return entry && entry.w > 0 && entry.b < MAX_BOX;
+      return entry && entry.w > 0 && entry.b === 1;
     }).map((card) => card.id);
   }
   return CARDS.filter((card) => cats.includes(card.cat)).map((card) => card.id);
@@ -391,8 +565,9 @@ function requeue(queue, id, ok, newBox) {
 
 /* ---------------------------------------------------------------- Session -- */
 
-function initSession(config) {
-  return { queue: config.queue, turn: 0, phase: "answering", exit: null, input: "", hint: false, verdict: null, nextQueue: null, results: [] };
+// progress : copie de travail, enregistrée seulement à la fin de la partie.
+function initSession({ config, progress }) {
+  return { queue: config.queue, progress, turn: 0, phase: "answering", exit: null, input: "", hint: false, verdict: null, nextQueue: null, results: [] };
 }
 
 function sessionReducer(state, action) {
@@ -403,8 +578,8 @@ function sessionReducer(state, action) {
       return { ...state, hint: true };
     case "answer": {
       if (state.phase !== "answering") return state;
-      const verdict = { id: state.queue[0], ok: action.ok, input: action.input, from: action.from, to: action.to, revealMs: action.revealMs };
-      return { ...state, phase: action.ok ? "correct" : "wrong", verdict, nextQueue: action.nextQueue, results: [...state.results, verdict] };
+      const { verdict } = action;
+      return { ...state, phase: verdict.ok ? "correct" : "wrong", verdict, progress: action.progress, nextQueue: action.nextQueue, results: [...state.results, verdict] };
     }
     case "exit":
       if (state.phase !== "correct" && state.phase !== "wrong") return state;
@@ -474,7 +649,6 @@ function CatGlyph({ cat }) {
   if (cat === "expr") return <IconBubble size={20} />;
   return <IconBook size={20} />;
 }
-const IconBack = (p) => <Icon d="M15 5l-7 7 7 7" {...p} />;
 const IconNext = (p) => <Icon d="M5 12h14M13 6l6 6-6 6" {...p} />;
 const IconHome = (p) => <Icon d="M4 10.5L12 4l8 6.5M6 9v11h4.5v-6h3v6H18V9" {...p} />;
 const IconUser = (p) => <Icon d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20.5c.8-3.6 3.8-5.5 7.5-5.5s6.7 1.9 7.5 5.5" {...p} />;
@@ -529,8 +703,32 @@ function StorageNotice({ state }) {
   );
 }
 
-function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
-  const [state, dispatch] = useReducer(sessionReducer, config, initSession);
+// Texte d'une réponse comparée, avec les lettres fausses, manquantes ou à corriger mises en évidence.
+function Marked({ segments }) {
+  return segments.map(({ kind, text }, i) =>
+    kind === "bad" ? (
+      <strong key={i} className="cl-diff-bad">
+        {text}
+      </strong>
+    ) : kind === "gap" ? (
+      <span key={i} className="cl-diff-gap" title={text.length > 1 ? "Lettres manquantes" : "Lettre manquante"}>
+        {text}
+      </span>
+    ) : kind === "fix" ? (
+      <mark key={i} className="cl-diff-fix">
+        {text}
+      </mark>
+    ) : (
+      <React.Fragment key={i}>{text}</React.Fragment>
+    )
+  );
+}
+
+const TYPO_WORDS = ["", "une faute", "deux fautes", "trois fautes"];
+
+function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
+  const [state, dispatch] = useReducer(sessionReducer, { config, progress: initialProgress }, initSession);
+  const { progress } = state;
   const inputRef = useRef(null);
   const revealedAt = useRef(0);
   const onEndRef = useRef(onEnd);
@@ -542,14 +740,14 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
   // Enchaînement des phases : retour → départ de la carte → carte suivante.
   useEffect(() => {
     let timer;
-    if (phase === "correct") timer = setTimeout(() => dispatch({ type: "exit", kind: "back" }), FEEDBACK_MS);
+    if (phase === "correct") timer = setTimeout(() => dispatch({ type: "exit", kind: "back" }), state.verdict.revealMs);
     else if (phase === "wrong") timer = setTimeout(() => dispatch({ type: "exit", kind: "side" }), state.verdict.revealMs);
     else if (phase === "exiting") {
       const duration = reducedMotion ? EXIT_REDUCED_MS : state.exit === "back" ? EXIT_BACK_MS : EXIT_SIDE_MS;
       timer = setTimeout(() => dispatch({ type: "advance", size: config.size }), duration);
-    } else if (phase === "done") onEndRef.current(state.results, true);
+    } else if (phase === "done") onEndRef.current(state.results, state.progress);
     return () => clearTimeout(timer);
-  }, [phase, state.exit, state.turn, state.results, config.size, reducedMotion]);
+  }, [phase, state.exit, state.turn, state.results, state.progress, config.size, reducedMotion]);
 
   // Le focus revient dans le champ à chaque nouvelle carte.
   useEffect(() => {
@@ -558,22 +756,32 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
 
   if (phase === "done" || !card) return null;
 
-  const answer = (ok, input) => {
+  // input vide : « Je ne sais pas ».
+  const answer = (input) => {
     if (phase !== "answering") return;
+    const result = input ? grade(card, input) : { ok: false, near: false, typos: 0, given: null, expected: null };
     const from = boxOf(progress, card.id);
-    const to = ok ? Math.min(MAX_BOX, from + 1) : 1;
-    onAnswer(card, ok, state.turn === 0);
+    const to = result.ok ? Math.min(MAX_BOX, from + 1) : 1;
+    const revealMs = !result.ok ? revealDelay(card, input) : result.near ? NEAR_MS : FEEDBACK_MS;
     revealedAt.current = Date.now();
-    dispatch({ type: "answer", ok, input, from, to, revealMs: ok ? 0 : revealDelay(card, input), nextQueue: requeue(state.queue, card.id, ok, to) });
+    dispatch({
+      type: "answer",
+      verdict: { id: card.id, input, ...result, from, to, revealMs },
+      progress: recordAnswer(progress, card, result.ok, state.turn === 0),
+      nextQueue: requeue(state.queue, card.id, result.ok, to),
+    });
   };
+
+  // Après une erreur ou une faute de frappe, la bonne réponse reste affichée : Entrée ou « Continuer » passe à la suite.
+  const lingering = phase === "wrong" || (phase === "correct" && verdict.near);
 
   const submit = (event) => {
     event.preventDefault();
     if (phase === "answering") {
       const value = state.input.trim();
-      if (value) answer(isCorrect(card, value), value);
-    } else if (phase === "wrong" && Date.now() - revealedAt.current > 300) {
-      dispatch({ type: "exit", kind: "side" });
+      if (value) answer(value);
+    } else if (lingering && Date.now() - revealedAt.current > 300) {
+      dispatch({ type: "exit", kind: verdict.ok ? "back" : "side" });
     }
   };
 
@@ -592,9 +800,6 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
   return (
     <div className="cl-wrap cl-wrap--session">
       <div className="cl-session-bar">
-        <button type="button" className="cl-btn cl-btn--ghost cl-btn--sm" onClick={() => onEndRef.current(state.results, false)}>
-          <IconBack size={16} /> Quitter
-        </button>
         <div className="cl-session-progress">
           <span className="cl-session-count">
             {config.mode === "errors" ? "Revanche · " : ""}Carte {state.turn + 1}&nbsp;/&nbsp;{total}
@@ -645,9 +850,15 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
               {verdict?.ok && (
                 <div className="cl-verdict cl-verdict--ok">
                   <span className="cl-verdict-title">
-                    <IconCheck /> Correct
+                    <IconCheck /> {verdict.near ? `Correct, à ${TYPO_WORDS[verdict.typos]} près` : "Correct"}
                   </span>
-                  <span className="cl-answer-text">{card.en}</span>
+                  <span className="cl-answer-text">{verdict.expected ? <Marked segments={verdict.expected} /> : card.en}</span>
+                  {verdict.given && (
+                    <span className="cl-given">
+                      Votre réponse&nbsp;: <Marked segments={verdict.given} />
+                    </span>
+                  )}
+                  {lingering && <span className="cl-countdown" style={{ animationDuration: `${verdict.revealMs}ms` }} />}
                 </div>
               )}
               {verdict && !verdict.ok && (
@@ -656,17 +867,17 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
                     <IconCross /> {verdict.input ? "Incorrect" : "À retenir"}
                   </span>
                   <span className="cl-verdict-label">Réponse attendue</span>
-                  <span className="cl-answer-text">{card.en}</span>
+                  <span className="cl-answer-text">{verdict.expected ? <Marked segments={verdict.expected} /> : card.en}</span>
                   <span className="cl-given">
                     {verdict.input ? (
                       <>
-                        Votre réponse&nbsp;: <s>{verdict.input}</s>
+                        Votre réponse&nbsp;: {verdict.given ? <Marked segments={verdict.given} /> : verdict.input}
                       </>
                     ) : (
                       "Carte passée avec « Je ne sais pas »."
                     )}
                   </span>
-                  {phase === "wrong" && <span className="cl-countdown" style={{ animationDuration: `${verdict.revealMs}ms` }} />}
+                  {lingering && <span className="cl-countdown" style={{ animationDuration: `${verdict.revealMs}ms` }} />}
                 </div>
               )}
             </div>
@@ -693,7 +904,7 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
             spellCheck={false}
             enterKeyHint="done"
           />
-          {phase === "wrong" ? (
+          {lingering ? (
             <button type="submit" className="cl-btn cl-btn--primary" onMouseDown={keepFocus}>
               Continuer <IconNext size={16} />
             </button>
@@ -704,7 +915,7 @@ function Session({ config, progress, onAnswer, onEnd, reducedMotion }) {
           )}
         </div>
         <div className="cl-answer-actions">
-          <button type="button" className="cl-btn cl-btn--quiet" onMouseDown={keepFocus} onClick={() => answer(false, "")} disabled={phase !== "answering"}>
+          <button type="button" className="cl-btn cl-btn--quiet" onMouseDown={keepFocus} onClick={() => answer("")} disabled={phase !== "answering"}>
             Je ne sais pas
           </button>
           {card.cat === "def" && (
@@ -725,19 +936,37 @@ const NAV_ITEMS = [
   { id: "ranking", label: "Classement", Glyph: IconPodium },
 ];
 
-// Logo à gauche, icônes centrées, déconnexion à droite.
-function NavBar({ screen, onNavigate, account, onSignOut, leaving }) {
-  const active = screen === "session" || screen === "summary" ? "home" : screen;
+const Logo = () => (
+  <span className="cl-logo" aria-hidden="true">
+    <span />
+    <span />
+    <span />
+  </span>
+);
+
+// Logo à gauche, icônes centrées, déconnexion à droite. Pendant une partie, un seul bouton : quitter la partie.
+function NavBar({ screen, onNavigate, account, onSignOut, leaving, onQuit }) {
+  const active = screen === "summary" ? "home" : screen;
   const logoutLabel = leaving ? "Déconnexion en cours" : account?.email ? `Se déconnecter (${account.email})` : "Se déconnecter";
+  if (onQuit) {
+    return (
+      <header className="cl-nav">
+        <div className="cl-nav-inner">
+          <span className="cl-nav-logo is-static">
+            <Logo />
+          </span>
+          <button type="button" className="cl-nav-quit" onClick={onQuit} aria-haspopup="dialog">
+            <IconCross size={16} /> Quitter la partie
+          </button>
+        </div>
+      </header>
+    );
+  }
   return (
     <header className="cl-nav">
       <nav className="cl-nav-inner" aria-label="Navigation principale">
         <button type="button" className="cl-nav-logo" onClick={() => onNavigate("home")} aria-label="CardLearn, accueil" title="CardLearn">
-          <span className="cl-logo" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
+          <Logo />
         </button>
         {onSignOut && (
           <button type="button" className="cl-nav-logout" onClick={onSignOut} disabled={leaving} aria-label={logoutLabel} title={logoutLabel}>
@@ -1124,7 +1353,7 @@ function Home({ progress, summary, cats, onCatsChange, onSizeChange, onStart, st
           <h2 id="rematch-title">Revanche</h2>
           <p>
             {summary.toReview
-              ? `${plural(summary.toReview, "carte ratée", "cartes ratées")} à reprendre jusqu'à la maîtrise.`
+              ? `${plural(summary.toReview, "carte ratée", "cartes ratées")} à retenter\u00a0: chaque bonne réponse en retire une.`
               : "Aucune erreur à reprendre. Bien joué\u00a0!"}
           </p>
         </div>
@@ -1145,7 +1374,8 @@ function Attempts({ id, attempts }) {
           <span className="cl-attempt-turn">Carte {a.turn}</span>
           <span className="cl-attempt-answer">
             {a.ok ? <IconCheck size={16} /> : <IconCross size={16} />}
-            {a.input ? a.ok ? <span>{a.input}</span> : <s>{a.input}</s> : <em>Je ne sais pas</em>}
+            {a.input ? <span>{a.given ? <Marked segments={a.given} /> : a.input}</span> : <em>Je ne sais pas</em>}
+            {a.near && <span className="cl-attempt-near">à {TYPO_WORDS[a.typos]} près</span>}
           </span>
           <span className="cl-attempt-box">{levelMove(a.from, a.to, a.ok)}</span>
         </li>
@@ -1155,7 +1385,7 @@ function Attempts({ id, attempts }) {
 }
 
 function Summary({ result, canReplay, onReplay, onHome }) {
-  const { results, completed, mode } = result;
+  const { results, mode } = result;
   const [open, setOpen] = useState(() => new Set());
   const total = results.length;
   const good = results.filter((r) => r.ok).length;
@@ -1181,7 +1411,7 @@ function Summary({ result, canReplay, onReplay, onHome }) {
     <div className="cl-wrap">
       <header className="cl-page-head">
         <p className="cl-eyebrow">{mode === "errors" ? "Revanche" : "Nouvelle partie"}</p>
-        <h1>{completed ? "Partie terminée" : "Partie interrompue"}</h1>
+        <h1>Partie terminée</h1>
       </header>
 
       <section className="cl-panel cl-score">
@@ -1312,6 +1542,52 @@ function InfoDialog({ open, onClose, id, title, children }) {
         <button type="button" className="cl-btn cl-btn--primary cl-dialog-ok" onClick={onClose}>
           J'ai compris
         </button>
+      </div>
+    </dialog>
+  );
+}
+
+// Quitter une partie en cours : rien n'est enregistré.
+function QuitDialog({ open, onStay, onQuit }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (open && !dialog.open) {
+      try {
+        dialog.showModal();
+      } catch (err) {
+        dialog.setAttribute("open", "");
+      }
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
+  return (
+    <dialog
+      ref={ref}
+      id="quit-dialog"
+      className="cl-dialog"
+      aria-labelledby="quit-dialog-title"
+      aria-describedby="quit-dialog-text"
+      onClose={onStay}
+      onClick={(event) => {
+        if (event.target === ref.current) onStay();
+      }}
+    >
+      <div className="cl-dialog-body">
+        <h2 id="quit-dialog-title">Quitter la partie&nbsp;?</h2>
+        <p id="quit-dialog-text" className="cl-muted">
+          Les réponses de cette partie ne seront pas enregistrées&nbsp;: vos cartes restent au niveau qu'elles avaient avant la partie.
+        </p>
+        <div className="cl-dialog-actions">
+          <button type="button" className="cl-btn" onClick={onStay}>
+            Continuer la partie
+          </button>
+          <button type="button" className="cl-btn cl-btn--danger" onClick={onQuit}>
+            Quitter sans enregistrer
+          </button>
+        </div>
       </div>
     </dialog>
   );
@@ -1632,6 +1908,7 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
   const saver = useRef({ busy: false, pending: null });
   const reducedMotion = usePrefersReducedMotion();
   const [leaving, setLeaving] = useState(false);
+  const [quitting, setQuitting] = useState(false);
 
   // Chargement de la progression au démarrage.
   useEffect(() => {
@@ -1709,10 +1986,21 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
     setScreen("session");
   };
 
-  // Quitter une session par la barre : les réponses données sont déjà enregistrées.
   const navigate = (target) => {
     setSession(null);
     setScreen(target);
+  };
+
+  // Abandon d'une partie : sa copie de travail est jetée, rien n'est enregistré.
+  const quitSession = () => {
+    setQuitting(false);
+    setSession(null);
+    setScreen("home");
+  };
+
+  const stayInSession = () => {
+    setQuitting(false);
+    setTimeout(() => document.getElementById("cl-answer-input")?.focus({ preventScroll: true }), 0);
   };
 
   // Laisse partir la dernière sauvegarde (3 s au plus).
@@ -1733,19 +2021,16 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
     }
   };
 
-  const handleAnswer = useCallback((card, ok, firstOfSession) => update((p) => recordAnswer(p, card, ok, firstOfSession)), [update]);
-
-  const handleEnd = (results, completed) => {
-    if (!results.length) {
-      setSession(null);
-      setScreen("home");
-      return;
-    }
-    setResult({ results, completed, mode: session.mode, cats: session.cats });
+  // Fin de partie : la progression de la partie est enregistrée d'un coup.
+  const handleEnd = (results, finalProgress) => {
+    setQuitting(false);
+    update(() => finalProgress);
+    setResult({ results, mode: session.mode, cats: session.cats });
     setSession(null);
     setScreen("summary");
   };
 
+  const inSession = !loading && screen === "session" && !!session;
   let content;
   if (loading) {
     content = (
@@ -1755,7 +2040,7 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
       </div>
     );
   } else if (screen === "session" && session) {
-    content = <Session key={session.id} config={session} progress={progress} onAnswer={handleAnswer} onEnd={handleEnd} reducedMotion={reducedMotion} />;
+    content = <Session key={session.id} config={session} progress={progress} onEnd={handleEnd} reducedMotion={reducedMotion} />;
   } else if (screen === "summary" && result) {
     content = (
       <Summary
@@ -1802,8 +2087,18 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
   return (
     <div className="cl-app">
       <style>{STYLES}</style>
-      {!loading && <NavBar screen={screen} onNavigate={navigate} account={account} onSignOut={onSignOut ? signOut : null} leaving={leaving} />}
+      {!loading && (
+        <NavBar
+          screen={screen}
+          onNavigate={navigate}
+          account={account}
+          onSignOut={onSignOut ? signOut : null}
+          leaving={leaving}
+          onQuit={inSession ? () => setQuitting(true) : null}
+        />
+      )}
       <main className="cl-main">{content}</main>
+      {inSession && <QuitDialog open={quitting} onStay={stayInSession} onQuit={quitSession} />}
     </div>
   );
 }
@@ -1827,6 +2122,8 @@ const STYLES = `
   --accent-soft: #e3e4f6;
   --ok: #1b7a37;
   --ok-soft: #dff1e4;
+  --fix-bg: #ffd75e;
+  --fix-ink: #231a00;
   --bad: #bf3329;
   --bad-soft: #fae5e3;
   --cat-mots: #2a78d6;
@@ -1873,6 +2170,8 @@ const STYLES = `
     --accent-soft: #2a2d52;
     --ok: #5cc97c;
     --ok-soft: rgba(92, 201, 124, 0.15);
+    --fix-bg: #f0c24b;
+    --fix-ink: #1a1400;
     --bad: #f27b6f;
     --bad-soft: rgba(242, 123, 111, 0.15);
     --cat-mots: #3987e5;
@@ -1909,6 +2208,8 @@ const STYLES = `
   --accent-soft: #2a2d52;
   --ok: #5cc97c;
   --ok-soft: rgba(92, 201, 124, 0.15);
+  --fix-bg: #f0c24b;
+  --fix-ink: #1a1400;
   --bad: #f27b6f;
   --bad-soft: rgba(242, 123, 111, 0.15);
   --cat-mots: #3987e5;
@@ -2027,6 +2328,19 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-nav-logout:hover:not(:disabled) { background: var(--bad-soft); color: var(--bad); }
 .cl-nav-logout:disabled { opacity: .55; cursor: progress; }
 .cl-nav-logo:focus-visible, .cl-nav-link:focus-visible, .cl-nav-logout:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.cl-nav-logo.is-static, .cl-nav-logo.is-static:hover { background: none; cursor: default; }
+.cl-nav-quit {
+  grid-column: 2; grid-row: 1;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 42px; padding: 8px 16px;
+  border: 1.5px solid var(--line); border-radius: 999px;
+  background: var(--surface); color: var(--ink-2);
+  font: 700 14px/1.2 var(--font-body); white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .15s, color .15s, border-color .15s;
+}
+.cl-nav-quit:hover { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+.cl-nav-quit:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 [data-cat="mots"] { --c: var(--cat-mots); }
 [data-cat="expr"] { --c: var(--cat-expr); }
@@ -2136,7 +2450,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-meter[data-tone="def"] { --fill: var(--cat-def); }
 
 /* Session */
-.cl-session-bar { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; }
+.cl-session-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; }
 .cl-session-progress { display: grid; gap: 6px; min-width: 0; }
 .cl-session-count { font: 600 13px/1.2 var(--font-mono); color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cl-session-score { display: inline-flex; gap: 10px; font: 600 14px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
@@ -2185,8 +2499,12 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-verdict-label { font: 600 11.5px/1.5 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); margin-top: 4px; }
 .cl-answer-text { font: 600 19px/1.4 var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
 .cl-given { font-size: 14px; color: var(--ink-2); overflow-wrap: anywhere; }
-.cl-given s { text-decoration-thickness: 1.5px; }
 .cl-countdown { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--bad); transform-origin: left center; animation: cl-countdown 2s linear forwards; }
+.cl-verdict--ok .cl-countdown { background: var(--ok); }
+/* Lettres à revoir : fausses (gras, rouge) ou manquantes (_) dans la réponse donnée, à corriger dans la réponse attendue. */
+.cl-diff-bad { font-weight: 800; color: var(--bad); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.cl-diff-gap { font-weight: 800; color: var(--bad); }
+.cl-diff-fix { font-weight: 800; color: var(--fix-ink); background: var(--fix-bg); border-radius: 3px; }
 
 .cl-card--front.is-correct { border-color: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft), var(--shadow); animation: cl-pop .32s ease-out; }
 .cl-card--front.is-wrong { border-color: var(--bad); box-shadow: 0 0 0 3px var(--bad-soft), var(--shadow); animation: cl-shake .36s ease-in-out; }
@@ -2240,7 +2558,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-missed-hint { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ink-3); white-space: nowrap; }
 .cl-missed-hint .cl-icon { transition: transform .2s; }
 .cl-missed.is-open .cl-missed-hint .cl-icon { transform: rotate(180deg); }
-.cl-attempts { display: grid; gap: 6px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); }
+.cl-app .cl-attempts { display: grid; gap: 6px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); }
 .cl-attempts li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; gap: 4px 14px; font-size: 14px; }
 .cl-attempt-turn { font: 600 12px/1.4 var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .cl-attempt-answer { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; font: 500 14px/1.4 var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
@@ -2248,7 +2566,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-attempts .is-ok .cl-attempt-answer .cl-icon { color: var(--ok); }
 .cl-attempts .is-bad .cl-attempt-answer .cl-icon { color: var(--bad); }
 .cl-attempt-answer em { font-family: var(--font-body); color: var(--ink-2); }
-.cl-attempt-answer s { color: var(--ink-2); text-decoration-thickness: 1.5px; }
+.cl-attempt-near { font: 500 12px/1.4 var(--font-body); color: var(--ink-3); white-space: nowrap; }
 .cl-attempt-box { font: 500 12px/1.4 var(--font-mono); color: var(--ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .cl-rank { width: 26px; flex: none; font: 600 15px/1.6 var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
 
@@ -2279,7 +2597,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-trophy path { fill: var(--medal); stroke: var(--medal-edge); stroke-width: 1.4; stroke-linejoin: round; }
 .cl-trophy .cl-trophy-handles { fill: none; stroke: var(--medal); stroke-width: 1.8; stroke-linecap: round; }
 
-.cl-podium {
+.cl-app .cl-podium {
   position: relative; overflow: hidden;
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 10px;
   padding: 32px 16px 0; border-radius: 16px;
@@ -2357,6 +2675,8 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-dialog-close { display: grid; place-items: center; width: 36px; height: 36px; flex: none; margin: -6px -6px 0 0; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink-3); cursor: pointer; }
 .cl-dialog-close:hover { background: var(--surface-2); color: var(--ink); }
 .cl-dialog-ok { justify-self: end; }
+.cl-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.cl-dialog-actions .cl-btn { flex: 1 1 auto; }
 .cl-dialog .cl-rules { grid-template-columns: minmax(0, 1fr); }
 @keyframes cl-dialog-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
 .cl-rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -2409,7 +2729,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   .cl-main { padding-block: 16px calc(40px + env(safe-area-inset-bottom, 0px)); }
   .cl-app h1 { font-size: 28px; }
   .cl-grid-2 { grid-template-columns: minmax(0, 1fr); }
-  .cl-podium { gap: 6px; padding: 18px 10px 0; }
+  .cl-app .cl-podium { gap: 6px; padding: 24px 10px 0; }
   .cl-podium-name { font-size: 14px; }
   .cl-podium-slot[data-place="1"] .cl-podium-name { font-size: 16px; }
   .cl-podium-step { font-size: 24px; }
