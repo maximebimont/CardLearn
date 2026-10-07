@@ -89,8 +89,9 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
 
 - **Accueil** : tableau de scores (série de jours, cartes maîtrisées, note estimée), plateau
   « Nouvelle partie » avec les catégories en tuiles, le nombre de cartes et le bouton « Jouer », et
-  la « Revanche » pour retenter les cartes dont la dernière réponse était fausse : chaque bonne
-  réponse en retire une, le compteur descend.
+  la « Revanche » pour retenter les cartes ratées. Toute erreur y met la carte, même si elle est
+  réussie plus tard dans la même partie classique ; seule une bonne réponse pendant une Revanche
+  l'en retire, et le compteur descend.
 - **Cartes** : le texte français s'affiche, vous tapez la réponse anglaise puis validez avec Entrée.
   Une bonne réponse passe derrière la pile. Une erreur affiche la bonne réponse le temps de la lire,
   de 4 à 9 secondes selon sa longueur (Entrée ou « Continuer » pour passer plus vite), puis la carte
@@ -99,9 +100,14 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
   réponse attendue. Une réponse sans rapport est entièrement en gras.
   « Je ne sais pas » compte comme une erreur.
 - **Expressions en QCM** : les expressions ne se tapent pas. Quatre traductions sont proposées, une
-  seule est juste ; les trois autres sont d'autres expressions de la liste, de longueur proche et
-  partageant des mots avec la bonne. Un clic (ou les touches 1 à 4) valide le choix : la bonne
-  réponse passe en vert, un mauvais choix en rouge.
+  seule est juste. Les trois autres sont des pièges tirés de la bonne réponse : chaque expression a
+  2 ou 3 passages piégés par une erreur typique d'un francophone (faux ami comme « realize » pour
+  réaliser ou « delays » pour délais, calque ou ordre des mots comme « code source », faute comme
+  « softwares » ou « developper »). Une partie en tire deux, et les 4 propositions sont toutes les
+  combinaisons juste/faux : chaque piège apparaît dans deux propositions, la bonne ne se devine pas
+  par élimination. Un clic (ou les touches 1 à 4) valide le choix : la bonne réponse passe en vert,
+  un mauvais choix en rouge, et les passages piégés sont mis en évidence. Les pièges sont le
+  4e élément de chaque ligne de `EXPRESSIONS` dans `CardLearn.jsx`.
 - **Leitner** : 5 boîtes, présentées dans l'appli comme des **niveaux** (1 À apprendre, 2 En cours,
   3 Retenue, 4 Solide, 5 Maîtrisée). Une bonne réponse fait monter la carte d'un niveau, une erreur la
   renvoie au niveau 1. Le niveau 5 correspond aux cartes maîtrisées. Dans le profil, le bouton ⓘ à
@@ -127,7 +133,7 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
 - **Définitions** : le terme français est masqué dans la définition. Le bouton « Indice » le révèle.
 - **Fin de partie** : score et cartes ratées, regroupées par carte. Un clic sur une carte affiche
   le détail de ses tentatives : réponse donnée (lettres fausses en gras), réussie ou non, niveau
-  avant et après. « Reste en Revanche » signale les cartes dont la dernière réponse était fausse.
+  avant et après. « Reste en Revanche » signale les cartes qui sont dans la Revanche après la partie.
 - **Navigation** : une barre d'icônes centrée en haut mène à l'accueil, au profil et au classement.
   Le logo (à gauche) ramène à l'accueil ; une fois connecté, l'icône de déconnexion est à droite.
   Pendant une partie, seul le bouton « Quitter la partie » reste.

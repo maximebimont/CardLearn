@@ -87,58 +87,60 @@ const MOTS = [
   ["m50", "Maquette fonctionnelle d'un site", "Wireframe"],
 ];
 
+// Expressions : [id, français, anglais, pièges du QCM]. Un piège est [passage juste, variante fausse] :
+// faux ami, calque, ordre des mots ou faute typique d'un francophone.
 const EXPRESSIONS = [
-  ["e01", "Déclarer une variable en langage java", "Declare a variable in java language"],
-  ["e02", "Utiliser des tableaux pour stocker plusieurs valeurs dans une seule variable", "Use arrays to store multiple values in a single variable"],
-  ["e03", "Créer une chaîne en java", "Create a string in java"],
-  ["e04", "Exécuter des boucles", "Execute loops"],
-  ["e05", "Effectuer une opération d'entrée ou de sortie", "Perform an input or output operation"],
-  ["e06", "Traiter une information représentée sous sa forme binaire", "Process a binary information"],
-  ["e07", "Comprendre les principaux livrables, les jalons, ainsi que les rôles et les responsabilités de chaque personne impliquée dans une charte de projet", "Understand the main deliverables, milestones, as well as the roles and responsibilities of each person involved in a project charter"],
-  ["e08", "Utiliser les opérateurs booléens pour réduire, étendre ou affiner les résultats de recherche", "Use Boolean operators to narrow, expand, or refine search results"],
-  ["e09", "Créer une procédure stockée dans une base de données", "Create a stored procedure in a database"],
-  ["e10", "Utiliser les algorithmes les plus efficaces possibles pour résoudre des problèmes", "Use the most efficient algorithms possible to solve problems"],
-  ["e11", "Développer des solutions logicielles fiables et fonctionnelles", "Develop reliable and functional software solutions"],
-  ["e12", "Se positionner comme expert technique", "Position oneself as a technical expert"],
-  ["e13", "Gérer et optimiser la base de données", "Manage and optimize the database"],
-  ["e14", "Réaliser une étude logicielle", "Conduct a software study"],
-  ["e15", "Concevoir l'architecture des applications", "Design application architecture"],
-  ["e16", "Assurer la gestion des données", "Ensure data management"],
-  ["e17", "Sécuriser les applications", "Secure applications"],
-  ["e18", "Implémenter des solutions logicielles", "Implement software solutions"],
-  ["e19", "Créer des programmes", "Build programs"],
-  ["e20", "Écrire et tester le code", "Write and test code"],
-  ["e21", "Collaborer avec des développeurs", "Collaborate with developers"],
-  ["e22", "Utiliser des outils de développement", "Use development tools"],
-  ["e23", "Créer des applications ergonomiques", "Create ergonomic applications"],
-  ["e24", "Écouter, analyser et rédiger les besoins", "Listen, analyze and write needs"],
-  ["e25", "Être garant de la pérennité et de l'évolution des solutions", "To guarantee the sustainability and evolution of solutions"],
-  ["e26", "Respecter les délais, les coûts et la qualité", "Meet deadlines, costs and quality"],
-  ["e27", "Satisfaire les attentes du client", "Meet client expectations"],
-  ["e28", "Piloter un projet d'ingénierie logicielle", "Lead a software engineering project"],
-  ["e29", "Construire un cahier des charges", "Build specifications"],
-  ["e30", "Gérer les données de l'entreprise", "Manage company data"],
-  ["e31", "Développer des applications mobiles", "Develop mobile apps"],
-  ["e32", "Accompagner la stratégie de l'entreprise", "Support the company's strategy"],
-  ["e33", "Suivre les principes et bonnes pratiques de développement", "Follow development principles and best practices"],
-  ["e34", "Analyser et identifier tous les problèmes potentiels", "Analyze and identify any potential problems"],
-  ["e35", "Améliorer et maintenir le logiciel à long terme", "Improve and maintain the software in the long term"],
-  ["e36", "Traduire le besoin du client en demandes fonctionnelles", "Translate the client's need into functional demands"],
-  ["e37", "Analyser et décrire les tâches à réaliser par l'ordinateur", "Analyze and describe the tasks to be performed by the computer"],
-  ["e38", "Déterminer et schématiser les fonctionnalités du logiciel", "Determine and schematize the software functionalities"],
-  ["e39", "Déceler les défauts de programmation", "Identify programming defects"],
-  ["e40", "Effectuer des traitements par lot", "Perform batch processes"],
-  ["e41", "Contrôler les évolutions et les différentes versions du logiciel", "Control developments and different versions of the software"],
-  ["e42", "Maintenir en condition opérationnelle le logiciel", "Keep the software in operational condition"],
-  ["e43", "Mettre en production à l'issue des phases de qualification et d'intégration", "Put into production at the end of the qualification and integration phases"],
-  ["e44", "Rédiger le code source qui constitue le corps du logiciel", "Write the source code that forms the body of the software"],
-  ["e45", "Mettre en œuvre l'agilité au sein d'une équipe de développeurs", "Implement agility as part of a team of developers"],
-  ["e46", "Diriger des projets collaboratifs", "Lead collaborative projects"],
-  ["e47", "Vérifier que les fonctions offertes par le logiciel correspondent aux attentes du client", "Make sure the features offered by the software are in line with the customer's expectations"],
-  ["e48", "Définir les étapes clés de cycle de vie du projet", "Define key lifecycle milestones for the project"],
-  ["e49", "Intégrer les environnements de développement", "Integrate development environments"],
-  ["e50", "Gérer les modifications apportées au code source", "Manage changes to source code"],
-  ["e51", "Déployer le logiciel sur un serveur d'applications", "Deploy the software to an application server"],
+  ["e01", "Déclarer une variable en langage java", "Declare a variable in java language", [["Declare", "Declarate"], ["java language", "language java"]]],
+  ["e02", "Utiliser des tableaux pour stocker plusieurs valeurs dans une seule variable", "Use arrays to store multiple values in a single variable", [["arrays", "tables"], ["store", "stock"], ["a single", "an only"]]],
+  ["e03", "Créer une chaîne en java", "Create a string in java", [["string", "chain"], ["Create", "Creat"]]],
+  ["e04", "Exécuter des boucles", "Execute loops", [["Execute", "Excecute"], ["loops", "buckles"]]],
+  ["e05", "Effectuer une opération d'entrée ou de sortie", "Perform an input or output operation", [["input", "entry"], ["output", "exit"], ["Perform", "Effectuate"]]],
+  ["e06", "Traiter une information représentée sous sa forme binaire", "Process a binary information", [["Process", "Treat"], ["information", "informations"]]],
+  ["e07", "Comprendre les principaux livrables, les jalons, ainsi que les rôles et les responsabilités de chaque personne impliquée dans une charte de projet", "Understand the main deliverables, milestones, as well as the roles and responsibilities of each person involved in a project charter", [["responsibilities", "responsabilities"], ["involved", "implicated"], ["milestones", "landmarks"]]],
+  ["e08", "Utiliser les opérateurs booléens pour réduire, étendre ou affiner les résultats de recherche", "Use Boolean operators to narrow, expand, or refine search results", [["refine", "affine"], ["search results", "research results"], ["Boolean operators", "operators Boolean"]]],
+  ["e09", "Créer une procédure stockée dans une base de données", "Create a stored procedure in a database", [["stored", "stocked"], ["procedure", "proceeding"]]],
+  ["e10", "Utiliser les algorithmes les plus efficaces possibles pour résoudre des problèmes", "Use the most efficient algorithms possible to solve problems", [["algorithms", "algorythms"], ["most efficient", "more efficient"], ["to solve", "for solve"]]],
+  ["e11", "Développer des solutions logicielles fiables et fonctionnelles", "Develop reliable and functional software solutions", [["Develop", "Developp"], ["functional", "functionnal"], ["software solutions", "solutions software"]]],
+  ["e12", "Se positionner comme expert technique", "Position oneself as a technical expert", [["technical", "technic"], ["as a", "like a"]]],
+  ["e13", "Gérer et optimiser la base de données", "Manage and optimize the database", [["optimize", "optimalize"], ["the database", "the basis of data"]]],
+  ["e14", "Réaliser une étude logicielle", "Conduct a software study", [["Conduct", "Realize"], ["a software study", "a study software"]]],
+  ["e15", "Concevoir l'architecture des applications", "Design application architecture", [["Design", "Conceive"], ["application architecture", "applicative architecture"]]],
+  ["e16", "Assurer la gestion des données", "Ensure data management", [["Ensure", "Assure"], ["data", "datas"]]],
+  ["e17", "Sécuriser les applications", "Secure applications", [["Secure", "Securize"], ["applications", "appliances"]]],
+  ["e18", "Implémenter des solutions logicielles", "Implement software solutions", [["Implement", "Implant"], ["software solutions", "softwares solutions"]]],
+  ["e19", "Créer des programmes", "Build programs", [["Build", "Built"], ["programs", "programmations"]]],
+  ["e20", "Écrire et tester le code", "Write and test code", [["Write", "Redact"], ["code", "codes"]]],
+  ["e21", "Collaborer avec des développeurs", "Collaborate with developers", [["Collaborate with", "Collaborate to"], ["developers", "developpers"]]],
+  ["e22", "Utiliser des outils de développement", "Use development tools", [["development", "developpement"], ["tools", "toolings"]]],
+  ["e23", "Créer des applications ergonomiques", "Create ergonomic applications", [["Create", "Creat"], ["ergonomic applications", "applications ergonomic"]]],
+  ["e24", "Écouter, analyser et rédiger les besoins", "Listen, analyze and write needs", [["write", "redact"], ["needs", "needings"]]],
+  ["e25", "Être garant de la pérennité et de l'évolution des solutions", "To guarantee the sustainability and evolution of solutions", [["guarantee", "garantee"], ["sustainability", "perennity"]]],
+  ["e26", "Respecter les délais, les coûts et la qualité", "Meet deadlines, costs and quality", [["deadlines", "delays"], ["quality", "qualities"]]],
+  ["e27", "Satisfaire les attentes du client", "Meet client expectations", [["Meet", "Encounter"], ["expectations", "waitings"]]],
+  ["e28", "Piloter un projet d'ingénierie logicielle", "Lead a software engineering project", [["Lead", "Pilot"], ["software engineering", "engineering software"]]],
+  ["e29", "Construire un cahier des charges", "Build specifications", [["Build", "Constitute"], ["specifications", "charges notebook"]]],
+  ["e30", "Gérer les données de l'entreprise", "Manage company data", [["company", "society"], ["data", "datas"]]],
+  ["e31", "Développer des applications mobiles", "Develop mobile apps", [["Develop", "Developp"], ["mobile apps", "apps mobile"]]],
+  ["e32", "Accompagner la stratégie de l'entreprise", "Support the company's strategy", [["Support", "Accompany"], ["company's", "society's"]]],
+  ["e33", "Suivre les principes et bonnes pratiques de développement", "Follow development principles and best practices", [["development", "developpement"], ["principles", "principals"]]],
+  ["e34", "Analyser et identifier tous les problèmes potentiels", "Analyze and identify any potential problems", [["potential", "eventual"], ["problems", "problematics"]]],
+  ["e35", "Améliorer et maintenir le logiciel à long terme", "Improve and maintain the software in the long term", [["maintain", "maintenance"], ["software", "softwares"], ["in the long term", "at long term"]]],
+  ["e36", "Traduire le besoin du client en demandes fonctionnelles", "Translate the client's need into functional demands", [["into", "in"], ["functional", "functionnal"]]],
+  ["e37", "Analyser et décrire les tâches à réaliser par l'ordinateur", "Analyze and describe the tasks to be performed by the computer", [["to be performed", "to realize"], ["computer", "ordinator"]]],
+  ["e38", "Déterminer et schématiser les fonctionnalités du logiciel", "Determine and schematize the software functionalities", [["software", "softwares"], ["functionalities", "fonctionalities"]]],
+  ["e39", "Déceler les défauts de programmation", "Identify programming defects", [["programming", "programmation"], ["defects", "defaults"]]],
+  ["e40", "Effectuer des traitements par lot", "Perform batch processes", [["Perform", "Effectuate"], ["batch", "lot"], ["processes", "treatments"]]],
+  ["e41", "Contrôler les évolutions et les différentes versions du logiciel", "Control developments and different versions of the software", [["developments", "evolutions"], ["different", "differents"], ["software", "softwares"]]],
+  ["e42", "Maintenir en condition opérationnelle le logiciel", "Keep the software in operational condition", [["operational", "operationnal"], ["software", "softwares"]]],
+  ["e43", "Mettre en production à l'issue des phases de qualification et d'intégration", "Put into production at the end of the qualification and integration phases", [["into production", "into producing"], ["at the end of", "at the issue of"]]],
+  ["e44", "Rédiger le code source qui constitue le corps du logiciel", "Write the source code that forms the body of the software", [["source code", "code source"], ["body", "corpse"], ["software", "softwares"]]],
+  ["e45", "Mettre en œuvre l'agilité au sein d'une équipe de développeurs", "Implement agility as part of a team of developers", [["Implement", "Implant"], ["as part of", "in the breast of"], ["developers", "developpers"]]],
+  ["e46", "Diriger des projets collaboratifs", "Lead collaborative projects", [["Lead", "Pilot"], ["collaborative", "collaboratives"]]],
+  ["e47", "Vérifier que les fonctions offertes par le logiciel correspondent aux attentes du client", "Make sure the features offered by the software are in line with the customer's expectations", [["software", "softwares"], ["customer's", "costumer's"], ["expectations", "waitings"]]],
+  ["e48", "Définir les étapes clés de cycle de vie du projet", "Define key lifecycle milestones for the project", [["Define", "Definite"], ["key", "keys"]]],
+  ["e49", "Intégrer les environnements de développement", "Integrate development environments", [["Integrate", "Integrated"], ["development", "developpement"], ["environments", "environements"]]],
+  ["e50", "Gérer les modifications apportées au code source", "Manage changes to source code", [["to", "at"], ["source code", "code source"]]],
+  ["e51", "Déployer le logiciel sur un serveur d'applications", "Deploy the software to an application server", [["Deploy", "Unfold"], ["software", "softwares"], ["application server", "server of applications"]]],
 ];
 
 // [id, terme français (indice), définition, terme anglais, autres mots à masquer]
@@ -393,7 +395,7 @@ function grade(card, input) {
 
 const CARDS = [
   ...MOTS.map(([id, fr, en]) => ({ id, cat: "mots", fr, en })),
-  ...EXPRESSIONS.map(([id, fr, en]) => ({ id, cat: "expr", fr, en })),
+  ...EXPRESSIONS.map(([id, fr, en, traps = []]) => ({ id, cat: "expr", fr, en, traps })),
   ...DEFINITIONS.map(([id, term, fr, en, masks = []]) => ({ id, cat: "def", fr, en, hint: term, masks: [term, ...masks] })),
 ].map((card) => ({ ...card, accepted: acceptedKeys(card.en), forms: answerForms(card.en) }));
 
@@ -417,9 +419,39 @@ function shuffle(items) {
   return list;
 }
 
-// La bonne réponse et 3 autres réponses de la même catégorie, choisies vraisemblables :
-// de longueur proche et partageant des mots avec elle, avec une part de hasard.
+// Position d'un passage dans le texte, en mots entiers (-1 s'il n'y est pas).
+function findWords(text, part) {
+  for (let i = text.indexOf(part); i >= 0; i = text.indexOf(part, i + 1)) {
+    if (!/[A-Za-z']/.test(text[i - 1] || "") && !/[A-Za-z']/.test(text[i + part.length] || "")) return i;
+  }
+  return -1;
+}
+
+// Deux pièges de la carte, chacun juste ou faux : 4 propositions, une seule entièrement juste.
+// Chaque variante fausse figure dans deux propositions : la bonne réponse ne se repère pas par élimination.
+// segments : les passages piégés, faux ("bad") ou justes ("fix"), mis en évidence après la réponse.
+function trapChoices(card) {
+  const traps = shuffle(card.traps)
+    .slice(0, 2)
+    .map(([right, wrong]) => ({ right, wrong, at: findWords(card.en, right) }))
+    .sort((a, b) => a.at - b.at);
+  return [[false, false], [true, false], [false, true], [true, true]].map((flags) => {
+    const segments = [];
+    let from = 0;
+    traps.forEach((trap, k) => {
+      segments.push({ kind: null, text: card.en.slice(from, trap.at) });
+      segments.push(flags[k] ? { kind: "bad", text: trap.wrong } : { kind: flags.some(Boolean) ? null : "fix", text: trap.right });
+      from = trap.at + trap.right.length;
+    });
+    segments.push({ kind: null, text: card.en.slice(from) });
+    return { text: segments.map((seg) => seg.text).join(""), segments: segments.filter((seg) => seg.text) };
+  });
+}
+
+// Les propositions d'une carte en QCM : { text, segments }.
 function makeChoices(card) {
+  if (card.traps?.length >= 2) return shuffle(trapChoices(card));
+  // Sans pièges : 3 autres réponses de la même catégorie, de longueur proche et partageant des mots avec la bonne.
   const words = contentWords(card.en);
   const decoys = CARDS.filter((other) => other.cat === card.cat && other.en !== card.en)
     .map((other) => {
@@ -430,7 +462,7 @@ function makeChoices(card) {
     .sort((a, b) => b.score - a.score)
     .slice(0, CHOICES - 1)
     .map((other) => other.en);
-  return shuffle([card.en, ...decoys]);
+  return shuffle([card.en, ...decoys]).map((text) => ({ text, segments: null }));
 }
 
 const CARD_BY_ID = Object.fromEntries(CARDS.map((card) => [card.id, card]));
@@ -442,7 +474,7 @@ const CAT_TOTAL = Object.fromEntries(CAT_KEYS.map((cat) => [cat, CARDS.filter((c
 function emptyProgress(size = DEFAULT_SIZE) {
   return {
     version: 1,
-    cards: {}, // id → { b: boîte, s: vues, c: réussites, w: erreurs, t: dernière réponse }
+    cards: {}, // id → { b: boîte, s: vues, c: réussites, w: erreurs, t: dernière réponse, r: 1 si la carte est en Revanche }
     stats: { sessions: 0, answers: 0, correct: 0, byCat: { mots: { a: 0, c: 0 }, expr: { a: 0, c: 0 }, def: { a: 0, c: 0 } } },
     days: [], // jours d'activité (AAAA-MM-JJ, heure locale)
     settings: { size },
@@ -456,7 +488,11 @@ function sanitizeProgress(raw) {
   if (raw.cards && typeof raw.cards === "object") {
     for (const [id, entry] of Object.entries(raw.cards)) {
       if (!CARD_BY_ID[id] || !entry || typeof entry !== "object") continue;
-      cards[id] = { b: Math.min(MAX_BOX, Math.max(1, count(entry.b) || 1)), s: count(entry.s), c: count(entry.c), w: count(entry.w), t: count(entry.t) };
+      const b = Math.min(MAX_BOX, Math.max(1, count(entry.b) || 1));
+      const w = count(entry.w);
+      // Progression enregistrée avant le champ r : en Revanche si la dernière réponse était fausse.
+      const r = entry.r === undefined ? (w > 0 && b === 1 ? 1 : 0) : entry.r ? 1 : 0;
+      cards[id] = { b, s: count(entry.s), c: count(entry.c), w, t: count(entry.t), r };
     }
   }
   const stats = raw.stats && typeof raw.stats === "object" ? raw.stats : {};
@@ -496,8 +532,10 @@ function currentStreak(days) {
   return streak;
 }
 
-function recordAnswer(progress, card, ok, firstOfSession) {
-  const prev = progress.cards[card.id] || { b: 1, s: 0, c: 0, w: 0, t: 0 };
+// Une erreur met la carte en Revanche ; seule une bonne réponse pendant une Revanche (rematch) l'en retire.
+function recordAnswer(progress, card, ok, firstOfSession, rematch = false) {
+  const prev = progress.cards[card.id] || { b: 1, s: 0, c: 0, w: 0, t: 0, r: 0 };
+  const inRematch = !ok ? 1 : rematch ? 0 : prev.r ? 1 : 0;
   const box = ok ? Math.min(MAX_BOX, prev.b + 1) : 1;
   const catStats = progress.stats.byCat[card.cat];
   const today = dayKey();
@@ -505,7 +543,7 @@ function recordAnswer(progress, card, ok, firstOfSession) {
     ...progress,
     cards: {
       ...progress.cards,
-      [card.id]: { b: box, s: prev.s + 1, c: prev.c + (ok ? 1 : 0), w: prev.w + (ok ? 0 : 1), t: Date.now() },
+      [card.id]: { b: box, s: prev.s + 1, c: prev.c + (ok ? 1 : 0), w: prev.w + (ok ? 0 : 1), t: Date.now(), r: inRematch },
     },
     stats: {
       ...progress.stats,
@@ -547,7 +585,7 @@ function summarize(progress) {
     boxes[box - 1] += 1;
     if (!entry || !entry.s) unseen += 1;
     if (box === MAX_BOX) masteredByCat[card.cat] += 1;
-    if (entry && entry.w > 0 && box === 1) toReview += 1; // dernière réponse fausse
+    if (entry?.r) toReview += 1;
   }
   const mastered = boxes[MAX_BOX - 1];
   return { boxes, unseen, mastered, masteredByCat, toReview, streak: currentStreak(progress.days), grade: gradeFor(mastered) };
@@ -564,13 +602,8 @@ const RETURN_POSITION = { 2: [8, 12], 3: [14, 18], 4: [20, 26] };
 const randInt = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
 
 function buildPool(mode, cats, progress) {
-  // Revanche : les cartes dont la dernière réponse est fausse (une erreur renvoie au niveau 1).
-  if (mode === "errors") {
-    return CARDS.filter((card) => {
-      const entry = progress.cards[card.id];
-      return entry && entry.w > 0 && entry.b === 1;
-    }).map((card) => card.id);
-  }
+  // Revanche : les cartes ratées, tant qu'elles n'ont pas été réussies pendant une Revanche.
+  if (mode === "errors") return CARDS.filter((card) => progress.cards[card.id]?.r).map((card) => card.id);
   return CARDS.filter((card) => cats.includes(card.cat)).map((card) => card.id);
 }
 
@@ -769,7 +802,7 @@ function Choices({ card, verdict, disabled, onChoose }) {
       const n = Number(event.key);
       if (n >= 1 && n <= options.length) {
         event.preventDefault();
-        onChoose(options[n - 1]);
+        onChoose(options[n - 1].text);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -780,7 +813,7 @@ function Choices({ card, verdict, disabled, onChoose }) {
       <span id="cl-choices-label" className="cl-answer-label">
         Propositions
       </span>
-      {options.map((text, i) => {
+      {options.map(({ text, segments }, i) => {
         const right = verdict && text === card.en;
         const chosen = verdict && text === verdict.input;
         return (
@@ -795,7 +828,7 @@ function Choices({ card, verdict, disabled, onChoose }) {
             <span className="cl-choice-key" aria-hidden="true">
               {i + 1}
             </span>
-            <span className="cl-choice-text">{text}</span>
+            <span className="cl-choice-text">{verdict && segments ? <Marked segments={segments} /> : text}</span>
             {right && <IconCheck size={18} />}
             {chosen && !right && <IconCross size={18} />}
             {chosen && <span className="cl-sr">{right ? " (votre choix, juste)" : " (votre choix)"}</span>}
@@ -874,7 +907,7 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
     dispatch({
       type: "answer",
       verdict: { id: card.id, input, ...result, from, to, revealMs, setAside },
-      progress: recordAnswer(progress, card, result.ok, state.turn === 0),
+      progress: recordAnswer(progress, card, result.ok, state.turn === 0, rematch),
       nextQueue: setAside ? state.queue.slice(1) : requeue(state.queue, card.id, result.ok, to),
     });
   };
@@ -1476,7 +1509,7 @@ function Home({ progress, summary, cats, onCatsChange, onSizeChange, onStart, st
           <h2 id="rematch-title">Revanche</h2>
           <p>
             {summary.toReview
-              ? `${plural(summary.toReview, "carte ratée", "cartes ratées")} à retenter\u00a0: chaque bonne réponse en retire une.`
+              ? `${plural(summary.toReview, "carte ratée", "cartes ratées")} à retenter\u00a0: chaque bonne réponse en Revanche en retire une.`
               : "Aucune erreur à reprendre. Bien joué\u00a0!"}
           </p>
         </div>
@@ -1507,7 +1540,8 @@ function Attempts({ id, attempts }) {
   );
 }
 
-function Summary({ result, canReplay, onReplay, onHome }) {
+// inRematch(id) : la carte est en Revanche après la partie.
+function Summary({ result, canReplay, inRematch, onReplay, onHome }) {
   const { results, mode } = result;
   const [open, setOpen] = useState(() => new Set());
   const total = results.length;
@@ -1560,7 +1594,7 @@ function Summary({ result, canReplay, onReplay, onHome }) {
               const card = CARD_BY_ID[id];
               const isOpen = open.has(id);
               const errors = attempts.filter((a) => !a.ok).length;
-              const stays = !attempts[attempts.length - 1].ok; // dernière réponse fausse : la carte reste en Revanche
+              const stays = inRematch(id);
               return (
                 <li key={id} className={cls("cl-list-item", "cl-missed", isOpen && "is-open")}>
                   <button type="button" className="cl-missed-toggle" aria-expanded={isOpen} aria-controls={`attempts-${id}`} onClick={() => toggle(id)}>
@@ -2171,6 +2205,7 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
       <Summary
         result={result}
         canReplay={buildPool(result.mode, result.cats, progress).length > 0}
+        inRematch={(id) => !!progress.cards[id]?.r}
         onReplay={() => startSession(result.mode, result.cats)}
         onHome={() => setScreen("home")}
       />
