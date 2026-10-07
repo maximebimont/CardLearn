@@ -98,6 +98,10 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
   rouge, une lettre oubliée est marquée « _ », et les lettres à corriger sont surlignées dans la
   réponse attendue. Une réponse sans rapport est entièrement en gras.
   « Je ne sais pas » compte comme une erreur.
+- **Expressions en QCM** : les expressions ne se tapent pas. Quatre traductions sont proposées, une
+  seule est juste ; les trois autres sont d'autres expressions de la liste, de longueur proche et
+  partageant des mots avec la bonne. Un clic (ou les touches 1 à 4) valide le choix : la bonne
+  réponse passe en vert, un mauvais choix en rouge.
 - **Leitner** : 5 boîtes, présentées dans l'appli comme des **niveaux** (1 À apprendre, 2 En cours,
   3 Retenue, 4 Solide, 5 Maîtrisée). Une bonne réponse fait monter la carte d'un niveau, une erreur la
   renvoie au niveau 1. Le niveau 5 correspond aux cartes maîtrisées. Dans le profil, le bouton ⓘ à
@@ -106,10 +110,12 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
 - **Dans une partie** : la progression n'est enregistrée qu'à la fin de la partie. La barre de
   navigation laisse alors place à un seul bouton « Quitter la partie » : après confirmation, la partie
   est abandonnée et rien n'est enregistré (les cartes gardent leur niveau d'avant la partie).
-  Une carte ratée revient 3 à 5 cartes plus loin. Une carte réussie revient
+  Une carte ratée revient 3 à 5 cartes plus loin. En Revanche, une carte ne peut être ratée que
+  3 fois par partie : à la 3e erreur, elle ne revient plus dans la partie et reste dans la Revanche
+  pour la fois suivante (trois marques sur la carte comptent les erreurs). Une carte réussie revient
   8 à 12 cartes plus loin en boîte 2, 14 à 18 en boîte 3 et 20 à 26 en boîte 4. Elle ne revient pas
   si la partie est trop courte ou si elle est maîtrisée. Une partie compte 10, 20 ou 50 cartes.
-- **Correction** : la casse, la ponctuation, les tirets, les apostrophes et les espaces sont ignorés.
+- **Correction** (mots métier et définitions, réponses tapées) : la casse, la ponctuation, les tirets, les apostrophes et les espaces sont ignorés.
   Les alternatives (« Server / Host ») sont acceptées séparément ou en entier. Pour les sigles
   (« Application Programming Interface - API »), on accepte la forme longue, le sigle ou les deux.
   Le « to » initial des verbes est facultatif. Une marge d'erreur dépend de la longueur de la
@@ -121,7 +127,7 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
 - **Définitions** : le terme français est masqué dans la définition. Le bouton « Indice » le révèle.
 - **Fin de partie** : score et cartes ratées, regroupées par carte. Un clic sur une carte affiche
   le détail de ses tentatives : réponse donnée (lettres fausses en gras), réussie ou non, niveau
-  avant et après.
+  avant et après. « Reste en Revanche » signale les cartes dont la dernière réponse était fausse.
 - **Navigation** : une barre d'icônes centrée en haut mène à l'accueil, au profil et au classement.
   Le logo (à gauche) ramène à l'accueil ; une fois connecté, l'icône de déconnexion est à droite.
   Pendant une partie, seul le bouton « Quitter la partie » reste.
