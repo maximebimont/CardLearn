@@ -100,9 +100,14 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
   réponse attendue. Une réponse sans rapport est entièrement en gras.
   « Je ne sais pas » compte comme une erreur.
 - **Expressions en QCM** : les expressions ne se tapent pas. Quatre traductions sont proposées, une
-  seule est juste ; les trois autres sont d'autres expressions de la liste, de longueur proche et
-  partageant des mots avec la bonne. Un clic (ou les touches 1 à 4) valide le choix : la bonne
-  réponse passe en vert, un mauvais choix en rouge.
+  seule est juste. Les trois autres sont des pièges tirés de la bonne réponse : chaque expression a
+  2 ou 3 passages piégés par une erreur typique d'un francophone (faux ami comme « realize » pour
+  réaliser ou « delays » pour délais, calque ou ordre des mots comme « code source », faute comme
+  « softwares » ou « developper »). Une partie en tire deux, et les 4 propositions sont toutes les
+  combinaisons juste/faux : chaque piège apparaît dans deux propositions, la bonne ne se devine pas
+  par élimination. Un clic (ou les touches 1 à 4) valide le choix : la bonne réponse passe en vert,
+  un mauvais choix en rouge, et les passages piégés sont mis en évidence. Les pièges sont le
+  4e élément de chaque ligne de `EXPRESSIONS` dans `CardLearn.jsx`.
 - **Leitner** : 5 boîtes, présentées dans l'appli comme des **niveaux** (1 À apprendre, 2 En cours,
   3 Retenue, 4 Solide, 5 Maîtrisée). Une bonne réponse fait monter la carte d'un niveau, une erreur la
   renvoie au niveau 1. Le niveau 5 correspond aux cartes maîtrisées. Dans le profil, le bouton ⓘ à
