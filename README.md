@@ -89,8 +89,9 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
 
 - **Accueil** : tableau de scores (série de jours, cartes maîtrisées, note estimée), plateau
   « Nouvelle partie » avec les catégories en tuiles, le nombre de cartes et le bouton « Jouer », et
-  la « Revanche » pour retenter les cartes dont la dernière réponse était fausse : chaque bonne
-  réponse en retire une, le compteur descend.
+  la « Revanche » pour retenter les cartes ratées. Toute erreur y met la carte, même si elle est
+  réussie plus tard dans la même partie classique ; seule une bonne réponse pendant une Revanche
+  l'en retire, et le compteur descend.
 - **Cartes** : le texte français s'affiche, vous tapez la réponse anglaise puis validez avec Entrée.
   Une bonne réponse passe derrière la pile. Une erreur affiche la bonne réponse le temps de la lire,
   de 4 à 9 secondes selon sa longueur (Entrée ou « Continuer » pour passer plus vite), puis la carte
@@ -127,7 +128,7 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
 - **Définitions** : le terme français est masqué dans la définition. Le bouton « Indice » le révèle.
 - **Fin de partie** : score et cartes ratées, regroupées par carte. Un clic sur une carte affiche
   le détail de ses tentatives : réponse donnée (lettres fausses en gras), réussie ou non, niveau
-  avant et après. « Reste en Revanche » signale les cartes dont la dernière réponse était fausse.
+  avant et après. « Reste en Revanche » signale les cartes qui sont dans la Revanche après la partie.
 - **Navigation** : une barre d'icônes centrée en haut mène à l'accueil, au profil et au classement.
   Le logo (à gauche) ramène à l'accueil ; une fois connecté, l'icône de déconnexion est à droite.
   Pendant une partie, seul le bouton « Quitter la partie » reste.

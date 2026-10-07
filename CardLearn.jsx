@@ -442,7 +442,7 @@ const CAT_TOTAL = Object.fromEntries(CAT_KEYS.map((cat) => [cat, CARDS.filter((c
 function emptyProgress(size = DEFAULT_SIZE) {
   return {
     version: 1,
-    cards: {}, // id → { b: boîte, s: vues, c: réussites, w: erreurs, t: dernière réponse }
+    cards: {}, // id → { b: boîte, s: vues, c: réussites, w: erreurs, t: dernière réponse, r: 1 si la carte est en Revanche }
     stats: { sessions: 0, answers: 0, correct: 0, byCat: { mots: { a: 0, c: 0 }, expr: { a: 0, c: 0 }, def: { a: 0, c: 0 } } },
     days: [], // jours d'activité (AAAA-MM-JJ, heure locale)
     settings: { size },
@@ -456,7 +456,11 @@ function sanitizeProgress(raw) {
   if (raw.cards && typeof raw.cards === "object") {
     for (const [id, entry] of Object.entries(raw.cards)) {
       if (!CARD_BY_ID[id] || !entry || typeof entry !== "object") continue;
-      cards[id] = { b: Math.min(MAX_BOX, Math.max(1, count(entry.b) || 1)), s: count(entry.s), c: count(entry.c), w: count(entry.w), t: count(entry.t) };
+      const b = Math.min(MAX_BOX, Math.max(1, count(entry.b) || 1));
+      const w = count(entry.w);
+      // Progression enregistrée avant le champ r : en Revanche si la dernière réponse était fausse.
+      const r = entry.r === undefined ? (w > 0 && b === 1 ? 1 : 0) : entry.r ? 1 : 0;
+      cards[id] = { b, s: count(entry.s), c: count(entry.c), w, t: count(entry.t), r };
     }
   }
   const stats = raw.stats && typeof raw.stats === "object" ? raw.stats : {};
@@ -496,8 +500,10 @@ function currentStreak(days) {
   return streak;
 }
 
-function recordAnswer(progress, card, ok, firstOfSession) {
-  const prev = progress.cards[card.id] || { b: 1, s: 0, c: 0, w: 0, t: 0 };
+// Une erreur met la carte en Revanche ; seule une bonne réponse pendant une Revanche (rematch) l'en retire.
+function recordAnswer(progress, card, ok, firstOfSession, rematch = false) {
+  const prev = progress.cards[card.id] || { b: 1, s: 0, c: 0, w: 0, t: 0, r: 0 };
+  const inRematch = !ok ? 1 : rematch ? 0 : prev.r ? 1 : 0;
   const box = ok ? Math.min(MAX_BOX, prev.b + 1) : 1;
   const catStats = progress.stats.byCat[card.cat];
   const today = dayKey();
@@ -505,7 +511,7 @@ function recordAnswer(progress, card, ok, firstOfSession) {
     ...progress,
     cards: {
       ...progress.cards,
-      [card.id]: { b: box, s: prev.s + 1, c: prev.c + (ok ? 1 : 0), w: prev.w + (ok ? 0 : 1), t: Date.now() },
+      [card.id]: { b: box, s: prev.s + 1, c: prev.c + (ok ? 1 : 0), w: prev.w + (ok ? 0 : 1), t: Date.now(), r: inRematch },
     },
     stats: {
       ...progress.stats,
@@ -547,7 +553,7 @@ function summarize(progress) {
     boxes[box - 1] += 1;
     if (!entry || !entry.s) unseen += 1;
     if (box === MAX_BOX) masteredByCat[card.cat] += 1;
-    if (entry && entry.w > 0 && box === 1) toReview += 1; // dernière réponse fausse
+    if (entry?.r) toReview += 1;
   }
   const mastered = boxes[MAX_BOX - 1];
   return { boxes, unseen, mastered, masteredByCat, toReview, streak: currentStreak(progress.days), grade: gradeFor(mastered) };
@@ -564,13 +570,8 @@ const RETURN_POSITION = { 2: [8, 12], 3: [14, 18], 4: [20, 26] };
 const randInt = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
 
 function buildPool(mode, cats, progress) {
-  // Revanche : les cartes dont la dernière réponse est fausse (une erreur renvoie au niveau 1).
-  if (mode === "errors") {
-    return CARDS.filter((card) => {
-      const entry = progress.cards[card.id];
-      return entry && entry.w > 0 && entry.b === 1;
-    }).map((card) => card.id);
-  }
+  // Revanche : les cartes ratées, tant qu'elles n'ont pas été réussies pendant une Revanche.
+  if (mode === "errors") return CARDS.filter((card) => progress.cards[card.id]?.r).map((card) => card.id);
   return CARDS.filter((card) => cats.includes(card.cat)).map((card) => card.id);
 }
 
@@ -874,7 +875,7 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
     dispatch({
       type: "answer",
       verdict: { id: card.id, input, ...result, from, to, revealMs, setAside },
-      progress: recordAnswer(progress, card, result.ok, state.turn === 0),
+      progress: recordAnswer(progress, card, result.ok, state.turn === 0, rematch),
       nextQueue: setAside ? state.queue.slice(1) : requeue(state.queue, card.id, result.ok, to),
     });
   };
@@ -1476,7 +1477,7 @@ function Home({ progress, summary, cats, onCatsChange, onSizeChange, onStart, st
           <h2 id="rematch-title">Revanche</h2>
           <p>
             {summary.toReview
-              ? `${plural(summary.toReview, "carte ratée", "cartes ratées")} à retenter\u00a0: chaque bonne réponse en retire une.`
+              ? `${plural(summary.toReview, "carte ratée", "cartes ratées")} à retenter\u00a0: chaque bonne réponse en Revanche en retire une.`
               : "Aucune erreur à reprendre. Bien joué\u00a0!"}
           </p>
         </div>
@@ -1507,7 +1508,8 @@ function Attempts({ id, attempts }) {
   );
 }
 
-function Summary({ result, canReplay, onReplay, onHome }) {
+// inRematch(id) : la carte est en Revanche après la partie.
+function Summary({ result, canReplay, inRematch, onReplay, onHome }) {
   const { results, mode } = result;
   const [open, setOpen] = useState(() => new Set());
   const total = results.length;
@@ -1560,7 +1562,7 @@ function Summary({ result, canReplay, onReplay, onHome }) {
               const card = CARD_BY_ID[id];
               const isOpen = open.has(id);
               const errors = attempts.filter((a) => !a.ok).length;
-              const stays = !attempts[attempts.length - 1].ok; // dernière réponse fausse : la carte reste en Revanche
+              const stays = inRematch(id);
               return (
                 <li key={id} className={cls("cl-list-item", "cl-missed", isOpen && "is-open")}>
                   <button type="button" className="cl-missed-toggle" aria-expanded={isOpen} aria-controls={`attempts-${id}`} onClick={() => toggle(id)}>
@@ -2171,6 +2173,7 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
       <Summary
         result={result}
         canReplay={buildPool(result.mode, result.cats, progress).length > 0}
+        inRematch={(id) => !!progress.cards[id]?.r}
         onReplay={() => startSession(result.mode, result.cats)}
         onHome={() => setScreen("home")}
       />
