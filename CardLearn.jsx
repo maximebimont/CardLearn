@@ -1267,45 +1267,41 @@ function NavBar({ screen, onNavigate, account, onSignOut, leaving, streak, pseud
   );
 }
 
-// Coupe du podium : or, argent ou bronze.
-function Trophy({ medal, size = 40 }) {
+// Coupe du podium : or, argent ou bronze (couleur via data-medal).
+function Trophy({ medal, size = 24 }) {
   return (
-    <svg className="cl-trophy" data-medal={medal} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path className="cl-trophy-handles" d="M7 5H4.2v1.4A3.6 3.6 0 0 0 7.8 10M17 5h2.8v1.4A3.6 3.6 0 0 1 16.2 10" />
-      <path d="M6.8 3h10.4v5.6a5.2 5.2 0 0 1-10.4 0z" />
-      <path d="M10.2 13.6h3.6l.6 3.6H9.6z" />
-      <path d="M7.4 17.2h9.2v3.6H7.4z" />
+    <svg className="cl-trophy" data-medal={medal} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 4h8v5a4 4 0 0 1-8 0z" fill="currentColor" />
+      <path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7" />
     </svg>
   );
 }
 
 const MEDALS = { 1: "gold", 2: "silver", 3: "bronze" };
+const AVATAR_TONE = { gold: "yellow", silver: "silver", bronze: "bronze" };
 const ordinal = (n) => (n === 1 ? "1er" : `${n}e`);
 
-// Places du podium : 2e à gauche, 1er au centre, 3e à droite (ordre visuel géré en CSS).
+// Podium dans un bloc indigo : 2e à gauche, 1er au centre (plus haut, en jaune), 3e à droite (ordre visuel en CSS).
 function Podium({ entries }) {
   const slots = [0, 1, 2].map((i) => entries[i] || null);
   return (
-    <ol className="cl-podium" aria-label="Podium">
+    <ol className="cl-podium cl-indigo" aria-label="Podium">
       {slots.map((entry, i) => {
         const medal = entry ? MEDALS[entry.rank] || "none" : "none";
         return (
-          <li key={i} className={cls("cl-podium-slot", entry?.is_me && "is-me")} data-place={i + 1}>
+          <li key={i} className={cls("cl-podium-slot", entry?.is_me && "is-me")} data-place={i + 1} data-medal={medal}>
             {entry ? (
               <>
-                {medal !== "none" ? <Trophy medal={medal} size={i === 0 ? 56 : 44} /> : <span className="cl-podium-spacer" />}
-                <span className="cl-podium-name">
-                  {entry.pseudo}
-                  {entry.is_me && <span className="cl-me-tag">toi</span>}
-                </span>
+                {medal !== "none" && <Trophy medal={medal} size={i === 0 ? 24 : 20} />}
+                <Avatar name={entry.pseudo} size={i === 0 ? 58 : 50} tone={AVATAR_TONE[medal] || "plain"} />
+                <span className="cl-podium-name">{entry.pseudo}</span>
+                {entry.is_me && <span className="cl-me-tag">toi</span>}
                 <span className="cl-podium-score">{plural(entry.mastered, "carte", "cartes")}</span>
               </>
             ) : (
               <span className="cl-podium-empty">Place libre</span>
             )}
-            <span className="cl-podium-step" data-medal={medal}>
-              {entry ? entry.rank : i + 1}
-            </span>
+            <span className="cl-podium-step">{entry ? entry.rank : i + 1}</span>
           </li>
         );
       })}
@@ -1336,17 +1332,23 @@ function PseudoForm({ initial = "", submitLabel, onSubmit, onCancel }) {
       }}
     >
       <label htmlFor="pseudo-input">Ton pseudo</label>
-      <div className="cl-pseudo-row">
-        <input
-          id="pseudo-input"
-          className="cl-pseudo-input"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          maxLength={20}
-          autoComplete="nickname"
-          placeholder="2 à 20 caractères"
-          autoFocus
-        />
+      <input
+        id="pseudo-input"
+        className="cl-input cl-pseudo-input"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        maxLength={20}
+        autoComplete="nickname"
+        placeholder="2 à 20 caractères"
+        autoFocus
+      />
+      <p className="cl-pseudo-hint">Ton pseudo est visible par les autres élèves. Ton adresse e-mail ne l'est jamais.</p>
+      {error && (
+        <p className="cl-confirm-error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="cl-pseudo-actions">
         <button type="submit" className="cl-btn cl-btn--primary" disabled={!valid || busy}>
           {busy ? "Enregistrement…" : submitLabel}
         </button>
@@ -1356,17 +1358,19 @@ function PseudoForm({ initial = "", submitLabel, onSubmit, onCancel }) {
           </button>
         )}
       </div>
-      <p className="cl-pseudo-hint">Ton pseudo est visible par les autres élèves. Ton adresse e-mail ne l'est jamais.</p>
-      {error && (
-        <p className="cl-confirm-error" role="alert">
-          {error}
-        </p>
-      )}
     </form>
   );
 }
 
-// leaderboard : fourni par le site connecté (load, join, leave). Absent dans un artifact ou hors connexion.
+// Combien de cartes pour dépasser l'élève classé juste devant.
+function chaseLine(entries, me) {
+  if (!me) return "";
+  if (me.rank === 1) return "Tu es en tête du classement\u00a0!";
+  const ahead = entries.filter((e) => e.mastered > me.mastered);
+  const target = ahead[ahead.length - 1];
+  return target ? `Plus que ${plural(target.mastered - me.mastered + 1, "carte", "cartes")} pour dépasser ${target.pseudo}` : "";
+}
+
 // board : classement chargé par l'appli ; onReload le recharge (à l'ouverture de l'écran et après un changement).
 function Ranking({ summary, leaderboard, board: state, onReload: load }) {
   const [editing, setEditing] = useState(false);
@@ -1391,15 +1395,27 @@ function Ranking({ summary, leaderboard, board: state, onReload: load }) {
     }
   };
 
+  const entries = state.entries || [];
+  const me = entries.find((e) => e.is_me);
+  const ready = state.status === "ready";
+
   const head = (
-    <header className="cl-page-head cl-page-head--split">
+    <header className="cl-rank-head">
       <div>
         <h1>Classement</h1>
-        <p className="cl-muted">Les élèves classés par nombre de cartes maîtrisées.</p>
+        <p className="cl-rank-summary">
+          {ready && state.pseudo && me ? (
+            <>
+              Tu es <strong>{`${ordinal(me.rank)} sur ${entries.length}`}</strong> · {plural(me.mastered, "carte maîtrisée", "cartes maîtrisées")}
+            </>
+          ) : (
+            "Les élèves classés par cartes maîtrisées"
+          )}
+        </p>
       </div>
-      {state.status === "ready" && state.pseudo && (
-        <button type="button" className="cl-btn cl-btn--sm" onClick={load} disabled={state.refreshing}>
-          {state.refreshing ? "Actualisation…" : "Actualiser"}
+      {ready && state.pseudo && (
+        <button type="button" className="cl-icon-btn" onClick={load} disabled={state.refreshing} aria-label="Actualiser" title="Actualiser">
+          <IconRefresh size={20} />
         </button>
       )}
     </header>
@@ -1407,9 +1423,10 @@ function Ranking({ summary, leaderboard, board: state, onReload: load }) {
 
   if (state.status === "offline") {
     return (
-      <div className="cl-wrap">
+      <div className="cl-ranking">
         {head}
-        <section className="cl-panel">
+        <section className="cl-card-dark cl-rank-card">
+          <Trophy medal="gold" size={40} />
           <p>Le classement nécessite un compte : connecte-toi sur le site CardLearn pour affronter les autres élèves.</p>
           <p className="cl-muted">Tu as pour l'instant {plural(summary.mastered, "carte maîtrisée", "cartes maîtrisées")}.</p>
         </section>
@@ -1418,7 +1435,7 @@ function Ranking({ summary, leaderboard, board: state, onReload: load }) {
   }
   if (state.status === "loading") {
     return (
-      <div className="cl-wrap">
+      <div className="cl-ranking">
         {head}
         <p className="cl-loading cl-loading--inline" role="status">
           <span className="cl-spinner" aria-hidden="true" />
@@ -1429,9 +1446,9 @@ function Ranking({ summary, leaderboard, board: state, onReload: load }) {
   }
   if (state.status === "error") {
     return (
-      <div className="cl-wrap">
+      <div className="cl-ranking">
         {head}
-        <section className="cl-panel">
+        <section className="cl-card-dark cl-rank-card">
           <p role="alert">{state.message}</p>
           <button type="button" className="cl-btn" onClick={load}>
             Réessayer
@@ -1441,17 +1458,15 @@ function Ranking({ summary, leaderboard, board: state, onReload: load }) {
     );
   }
 
-  const entries = state.entries || [];
-  const me = entries.find((e) => e.is_me);
-
   if (!state.pseudo) {
     return (
-      <div className="cl-wrap">
+      <div className="cl-ranking">
         {head}
-        <section className="cl-panel cl-join" aria-labelledby="join-title">
-          <Trophy medal="gold" size={48} />
+        <section className="cl-indigo cl-join" aria-labelledby="join-title">
+          <span className="cl-deco cl-deco--note" aria-hidden="true" />
+          <Trophy medal="gold" size={40} />
           <h2 id="join-title">Entre dans la compétition</h2>
-          <p className="cl-muted">
+          <p>
             Choisis un pseudo pour apparaître dans le classement avec tes {plural(summary.mastered, "carte maîtrisée", "cartes maîtrisées")}.
             {entries.length ? ` ${plural(entries.length, "élève y participe", "élèves y participent")} déjà.` : ""}
           </p>
@@ -1461,46 +1476,46 @@ function Ranking({ summary, leaderboard, board: state, onReload: load }) {
     );
   }
 
+  const chase = chaseLine(entries, me);
   return (
-    <div className="cl-wrap">
+    <div className="cl-ranking">
       {head}
-      {me && (
-        <p className="cl-rank-summary">
-          Tu es <strong>{ordinal(me.rank)}</strong> sur {entries.length} avec {plural(me.mastered, "carte maîtrisée", "cartes maîtrisées")}.
-        </p>
-      )}
       <Podium entries={entries} />
+      {me && me.rank <= 3 && chase && <p className="cl-rank-hint">{chase}</p>}
       {entries.length > 3 && (
         <ol className="cl-board" start={4} aria-label="Suite du classement">
           {entries.slice(3).map((entry, i) => (
             <li key={`${entry.pseudo}-${i}`} className={cls(entry.is_me && "is-me")}>
               <span className="cl-board-rank">{entry.rank}</span>
+              <Avatar name={entry.pseudo} size={34} tone={entry.is_me ? "yellow" : "plain"} />
               <span className="cl-board-name">
-                {entry.pseudo}
-                {entry.is_me && <span className="cl-me-tag">toi</span>}
+                <span className="cl-board-line">
+                  <span className="cl-board-pseudo">{entry.pseudo}</span>
+                  {entry.is_me && <span className="cl-me-tag">toi</span>}
+                </span>
+                {entry.is_me && chase && <span className="cl-board-chase">{chase}</span>}
               </span>
-              <span className="cl-board-score">{plural(entry.mastered, "carte", "cartes")}</span>
+              <span className="cl-board-score">{entry.mastered}</span>
             </li>
           ))}
         </ol>
       )}
-      <section className="cl-panel cl-pseudo-panel" aria-label="Ton pseudo">
+      <section className="cl-pseudo-card" aria-label="Ton pseudo">
         {editing ? (
           <PseudoForm initial={state.pseudo} submitLabel="Enregistrer" onSubmit={join} onCancel={() => setEditing(false)} />
         ) : (
-          <div className="cl-pseudo-current">
-            <span>
-              Ton pseudo : <strong>{state.pseudo}</strong>
-            </span>
-            <span className="cl-actions">
-              <button type="button" className="cl-btn cl-btn--sm" onClick={() => setEditing(true)}>
-                Modifier
-              </button>
-              <button type="button" className="cl-btn cl-btn--sm cl-btn--danger-outline" onClick={leave}>
-                Quitter le classement
-              </button>
-            </span>
-          </div>
+          <>
+            <div className="cl-pseudo-current">
+              <span>Ton pseudo affiché</span>
+              <strong>{state.pseudo}</strong>
+            </div>
+            <button type="button" className="cl-btn cl-btn--sm" onClick={() => setEditing(true)}>
+              <IconPencil size={15} /> Modifier
+            </button>
+            <button type="button" className="cl-text-danger" onClick={leave} aria-label="Quitter le classement">
+              Quitter
+            </button>
+          </>
         )}
         {actionError && (
           <p className="cl-confirm-error" role="alert">
@@ -3303,63 +3318,78 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 }
 
 /* Classement */
-.cl-page-head--split { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
-.cl-page-head--split > div { display: grid; gap: 4px; }
-.cl-loading--inline { min-height: 0; justify-content: flex-start; padding: 24px 0; }
-.cl-rank-summary { font-size: 16px; color: var(--ink-2); }
-.cl-rank-summary strong { color: var(--ink); font-family: var(--font-display); font-size: 20px; }
-[data-medal="gold"] { --medal: var(--gold); --medal-edge: var(--gold-edge); }
-[data-medal="silver"] { --medal: var(--silver); --medal-edge: var(--silver-edge); }
-[data-medal="bronze"] { --medal: var(--bronze); --medal-edge: var(--bronze-edge); }
-[data-medal="none"] { --medal: var(--play-tile-on); --medal-edge: var(--play-line); }
-.cl-trophy { flex: none; }
-.cl-trophy path { fill: var(--medal); stroke: var(--medal-edge); stroke-width: 1.4; stroke-linejoin: round; }
-.cl-trophy .cl-trophy-handles { fill: none; stroke: var(--medal); stroke-width: 1.8; stroke-linecap: round; }
+.cl-ranking { max-width: 640px; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.cl-rank-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-inline: 4px; }
+.cl-rank-head > div { display: grid; gap: 4px; }
+.cl-rank-summary { font-size: 14px; color: var(--muted); }
+.cl-rank-summary strong { color: var(--text); }
+.cl-icon-btn { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--on-indigo); }
+.cl-icon-btn:hover:not(:disabled) { color: var(--text); background: var(--surface-2); }
+.cl-icon-btn:disabled { opacity: .5; cursor: progress; }
+.cl-loading--inline { min-height: 0; justify-content: flex-start; padding: 24px 4px; }
+.cl-rank-card { display: grid; justify-items: start; gap: 12px; padding: 18px; }
+[data-medal="gold"] { --medal: #ffc93c; }
+[data-medal="silver"] { --medal: #c9cde8; }
+[data-medal="bronze"] { --medal: #e39a6a; }
+[data-medal="none"] { --medal: rgba(255, 255, 255, 0.2); }
+.cl-trophy { flex: none; color: var(--medal, var(--yellow)); }
 
-.cl-app .cl-podium {
-  position: relative; overflow: hidden;
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 10px;
-  padding: 32px 16px 0; border-radius: 16px;
-  background: var(--play-bg); color: var(--play-ink);
-  box-shadow: var(--shadow);
-}
-.cl-podium-slot { display: grid; justify-items: center; align-content: end; gap: 6px; min-width: 0; text-align: center; }
+.cl-app .cl-podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 10px; padding: 20px 14px 0; margin: 0; }
+.cl-podium-slot { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; text-align: center; }
 .cl-podium-slot[data-place="1"] { order: 2; }
 .cl-podium-slot[data-place="2"] { order: 1; }
 .cl-podium-slot[data-place="3"] { order: 3; }
-.cl-podium-name { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 6px; max-width: 100%; font: 700 16px/1.2 var(--font-display); overflow-wrap: anywhere; }
-.cl-podium-slot[data-place="1"] .cl-podium-name { font-size: 19px; }
-.cl-podium-score { font: 600 13px/1.3 var(--font-mono); color: var(--play-muted); font-variant-numeric: tabular-nums; }
-.cl-podium-empty { font-size: 13px; color: var(--play-muted); padding-bottom: 6px; }
-.cl-podium-spacer { height: 44px; }
+.cl-podium-slot[data-place="1"] .cl-avatar { box-shadow: 0 0 0 4px rgba(255, 201, 60, 0.22); }
+.cl-podium-name { max-width: 100%; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.cl-podium-slot[data-place="1"] .cl-podium-name { font-size: 15px; font-weight: 700; }
+.cl-podium-score { font: 12px/1.3 var(--font-mono); color: var(--on-indigo); }
+.cl-podium-slot[data-place="1"] .cl-podium-score { color: #ffe08a; }
+.cl-podium-empty { font-size: 13px; color: var(--on-indigo); padding-bottom: 6px; }
 .cl-podium-step {
   display: grid; place-items: center; width: 100%; margin-top: 4px;
-  border-radius: 10px 10px 0 0;
-  background: var(--play-tile-on); border-top: 4px solid var(--medal);
-  font: 800 30px/1 var(--font-display); color: var(--play-ink);
+  border-radius: 14px 14px 0 0; background: var(--indigo-2); border-top: 4px solid var(--medal);
+  font: 800 28px/1 var(--font-display);
 }
-.cl-podium-slot[data-place="1"] .cl-podium-step { height: 112px; }
-.cl-podium-slot[data-place="2"] .cl-podium-step { height: 84px; }
-.cl-podium-slot[data-place="3"] .cl-podium-step { height: 64px; }
-.cl-me-tag { padding: 1px 7px; border-radius: 999px; background: var(--cta); color: var(--cta-ink); font: 700 11px/1.5 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; }
+.cl-podium-slot[data-place="1"] .cl-podium-step { height: 96px; background: #3a40a0; font-size: 34px; }
+.cl-podium-slot[data-place="2"] .cl-podium-step { height: 72px; }
+.cl-podium-slot[data-place="3"] .cl-podium-step { height: 56px; font-size: 26px; }
+.cl-me-tag { padding: 2px 6px; border-radius: 6px; background: var(--yellow); color: var(--on-yellow); font: 700 10px/1.2 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+.cl-rank-hint { padding-inline: 4px; font-size: 14px; color: #e9d9a6; }
 
-.cl-board { display: grid; gap: 6px; }
-.cl-board li { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); }
-.cl-board li.is-me { border-color: var(--accent); background: var(--accent-soft); }
-.cl-board-rank { font: 700 16px/1 var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.cl-board-name { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
-.cl-board-score { font: 600 14px/1 var(--font-mono); color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cl-board { display: flex; flex-direction: column; gap: 6px; }
+.cl-board li { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 14px; border-radius: var(--r-btn); background: var(--surface); }
+.cl-board li.is-me { min-height: 66px; background: rgba(255, 201, 60, 0.08); border: 1.5px solid rgba(255, 201, 60, 0.6); }
+.cl-board-rank { width: 20px; flex: none; font: 700 15px/1 var(--font-mono); color: var(--faint); }
+.cl-board li.is-me .cl-board-rank, .cl-board li.is-me .cl-board-score { color: var(--yellow); }
+.cl-board .cl-avatar { font: 700 14px/1 var(--font-body); }
+.cl-board-name { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cl-board-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cl-board-pseudo { font-weight: 600; overflow-wrap: anywhere; }
+.cl-board li.is-me .cl-board-pseudo { font-weight: 700; }
+.cl-board-chase { font-size: 12px; color: #e9d9a6; }
+.cl-board-score { font: 700 16px/1 var(--font-mono); }
 
-.cl-join { justify-items: start; }
+.cl-pseudo-card { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 10px 10px 16px; border-radius: var(--r-btn); border: 1px solid var(--line); }
+.cl-pseudo-current { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cl-pseudo-current span { font-size: 12px; color: var(--muted); }
+.cl-pseudo-current strong { font-size: 16px; overflow-wrap: anywhere; }
+.cl-pseudo-card .cl-btn--sm { background: var(--surface); }
+.cl-text-danger { height: 44px; padding: 0 12px; border: 0; border-radius: 12px; background: transparent; color: #ff8e8e; font-weight: 600; font-size: 14px; }
+.cl-text-danger:hover { background: var(--error-bg); }
+.cl-pseudo-card .cl-pseudo-form { flex: 1 1 100%; padding: 6px 6px 6px 0; }
+
+.cl-join { display: grid; justify-items: start; gap: 12px; padding: 20px 18px; }
+.cl-join > * { position: relative; }
+.cl-app .cl-join h2 { font-size: 24px; font-weight: 800; }
+.cl-join p { font-size: 14px; color: var(--on-indigo); }
 .cl-pseudo-form { display: grid; gap: 8px; width: 100%; }
-.cl-pseudo-form label { font: 600 12px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
-.cl-pseudo-row { display: flex; flex-wrap: wrap; gap: 10px; }
-.cl-pseudo-input { flex: 1 1 200px; min-width: 0; min-height: 46px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: 600 16px/1.2 var(--font-body); }
-.cl-pseudo-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.cl-pseudo-hint { font-size: 13px; color: var(--ink-3); }
-.cl-pseudo-current { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.cl-pseudo-form label { font-size: 13px; font-weight: 600; color: var(--muted); padding-left: 4px; }
+.cl-join .cl-pseudo-form label { color: var(--on-indigo); }
+.cl-pseudo-input { height: 52px; font-family: var(--font-body); font-size: 17px; }
+.cl-pseudo-hint { font-size: 12.5px; color: var(--muted); padding-left: 4px; }
+.cl-join .cl-pseudo-hint { color: var(--on-indigo); }
+.cl-pseudo-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
 
-.cl-info-btn:focus-visible, .cl-dialog-close:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
 
 .cl-dialog {
   width: min(460px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
@@ -3421,10 +3451,6 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 
 @media (max-width: 640px) {
   .cl-grid-2 { grid-template-columns: minmax(0, 1fr); }
-  .cl-app .cl-podium { gap: 6px; padding: 24px 10px 0; }
-  .cl-podium-name { font-size: 14px; }
-  .cl-podium-slot[data-place="1"] .cl-podium-name { font-size: 16px; }
-  .cl-podium-step { font-size: 24px; }
   .cl-rules { grid-template-columns: minmax(0, 1fr); }
   .cl-panel { padding: 16px; }
   .cl-attempts li { grid-template-columns: auto minmax(0, 1fr); }
