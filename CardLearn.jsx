@@ -690,36 +690,64 @@ function usePrefersReducedMotion() {
 
 /* ------------------------------------------------------------------ Icônes -- */
 
-const Icon = ({ d, size = 18 }) => (
-  <svg className="cl-icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+// Icônes de la maquette : trait de 2 px, bouts arrondis.
+const Icon = ({ d, size = 18, stroke = 2 }) => (
+  <svg className="cl-icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d={d} />
   </svg>
 );
-const IconCheck = (p) => <Icon d="M5 12.5l4.5 4.5L19 7.5" {...p} />;
-const IconCross = (p) => <Icon d="M6 6l12 12M18 6L6 18" {...p} />;
-const IconChevron = (p) => <Icon d="M6 9l6 6 6-6" {...p} />;
+const IconCheck = (p) => <Icon d="M5 12.5 10 17.5 19 7" stroke={3} {...p} />;
+const IconCross = (p) => <Icon d="M6 6l12 12M18 6 6 18" stroke={2.6} {...p} />;
+const IconChevron = (p) => <Icon d="M6 9l6 6 6-6" stroke={2.2} {...p} />;
+const IconChevronRight = (p) => <Icon d="M9 6l6 6-6 6" stroke={2.2} {...p} />;
 const IconInfo = (p) => <Icon d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5.5M12 7.5v.01" {...p} />;
-const IconFlame = (p) => <Icon d="M12 3c.4 3.2 5 5 5 10a5 5 0 0 1-10 0c0-2.4 1.1-3.9 2.4-5.3.3 1.5 1 2.4 2.1 2.9C11.2 8.3 10.9 5.6 12 3z" {...p} />;
+const IconFlame = (p) => <Icon d="M12 2.5c.8 3.2 4.8 5.4 4.8 10.1a4.8 4.8 0 0 1-9.6 0c0-2.3 1.1-3.8 2.3-4.8.1 1.5.8 2.6 2 3 0-2.9-.6-5.6.5-8.3z" {...p} />;
 const IconStack = (p) => <Icon d="M9 3.5h10v13H9zM5.5 7v13.5h10" {...p} />;
-const IconBubble = (p) => <Icon d="M4 5h16v11H10l-5 4v-4H4z" {...p} />;
-const IconBook = (p) => <Icon d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5zM5 19.5A1.5 1.5 0 0 0 6.5 21H19" {...p} />;
-const IconPlay = ({ size = 22 }) => (
+const IconBubble = (p) => <Icon d="M4 5h16v11H9.5L4 20z" stroke={2.2} {...p} />;
+const IconBook = (p) => <Icon d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11" stroke={2.2} {...p} />;
+const IconNext = (p) => <Icon d="M5 12h14M13 6l6 6-6 6" stroke={2.4} {...p} />;
+const IconHome = (p) => <Icon d="M3 10.5 12 3l9 7.5M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" {...p} />;
+const IconUser = (p) => <Icon d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-7 8-7s8 3 8 7" {...p} />;
+const IconPodium = (p) => <Icon d="M3 21v-8h6v8M9 21V7h6v14M15 21v-6h6v6" {...p} />;
+const IconLogout = (p) => <Icon d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4" {...p} />;
+const IconRefresh = (p) => <Icon d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 3v5h5M4 13a8 8 0 0 0 14.3 4.9L20 16M20 21v-5h-5" {...p} />;
+const IconPencil = (p) => <Icon d="M4 20h4L19 9l-4-4L4 16z" stroke={2.2} {...p} />;
+const IconReplay = (p) => <Icon d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5" stroke={2.6} {...p} />;
+const IconPlay = ({ size = 18 }) => (
   <svg className="cl-icon" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M8 5.2v13.6a1 1 0 0 0 1.5.86l11-6.8a1 1 0 0 0 0-1.72l-11-6.8A1 1 0 0 0 8 5.2z" fill="currentColor" />
+    <path d="M7 4.5v15l13-7.5z" fill="currentColor" />
+  </svg>
+);
+const IconCup = ({ size = 24 }) => (
+  <svg className="cl-icon cl-cup" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M8 4h8v5a4 4 0 0 1-8 0z" fill="currentColor" />
+    <path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7" />
   </svg>
 );
 
-// Pictogramme de chaque catégorie sur les tuiles de l'accueil.
-function CatGlyph({ cat }) {
+// Logo : deux cartes, celle de devant en jaune.
+const Logo = ({ size = 32 }) => (
+  <svg className="cl-logo" width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="7.5" y="2.5" width="13" height="15" rx="2.5" stroke="#8A8EAE" strokeWidth="1.6" />
+    <rect x="3.5" y="6.5" width="13" height="15" rx="2.5" fill="#FFC93C" />
+  </svg>
+);
+
+// Pictogramme de chaque catégorie.
+function CatGlyph({ cat, size = 18 }) {
   if (cat === "mots") return <span className="cl-glyph-text">Aa</span>;
-  if (cat === "expr") return <IconBubble size={20} />;
-  return <IconBook size={20} />;
+  if (cat === "expr") return <IconBubble size={size} />;
+  return <IconBook size={size} />;
 }
-const IconNext = (p) => <Icon d="M5 12h14M13 6l6 6-6 6" {...p} />;
-const IconHome = (p) => <Icon d="M4 10.5L12 4l8 6.5M6 9v11h4.5v-6h3v6H18V9" {...p} />;
-const IconUser = (p) => <Icon d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20.5c.8-3.6 3.8-5.5 7.5-5.5s6.7 1.9 7.5 5.5" {...p} />;
-const IconPodium = (p) => <Icon d="M9 21V9h6v12M3 21v-7h6M15 12h6v9M2 21h20" {...p} />;
-const IconLogout = (p) => <Icon d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9" {...p} />;
+
+// Carré coloré de la catégorie, avec son pictogramme.
+function CatIcon({ cat, size = 34 }) {
+  return (
+    <span className="cl-cat-icon" data-cat={cat} style={{ "--s": `${size}px` }} aria-hidden="true">
+      <CatGlyph cat={cat} size={Math.round(size * 0.53)} />
+    </span>
+  );
+}
 
 /* -------------------------------------------------------------- Composants -- */
 
@@ -767,6 +795,85 @@ function StorageNotice({ state }) {
         : "La dernière sauvegarde a échoué. Tes réponses restent comptées et seront réenregistrées à la prochaine réponse."}
     </p>
   );
+}
+
+// Initiale du pseudo dans une pastille ronde.
+function Avatar({ name, size = 44, tone = "yellow" }) {
+  const initial = (name || "").trim().charAt(0).toUpperCase();
+  return (
+    <span className="cl-avatar" data-tone={tone} style={{ "--s": `${size}px` }} aria-hidden="true">
+      {initial || <IconUser size={Math.round(size * 0.45)} />}
+    </span>
+  );
+}
+
+// Série de jours joués d'affilée (flamme).
+function StreakPill({ days, short = false }) {
+  return (
+    <span className="cl-streak" aria-label={`Série : ${plural(days, "jour", "jours")} de suite`}>
+      <IconFlame size={17} />
+      <span className="cl-streak-n">{days}</span>
+      <span className="cl-streak-label">{short ? (days > 1 ? "jours" : "jour") : days > 1 ? "jours de suite" : "jour de suite"}</span>
+    </span>
+  );
+}
+
+// Niveau d'une carte : 5 points, pleins jusqu'au niveau.
+function LevelDots({ level, tone = "paper", size = 8 }) {
+  return (
+    <span className="cl-dots" data-tone={tone} style={{ "--s": `${size}px` }} role="img" aria-label={`Niveau ${level} sur ${MAX_BOX}`}>
+      {Array.from({ length: MAX_BOX }, (_, i) => (
+        <span key={i} className={cls(i < level && "is-on")} />
+      ))}
+    </span>
+  );
+}
+
+// Barre de note : un segment par note (D, C, B, A), large comme le nombre de cartes qu'il couvre.
+// before : cartes maîtrisées avant la partie ; l'écart est dessiné en jaune clair.
+const GRADE_SPANS = [...GRADES].reverse().map((g) => ({ ...g, size: g.max - g.min + 1 }));
+const ratio = (value, g) => Math.min(1, Math.max(0, (value - g.min) / g.size));
+
+function GradeBar({ mastered, before = mastered, scale = "short" }) {
+  const current = gradeFor(mastered);
+  return (
+    <div className="cl-gradebar" data-scale={scale}>
+      <div className="cl-gradebar-track" role="img" aria-label={`${plural(mastered, "carte maîtrisée", "cartes maîtrisées")} sur ${TOTAL} : note ${current}`}>
+        {GRADE_SPANS.map((g) => {
+          const base = ratio(Math.min(before, mastered), g);
+          const fill = ratio(mastered, g);
+          return (
+            <span key={g.grade} className="cl-gradebar-seg" style={{ flex: g.size }}>
+              {base > 0 && <span className="cl-gradebar-fill" style={{ width: `${base * 100}%` }} />}
+              {fill > base && <span className="cl-gradebar-gain" style={{ left: `${base * 100}%`, width: `${(fill - base) * 100}%` }} />}
+            </span>
+          );
+        })}
+      </div>
+      <div className="cl-gradebar-labels" aria-hidden="true">
+        {GRADE_SPANS.map((g) => (
+          <span key={g.grade} className={cls(g.grade === current && "is-current")} style={{ flex: g.size }}>
+            {scale === "long" ? (
+              <>
+                <b>{g.grade}</b>
+                <small>{g.grade === "A" ? `${g.min}+` : `${g.min}–${g.max}`}</small>
+              </>
+            ) : g.min ? (
+              `${g.grade}·${g.min}`
+            ) : (
+              g.grade
+            )}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Note suivante à viser, et le nombre de cartes qui manquent.
+function nextGradeFor(mastered) {
+  const next = GRADES.slice().reverse().find((g) => g.min > mastered);
+  return next ? { grade: next.grade, missing: next.min - mastered } : null;
 }
 
 // Texte d'une réponse comparée, avec les lettres fausses, manquantes ou à corriger mises en évidence.
@@ -1092,61 +1199,59 @@ const NAV_ITEMS = [
   { id: "ranking", label: "Classement", Glyph: IconPodium },
 ];
 
-const Logo = () => (
-  <span className="cl-logo" aria-hidden="true">
-    <span />
-    <span />
-    <span />
-  </span>
-);
-
-// Logo à gauche, icônes centrées, déconnexion à droite. Pendant une partie, un seul bouton : quitter la partie.
-function NavBar({ screen, onNavigate, account, onSignOut, leaving, onQuit }) {
+// Mobile : barre d'onglets en bas. Desktop : barre du haut avec libellés, série, avatar et déconnexion.
+// Pendant une partie, un seul bouton : quitter la partie.
+function NavBar({ screen, onNavigate, account, onSignOut, leaving, onQuit, streak, pseudo }) {
   const active = screen === "summary" ? "home" : screen;
   const logoutLabel = leaving ? "Déconnexion en cours" : account?.email ? `Se déconnecter (${account.email})` : "Se déconnecter";
   if (onQuit) {
     return (
-      <header className="cl-nav">
-        <div className="cl-nav-inner">
-          <span className="cl-nav-logo is-static">
-            <Logo />
-          </span>
-          <button type="button" className="cl-nav-quit" onClick={onQuit} aria-haspopup="dialog">
-            <IconCross size={16} /> Quitter la partie
-          </button>
-        </div>
+      <header className="cl-nav cl-nav--session">
+        <button type="button" className="cl-nav-quit" onClick={onQuit} aria-haspopup="dialog">
+          <IconCross size={16} /> Quitter la partie
+        </button>
       </header>
     );
   }
   return (
-    <header className="cl-nav">
-      <nav className="cl-nav-inner" aria-label="Navigation principale">
-        <button type="button" className="cl-nav-logo" onClick={() => onNavigate("home")} aria-label="CardLearn, accueil" title="CardLearn">
-          <Logo />
-        </button>
-        {onSignOut && (
-          <button type="button" className="cl-nav-logout" onClick={onSignOut} disabled={leaving} aria-label={logoutLabel} title={logoutLabel}>
-            <IconLogout size={22} />
+    <>
+      <header className="cl-nav cl-topbar">
+        <div className="cl-topbar-inner">
+          <button type="button" className="cl-topbar-logo" onClick={() => onNavigate("home")} aria-label="CardLearn, accueil" title="CardLearn">
+            <Logo />
           </button>
-        )}
-        <ul className="cl-nav-links">
-          {NAV_ITEMS.map(({ id, label, Glyph }) => (
-            <li key={id}>
-              <button
-                type="button"
-                className="cl-nav-link"
-                aria-current={active === id ? "page" : undefined}
-                aria-label={label}
-                title={label}
-                onClick={() => onNavigate(id)}
-              >
-                <Glyph size={22} />
+          <nav className="cl-topbar-links" aria-label="Navigation principale">
+            {NAV_ITEMS.map(({ id, label, Glyph }) => (
+              <button key={id} type="button" className="cl-topbar-link" aria-current={active === id ? "page" : undefined} onClick={() => onNavigate(id)}>
+                <Glyph size={18} />
+                <span>{label}</span>
               </button>
-            </li>
-          ))}
-        </ul>
+            ))}
+          </nav>
+          <div className="cl-topbar-end">
+            <StreakPill days={streak} short />
+            <button type="button" className="cl-topbar-avatar" onClick={() => onNavigate("profile")} aria-label="Mon profil" title="Mon profil">
+              <Avatar name={pseudo} size={44} />
+            </button>
+            {onSignOut && (
+              <button type="button" className="cl-nav-logout" onClick={onSignOut} disabled={leaving} aria-label={logoutLabel} title={logoutLabel}>
+                <IconLogout size={18} />
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+      <nav className="cl-nav cl-tabbar" aria-label="Navigation principale">
+        {NAV_ITEMS.map(({ id, label, Glyph }) => (
+          <button key={id} type="button" className="cl-tab" aria-current={active === id ? "page" : undefined} onClick={() => onNavigate(id)}>
+            <span className="cl-tab-icon">
+              <Glyph size={20} />
+            </span>
+            <span>{label}</span>
+          </button>
+        ))}
       </nav>
-    </header>
+    </>
   );
 }
 
@@ -1250,21 +1355,10 @@ function PseudoForm({ initial = "", submitLabel, onSubmit, onCancel }) {
 }
 
 // leaderboard : fourni par le site connecté (load, join, leave). Absent dans un artifact ou hors connexion.
-function Ranking({ summary, leaderboard }) {
-  const [state, setState] = useState({ status: leaderboard ? "loading" : "offline" });
+// board : classement chargé par l'appli ; onReload le recharge (à l'ouverture de l'écran et après un changement).
+function Ranking({ summary, leaderboard, board: state, onReload: load }) {
   const [editing, setEditing] = useState(false);
   const [actionError, setActionError] = useState("");
-
-  const load = useCallback(async () => {
-    if (!leaderboard) return;
-    setState((prev) => (prev.status === "ready" ? { ...prev, refreshing: true } : { status: "loading" }));
-    try {
-      const data = await leaderboard.load();
-      setState({ status: "ready", ...data });
-    } catch (err) {
-      setState({ status: "error", message: err?.message || "Le classement n'a pas pu être chargé." });
-    }
-  }, [leaderboard]);
 
   useEffect(() => {
     load();
@@ -2068,6 +2162,8 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
   const reducedMotion = usePrefersReducedMotion();
   const [leaving, setLeaving] = useState(false);
   const [quitting, setQuitting] = useState(false);
+  // Classement (site connecté) : pseudo et rang, affichés dans l'en-tête, l'accueil et le profil.
+  const [board, setBoard] = useState(leaderboard ? { status: "loading" } : { status: "offline" });
 
   // Chargement de la progression au démarrage.
   useEffect(() => {
@@ -2136,6 +2232,23 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
   }, [screen]);
 
   const summary = useMemo(() => summarize(progress), [progress]);
+
+  const loadBoard = useCallback(async () => {
+    if (!leaderboard) return;
+    setBoard((prev) => (prev.status === "ready" ? { ...prev, refreshing: true } : { status: "loading" }));
+    try {
+      const data = await leaderboard.load();
+      setBoard({ status: "ready", ...data });
+    } catch (err) {
+      setBoard({ status: "error", message: err?.message || "Le classement n'a pas pu être chargé." });
+    }
+  }, [leaderboard]);
+
+  useEffect(() => {
+    loadBoard();
+  }, [loadBoard]);
+
+  const pseudo = board.status === "ready" ? board.pseudo : null;
 
   const startSession = (mode, sessionCats = cats) => {
     const pool = buildPool(mode, sessionCats, progress);
@@ -2229,7 +2342,7 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
       />
     );
   } else if (screen === "ranking") {
-    content = <Ranking summary={summary} leaderboard={leaderboard} />;
+    content = <Ranking summary={summary} leaderboard={leaderboard} board={board} onReload={loadBoard} />;
   } else {
     content = (
       <Home
@@ -2245,9 +2358,9 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
   }
 
   return (
-    <div className="cl-app">
+    <div className={cls("cl-app", !loading && screen !== "session" && screen !== "summary" && "has-tabbar")}>
       <style>{STYLES}</style>
-      {!loading && (
+      {!loading && screen !== "summary" && (
         <NavBar
           screen={screen}
           onNavigate={navigate}
@@ -2255,6 +2368,8 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
           onSignOut={onSignOut ? signOut : null}
           leaving={leaving}
           onQuit={inSession ? () => setQuitting(true) : null}
+          streak={summary.streak}
+          pseudo={pseudo}
         />
       )}
       <main className="cl-main">{content}</main>
@@ -2362,24 +2477,33 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   box-sizing: border-box;
   overflow-x: clip;
   background: var(--bg);
-  color: var(--ink);
-  font: 16px/1.55 var(--font-body);
+  color: var(--text);
+  font: 16px/1.5 var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
+.cl-app button, .cl-app input { font: inherit; color: inherit; }
+.cl-app button { cursor: pointer; }
+.cl-app :focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .cl-app *, .cl-app *::before, .cl-app *::after { box-sizing: border-box; }
 .cl-app h1, .cl-app h2, .cl-app h3, .cl-app p, .cl-app ul, .cl-app ol, .cl-app dl, .cl-app dd, .cl-app fieldset { margin: 0; }
 .cl-app ul, .cl-app ol { padding: 0; list-style: none; }
-.cl-app h1, .cl-app h2, .cl-app h3 { font-family: var(--font-display); color: var(--ink); text-wrap: balance; letter-spacing: -0.01em; }
-.cl-app h1 { font-size: 34px; line-height: 1.1; font-weight: 750; }
+.cl-app h1, .cl-app h2, .cl-app h3 { font-family: var(--font-display); color: var(--text); text-wrap: balance; letter-spacing: -0.01em; }
+.cl-app h1 { font-size: 30px; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; }
 .cl-app h2 { font-size: 20px; line-height: 1.25; font-weight: 700; }
 .cl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .cl-icon { flex: none; }
 .cl-muted { color: var(--ink-2); font-size: 15px; }
 .cl-ink { color: var(--ink); }
 
+/* Place pour la barre d'état en haut, et pour la barre d'onglets en bas (mobile). */
 .cl-main {
   padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 24px calc(56px + env(safe-area-inset-bottom, 0px));
+  padding-block: calc(20px + env(safe-area-inset-top, 0px)) calc(32px + env(safe-area-inset-bottom, 0px));
+}
+.cl-app.has-tabbar .cl-main { padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 768px) {
+  .cl-main { padding-block: 40px 56px; }
+  .cl-app.has-tabbar .cl-main { padding-bottom: 56px; }
 }
 .cl-wrap { max-width: 640px; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 .cl-wrap--wide { max-width: 760px; }
@@ -2420,50 +2544,131 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-page-head { display: grid; gap: 6px; }
 .cl-app .cl-subhead { font-size: 15px; font-family: var(--font-body); font-weight: 700; color: var(--ink-2); margin-top: 4px; }
 
-/* Barre de navigation */
-.cl-nav {
-  position: sticky; top: 0; z-index: 40;
-  padding-top: env(safe-area-inset-top, 0px);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--line);
+/* Barre de navigation : onglets en bas sur mobile, barre du haut sur desktop. */
+.cl-topbar { display: none; }
+.cl-tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 8px max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+  background: var(--nav); border-top: 1px solid #23263f;
 }
-.cl-nav-inner { max-width: 960px; margin-inline: auto; padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); min-height: 60px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
-.cl-nav-links { grid-column: 2; grid-row: 1; display: flex; align-items: center; gap: 10px; }
-.cl-nav-link, .cl-nav-logout {
-  display: inline-grid; place-items: center;
-  width: 52px; height: 44px;
-  border: 0; border-radius: 10px;
-  background: none; color: var(--ink-2);
-  cursor: pointer;
+.cl-tab {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-height: 52px; padding: 4px 0; border: 0; border-radius: 12px; background: none;
+  color: var(--muted); font-size: 12px; font-weight: 600;
+}
+.cl-tab-icon { display: grid; place-items: center; width: 56px; height: 30px; border-radius: 999px; transition: background-color .15s; }
+.cl-tab[aria-current="page"] { color: var(--yellow); font-weight: 700; }
+.cl-tab[aria-current="page"] .cl-tab-icon { background: var(--yellow-soft); }
+@media (min-width: 768px) {
+  .cl-tabbar { display: none; }
+  .cl-topbar { display: block; position: sticky; top: 0; z-index: 40; padding-top: env(safe-area-inset-top, 0px); background: #0f1120; border-bottom: 1px solid #1f2238; }
+}
+.cl-topbar-inner { max-width: 1120px; margin-inline: auto; padding: 12px 24px; display: flex; align-items: center; gap: 12px 24px; }
+.cl-topbar-logo { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 12px; background: none; }
+.cl-topbar-links { display: flex; gap: 4px; }
+.cl-topbar-link {
+  display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px;
+  border: 0; border-radius: 12px; background: none;
+  color: var(--muted); font-weight: 600; font-size: 15px;
   transition: background-color .15s, color .15s;
 }
-.cl-nav-link:hover { background: var(--surface-2); color: var(--ink); }
-.cl-nav-link[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
-.cl-nav-logo { grid-column: 1; justify-self: start; display: grid; place-items: center; width: 48px; height: 44px; border: 0; border-radius: 10px; background: none; cursor: pointer; }
-.cl-nav-logo:hover { background: var(--surface-2); }
-.cl-logo { position: relative; width: 30px; height: 27px; flex: none; }
-.cl-logo span { position: absolute; left: 0; width: 25px; height: 18px; border-radius: 3px; border: 1.5px solid var(--ink); background: var(--surface); }
-.cl-logo span:nth-child(1) { top: 0; left: 5px; opacity: .35; }
-.cl-logo span:nth-child(2) { top: 4px; left: 2.5px; opacity: .6; }
-.cl-logo span:nth-child(3) { top: 8px; box-shadow: inset 0 5px 0 -3.5px var(--rule); }
-.cl-nav-logout { grid-column: 3; grid-row: 1; justify-self: end; width: 44px; color: var(--ink-3); }
-.cl-nav-logout:hover:not(:disabled) { background: var(--bad-soft); color: var(--bad); }
-.cl-nav-logout:disabled { opacity: .55; cursor: progress; }
-.cl-nav-logo:focus-visible, .cl-nav-link:focus-visible, .cl-nav-logout:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.cl-nav-logo.is-static, .cl-nav-logo.is-static:hover { background: none; cursor: default; }
-.cl-nav-quit {
-  grid-column: 2; grid-row: 1;
-  display: inline-flex; align-items: center; gap: 6px;
-  min-height: 42px; padding: 8px 16px;
-  border: 1.5px solid var(--line); border-radius: 999px;
-  background: var(--surface); color: var(--ink-2);
-  font: 700 14px/1.2 var(--font-body); white-space: nowrap;
-  cursor: pointer;
-  transition: background-color .15s, color .15s, border-color .15s;
+.cl-topbar-link:hover { color: var(--text); background: var(--surface); }
+.cl-topbar-link[aria-current="page"] { background: #22253f; color: var(--yellow); font-weight: 700; }
+.cl-topbar-end { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.cl-topbar-avatar { display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: none; }
+.cl-nav-logout {
+  display: grid; place-items: center; width: 44px; height: 44px; flex: none;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--on-indigo);
 }
-.cl-nav-quit:hover { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
-.cl-nav-quit:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.cl-nav-logout:hover:not(:disabled) { border-color: var(--error); color: var(--error-text); }
+.cl-nav-logout:disabled { opacity: .55; cursor: progress; }
+
+/* Partie en cours : seul bouton, quitter la partie. */
+.cl-nav--session { display: flex; justify-content: center; padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 0; }
+.cl-nav-quit {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px 16px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted);
+  font-weight: 700; font-size: 14px; white-space: nowrap;
+}
+.cl-nav-quit:hover { border-color: var(--error); color: var(--error-text); }
+
+/* Composants communs */
+.cl-logo { flex: none; display: block; }
+.cl-avatar {
+  width: var(--s); height: var(--s); flex: none; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--yellow); color: var(--on-yellow);
+  font: 800 calc(var(--s) * 0.42)/1 var(--font-display);
+}
+.cl-avatar[data-tone="silver"] { background: #c9cde8; color: #1b1c3a; }
+.cl-avatar[data-tone="bronze"] { background: #e39a6a; color: #2a1405; }
+.cl-avatar[data-tone="plain"] { background: #2f3357; color: var(--on-indigo); font-family: var(--font-body); font-weight: 700; }
+.cl-streak {
+  display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; flex: none;
+  border-radius: 999px; background: var(--streak-bg); border: 1px solid var(--streak-line); color: var(--streak);
+}
+.cl-streak-n { font: 700 15px/1 var(--font-mono); }
+.cl-streak-label { font-size: 13px; color: #f5cdb0; white-space: nowrap; }
+.cl-cat-icon {
+  width: var(--s); height: var(--s); flex: none; border-radius: calc(var(--s) * 0.29);
+  display: grid; place-items: center; background: var(--c); color: var(--bg);
+}
+.cl-cat-icon .cl-glyph-text { font-size: calc(var(--s) * 0.41); }
+.cl-dots { display: inline-flex; gap: 3px; }
+.cl-dots > span { width: var(--s); height: var(--s); border-radius: 50%; border: 1.5px solid var(--dot); }
+.cl-dots > span.is-on { background: var(--dot); }
+.cl-dots[data-tone="paper"] { --dot: #2b2e5c; }
+.cl-dots[data-tone="ok"] { --dot: var(--success); gap: 4px; }
+.cl-dots[data-tone="bad"] { --dot: var(--error); gap: 4px; }
+
+/* Barre de note D | C | B | A */
+.cl-gradebar { display: grid; gap: 6px; }
+.cl-gradebar-track { display: flex; gap: 3px; height: 10px; }
+.cl-gradebar[data-scale="long"] .cl-gradebar-track { height: 12px; }
+.cl-gradebar-seg { position: relative; overflow: hidden; background: #262a45; border-radius: 2px; }
+.cl-gradebar-seg:first-child { border-radius: 999px 2px 2px 999px; }
+.cl-gradebar-seg:last-child { border-radius: 2px 999px 999px 2px; }
+.cl-gradebar-fill, .cl-gradebar-gain { position: absolute; top: 0; bottom: 0; left: 0; background: var(--yellow); }
+.cl-gradebar-gain { background: #fff0c2; }
+.cl-gradebar-labels { display: flex; gap: 3px; font: 11px/1.3 var(--font-mono); color: var(--faint); }
+.cl-gradebar-labels .is-current { color: var(--yellow); font-weight: 700; }
+.cl-gradebar[data-scale="long"] .cl-gradebar-labels > span { display: flex; flex-direction: column; gap: 1px; color: var(--on-indigo); }
+.cl-gradebar[data-scale="long"] .cl-gradebar-labels b { font: 800 16px/1.2 var(--font-display); }
+.cl-gradebar[data-scale="long"] .cl-gradebar-labels small { font-size: 10px; }
+.cl-gradebar[data-scale="long"] .cl-gradebar-labels .is-current { color: #ffe08a; }
+.cl-gradebar[data-scale="long"] .cl-gradebar-labels .is-current b { color: var(--yellow); }
+.cl-indigo .cl-gradebar-seg { background: rgba(255, 255, 255, 0.14); }
+
+/* Bouton jaune « 3D » (ombre pleine dessous), et ses variantes vertes et rouges */
+.cl-cta {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 56px; padding: 0 24px; margin-bottom: 5px;
+  border: 0; border-radius: var(--r-btn);
+  background: var(--yellow); color: var(--on-yellow); box-shadow: 0 5px 0 var(--yellow-shadow);
+  font: 800 19px/1 var(--font-display); text-decoration: none;
+  transition: transform .08s, box-shadow .08s, filter .15s;
+}
+.cl-cta:hover:not(:disabled) { filter: brightness(1.06); }
+.cl-cta:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 0 var(--yellow-shadow); }
+.cl-cta:disabled { opacity: .5; cursor: not-allowed; }
+.cl-cta-tag { font: 700 13px/1 var(--font-mono); padding: 4px 8px; border-radius: 8px; background: rgba(27, 20, 0, 0.12); }
+.cl-cta--ok { background: var(--success); color: var(--on-success); box-shadow: 0 5px 0 var(--success-shadow); }
+.cl-cta--ok:active:not(:disabled) { box-shadow: 0 2px 0 var(--success-shadow); }
+.cl-cta--bad { background: var(--error); color: var(--on-error); box-shadow: 0 5px 0 var(--error-shadow); }
+.cl-cta--bad:active:not(:disabled) { box-shadow: 0 2px 0 var(--error-shadow); }
+/* Bouton secondaire à bordure */
+.cl-ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 44px; padding: 0 16px; border: 1px solid var(--line-2); border-radius: 12px;
+  background: transparent; color: var(--text); font-weight: 600; font-size: 14px; text-decoration: none;
+}
+.cl-ghost:hover:not(:disabled) { background: var(--surface-2); }
+.cl-ghost:disabled { opacity: .45; cursor: not-allowed; }
+/* Carte sombre */
+.cl-card-dark { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); }
+.cl-indigo { position: relative; overflow: hidden; background: var(--indigo); border-radius: var(--r-block); }
+.cl-label-mono { font: 700 11px/1.4 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 
 [data-cat="mots"] { --c: var(--cat-mots); }
 [data-cat="expr"] { --c: var(--cat-expr); }
