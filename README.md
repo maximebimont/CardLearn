@@ -87,63 +87,80 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
 
 ## Fonctionnement
 
-- **Accueil** : tableau de scores (série de jours, cartes maîtrisées, note estimée), plateau
-  « Nouvelle partie » avec les catégories en tuiles, le nombre de cartes et le bouton « Jouer », et
-  la « Revanche » pour retenter les cartes ratées. Toute erreur y met la carte, même si elle est
+- **Apparence** : thème sombre unique (fond bleu nuit, bouton principal jaune, cartes « papier »),
+  polices Bricolage Grotesque, Instrument Sans et JetBrains Mono (Google Fonts). L'appli tutoie.
+  La maquette de cette refonte est dans [`design/maquette-refonte/`](design/maquette-refonte/)
+  (`HANDOFF.md` et les écrans `.dc.html`).
+- **Navigation** : sur mobile, une barre d'onglets en bas (Accueil, Profil, Classement) ; à partir de
+  768 px, une barre en haut avec le logo, les mêmes onglets, la série de jours, l'avatar (vers le
+  profil) et la déconnexion. La barre disparaît pendant une partie et sur l'écran de fin.
+- **Accueil** : « Salut » suivi du pseudo choisi pour le classement (sinon « Salut » seul), la série
+  de jours, la note avec sa barre de progression (D, C·50, B·75, A·100 cartes maîtrisées), le plateau
+  « Nouvelle partie » (catégories en tuiles, 10, 20 ou 50 cartes, bouton « Jouer ») et la carte
+  « Revanche » pour retenter les cartes ratées. Toute erreur y met la carte, même si elle est
   réussie plus tard dans la même partie classique ; seule une bonne réponse pendant une Revanche
   l'en retire, et le compteur descend.
-- **Cartes** : le texte français s'affiche, vous tapez la réponse anglaise puis validez avec Entrée.
-  Une bonne réponse passe derrière la pile. Une erreur affiche la bonne réponse le temps de la lire,
-  de 4 à 9 secondes selon sa longueur (Entrée ou « Continuer » pour passer plus vite), puis la carte
-  glisse sur le côté. La réponse donnée n'est pas barrée : ses lettres fausses sont en gras et en
-  rouge, une lettre oubliée est marquée « _ », et les lettres à corriger sont surlignées dans la
-  réponse attendue. Une réponse sans rapport est entièrement en gras.
-  « Je ne sais pas » compte comme une erreur.
-- **Expressions en QCM** : les expressions ne se tapent pas. Quatre traductions sont proposées, une
-  seule est juste. Les trois autres sont des pièges tirés de la bonne réponse : chaque expression a
-  2 ou 3 passages piégés par une erreur typique d'un francophone (faux ami comme « realize » pour
-  réaliser ou « delays » pour délais, calque ou ordre des mots comme « code source », faute comme
-  « softwares » ou « developper »). Une partie en tire deux, et les 4 propositions sont toutes les
-  combinaisons juste/faux : chaque piège apparaît dans deux propositions, la bonne ne se devine pas
-  par élimination. Un clic (ou les touches 1 à 4) valide le choix : la bonne réponse passe en vert,
-  un mauvais choix en rouge, et les passages piégés sont mis en évidence. Les pièges sont le
-  4e élément de chaque ligne de `EXPRESSIONS` dans `CardLearn.jsx`.
+- **Cartes** : le texte français s'affiche sur une carte posée sur sa pile ; on tape la réponse
+  anglaise puis on valide avec Entrée ou « Valider ». Un panneau monte alors du bas :
+  - vert, « Bien joué ! », avec le niveau gagné : la partie continue seule après 1 seconde
+    (2,6 secondes si la réponse est acceptée à une faute près, pour voir la bonne orthographe), et la
+    carte passe derrière la pile ;
+  - rouge, avec la réponse attendue et la tienne : il reste affiché sans limite de temps, jusqu'à
+    « Continuer » (ou Entrée), puis la carte glisse sur le côté.
+
+  La réponse donnée n'est pas barrée : ses lettres fausses sont en gras et en rouge, une lettre
+  oubliée est marquée « _ », et les lettres à corriger sont surlignées dans la réponse attendue. Une
+  réponse sans rapport est entièrement en gras. « Je ne sais pas » compte comme une erreur.
+- **Expressions en QCM** : les expressions ne se tapent pas. Quatre traductions sont proposées
+  (A à D), une seule est juste. Les trois autres sont des pièges tirés de la bonne réponse : chaque
+  expression a 2 ou 3 passages piégés par une erreur typique d'un francophone (faux ami comme
+  « realize » pour réaliser ou « delays » pour délais, calque ou ordre des mots comme « code source »,
+  faute comme « softwares » ou « developper »). Une partie en tire deux, et les 4 propositions sont
+  toutes les combinaisons juste/faux : chaque piège apparaît dans deux propositions, la bonne ne se
+  devine pas par élimination. Un clic (ou les touches A à D, 1 à 4) valide le choix : la bonne réponse
+  passe en vert, un mauvais choix en rouge, et les passages piégés sont mis en évidence. Les pièges
+  sont le 4e élément de chaque ligne de `EXPRESSIONS` dans `CardLearn.jsx`.
 - **Leitner** : 5 boîtes, présentées dans l'appli comme des **niveaux** (1 À apprendre, 2 En cours,
   3 Retenue, 4 Solide, 5 Maîtrisée). Une bonne réponse fait monter la carte d'un niveau, une erreur la
   renvoie au niveau 1. Le niveau 5 correspond aux cartes maîtrisées. Dans le profil, le bouton ⓘ à
-  côté de « Niveau de vos cartes » ouvre une fenêtre qui explique ces règles. Le tirage favorise les boîtes basses
-  (poids 16 / 8 / 4 / 2 / 1).
-- **Dans une partie** : la progression n'est enregistrée qu'à la fin de la partie. La barre de
-  navigation laisse alors place à un seul bouton « Quitter la partie » : après confirmation, la partie
+  côté de « Tes 5 niveaux » ouvre une fenêtre qui explique ces règles. Le tirage favorise les
+  niveaux bas (poids 16 / 8 / 4 / 2 / 1).
+- **Dans une partie** : la progression n'est enregistrée qu'à la fin de la partie. En haut, une croix
+  « Quitter la partie », la barre d'avancement et le compteur (7/20) : après confirmation, la partie
   est abandonnée et rien n'est enregistré (les cartes gardent leur niveau d'avant la partie).
   Une carte ratée revient 3 à 5 cartes plus loin. En Revanche, une carte ne peut être ratée que
   3 fois par partie : à la 3e erreur, elle ne revient plus dans la partie et reste dans la Revanche
-  pour la fois suivante (trois marques sur la carte comptent les erreurs). Une carte réussie revient
-  8 à 12 cartes plus loin en boîte 2, 14 à 18 en boîte 3 et 20 à 26 en boîte 4. Elle ne revient pas
-  si la partie est trop courte ou si elle est maîtrisée. Une partie compte 10, 20 ou 50 cartes.
-- **Correction** (mots métier et définitions, réponses tapées) : la casse, la ponctuation, les tirets, les apostrophes et les espaces sont ignorés.
-  Les alternatives (« Server / Host ») sont acceptées séparément ou en entier. Pour les sigles
-  (« Application Programming Interface - API »), on accepte la forme longue, le sigle ou les deux.
-  Le « to » initial des verbes est facultatif. Une marge d'erreur dépend de la longueur de la
-  réponse (lettres et chiffres comptés) : aucune faute jusqu'à 4, une de 5 à 10, deux de 11 à 20,
-  trois au-delà. Une lettre en trop, en moins ou remplacée, ou deux lettres voisines inversées,
-  comptent chacune pour une faute. Une réponse acceptée ainsi compte comme bonne (« Correct, à une
-  faute près ») et affiche quelques secondes la bonne orthographe. La réponse exacte d'une autre
+  pour la fois suivante (trois marques en haut de l'écran comptent les erreurs). Une carte réussie
+  revient 8 à 12 cartes plus loin au niveau 2, 14 à 18 au niveau 3 et 20 à 26 au niveau 4. Elle ne
+  revient pas si la partie est trop courte ou si elle est maîtrisée.
+- **Correction** (mots métier et définitions, réponses tapées) : la casse, la ponctuation, les
+  tirets, les apostrophes et les espaces sont ignorés. Les alternatives (« Server / Host ») sont
+  acceptées séparément ou en entier. Pour les sigles (« Application Programming Interface - API »),
+  on accepte la forme longue, le sigle ou les deux. Le « to » initial des verbes est facultatif. Une
+  marge d'erreur dépend de la longueur de la réponse (lettres et chiffres comptés) : aucune faute
+  jusqu'à 4, une de 5 à 10, deux de 11 à 20, trois au-delà. Une lettre en trop, en moins ou
+  remplacée, ou deux lettres voisines inversées, comptent chacune pour une faute. Une réponse
+  acceptée ainsi compte comme bonne (« Acceptée à une faute près »). La réponse exacte d'une autre
   carte n'est jamais acceptée.
 - **Définitions** : le terme français est masqué dans la définition. Le bouton « Indice » le révèle.
-- **Fin de partie** : score et cartes ratées, regroupées par carte. Un clic sur une carte affiche
-  le détail de ses tentatives : réponse donnée (lettres fausses en gras), réussie ou non, niveau
-  avant et après. « Reste en Revanche » signale les cartes qui sont dans la Revanche après la partie.
-- **Navigation** : une barre d'icônes centrée en haut mène à l'accueil, au profil et au classement.
-  Le logo (à gauche) ramène à l'accueil ; une fois connecté, l'icône de déconnexion est à droite.
-  Pendant une partie, seul le bouton « Quitter la partie » reste.
+- **Fin de partie** : score en anneau (8/10), justes, erreurs et pourcentage, puis la progression :
+  cartes maîtrisées gagnées, barre de note avant/après, et l'évolution de chaque niveau. « À revoir »
+  liste les cartes ratées (3 d'abord, puis « Voir les N »). Un clic sur une carte affiche le détail
+  de ses tentatives : réponse donnée (lettres fausses en gras), réussie ou non, niveau avant et
+  après. « Reste en Revanche » signale les cartes qui sont dans la Revanche après la partie. En bas :
+  retour à l'accueil, « Rejouer » et « Revanche » (ou « Nouvelle partie » sans carte ratée).
+- **Profil** : pseudo, rang et série de jours ; la note et ce qu'il manque pour la suivante, la
+  progression par catégorie ; « Tes 5 niveaux » ; les statistiques (réponses, réussite, série, taux
+  par catégorie) ; les cartes les plus ratées ; et la zone « Réinitialiser » / « Supprimer mon
+  compte ». Sur mobile, la déconnexion est en haut du profil.
 - **Suppression de compte** (site connecté à Supabase) : dans le profil, « Supprimer mon compte »
   demande de taper SUPPRIMER, puis efface le compte, sa progression et ses copies locales.
 - **Classement** (site connecté à Supabase) : les élèves qui choisissent un pseudo sont classés par
-  nombre de cartes maîtrisées (niveau 5), calculé depuis leur progression. Podium avec coupes or,
-  argent et bronze, puis la suite du classement ; les ex æquo partagent le même rang. Seuls le pseudo
-  et le score sont visibles des autres, jamais l'adresse e-mail. On peut modifier son pseudo ou
-  quitter le classement.
+  nombre de cartes maîtrisées (niveau 5), calculé depuis leur progression. « Tu es 4e sur 7 »,
+  podium avec coupes or, argent et bronze, puis la suite du classement avec, sur ta ligne, le nombre
+  de cartes à maîtriser pour dépasser le joueur juste devant ; les ex æquo partagent le même rang.
+  Seuls le pseudo et le score sont visibles des autres, jamais l'adresse e-mail. On peut modifier
+  son pseudo ou quitter le classement.
 
 ## Structure
 
@@ -156,6 +173,7 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
 | `supabase/schema.sql` | Tables `progress` et `players`, règles d'accès, suppression de compte, classement |
 | `public/manifest.webmanifest`, `public/icons/` | Appli web installable : nom, icônes, plein écran |
 | `src/service-worker.js` | Démarrage hors connexion |
+| `design/maquette-refonte/` | Maquette de la refonte visuelle (consignes et écrans) |
 
 ## Données
 
