@@ -2109,202 +2109,205 @@ function Profile({ progress, summary, onReset, storage, account, onDeleteAccount
         )}
       </header>
 
-      <section className="cl-indigo cl-note" aria-labelledby="note-title">
-        <span className="cl-deco cl-deco--note" aria-hidden="true" />
-        <div className="cl-note-top">
-          <span className="cl-note-letter" role="img" aria-label={`Note ${summary.grade}`}>
-            {summary.grade}
-          </span>
-          <div className="cl-note-text">
-            <h2 id="note-title" className="cl-label-mono">
-              Note d'examen estimée
-            </h2>
-            <p>
-              {next
-                ? `Encore ${plural(next.missing, "carte maîtrisée", "cartes maîtrisées")} pour viser ${next.grade}`
-                : "Note maximale\u00a0: toutes les cartes qu'il faut sont maîtrisées\u00a0!"}
-            </p>
+      {/* Sur ordinateur, les blocs se rangent en grille sur deux colonnes. */}
+      <div className="cl-profile-grid">
+        <section className="cl-indigo cl-note" aria-labelledby="note-title">
+          <span className="cl-deco cl-deco--note" aria-hidden="true" />
+          <div className="cl-note-top">
+            <span className="cl-note-letter" role="img" aria-label={`Note ${summary.grade}`}>
+              {summary.grade}
+            </span>
+            <div className="cl-note-text">
+              <h2 id="note-title" className="cl-label-mono">
+                Note d'examen estimée
+              </h2>
+              <p>
+                {next
+                  ? `Encore ${plural(next.missing, "carte maîtrisée", "cartes maîtrisées")} pour viser ${next.grade}`
+                  : "Note maximale\u00a0: toutes les cartes qu'il faut sont maîtrisées\u00a0!"}
+              </p>
+            </div>
           </div>
-        </div>
-        <GradeBar mastered={summary.mastered} scale="long" />
-        <hr className="cl-sep cl-sep--indigo" />
-        <ul className="cl-note-cats">
-          {CAT_KEYS.map((cat) => (
-            <li key={cat} data-cat={cat}>
-              <span className="cl-note-cat-row">
-                <CatIcon cat={cat} size={28} />
-                <span className="cl-note-cat-name">{CATEGORIES[cat].label}</span>
-                <span className="cl-note-cat-n">
-                  {summary.masteredByCat[cat]}
-                  <span>/{CAT_TOTAL[cat]}</span>
-                </span>
-              </span>
-              <span className="cl-mode-bar" aria-hidden="true">
-                <span style={{ width: `${percent(summary.masteredByCat[cat], CAT_TOTAL[cat])}%` }} />
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="cl-card-dark cl-levels cl-boxchart" aria-labelledby="boxes-title">
-        <div className="cl-levels-head">
-          <div className="cl-heading-row">
-            <h2 id="boxes-title">Tes 5 niveaux</h2>
-            <button
-              type="button"
-              className="cl-info-btn"
-              onClick={() => setLevelsHelp(true)}
-              aria-label="Comment fonctionnent les niveaux ?"
-              aria-haspopup="dialog"
-              aria-controls="levels-help"
-              title="Comment fonctionnent les niveaux ?"
-            >
-              <IconInfo size={20} />
-            </button>
-          </div>
-          <p>Une bonne réponse fait monter la carte d'un niveau. Une erreur la renvoie au niveau 1.</p>
-        </div>
-        <div className="cl-levels-bar" role="img" aria-label={summary.boxes.map((n, i) => `niveau ${i + 1} : ${n}`).join(", ")}>
-          {summary.boxes.map((n, i) => (n ? <span key={i} style={{ flex: n, background: `var(--box-${i + 1})` }} /> : null))}
-        </div>
-        <ol className="cl-level-tiles cl-level-tiles--named">
-          {summary.boxes.map((n, i) => (
-            <li key={i} className={cls(i === MAX_BOX - 1 && "is-top")} title={`Niveau ${i + 1} (${LEVEL_NAMES[i].toLowerCase()})\u00a0: ${plural(n, "carte", "cartes")}`}>
-              <span className="cl-level-key">
-                <i style={{ background: `var(--box-${i + 1})` }} />
-                {i + 1}
-              </span>
-              <span className="cl-level-n">{n}</span>
-              <span className="cl-level-name">{LEVEL_NAMES[i]}</span>
-            </li>
-          ))}
-        </ol>
-        {summary.unseen > 0 && <p className="cl-chart-note">Dont {plural(summary.unseen, "carte jamais jouée", "cartes jamais jouées")} au niveau 1.</p>}
-        <InfoDialog id="levels-help" open={levelsHelp} onClose={() => setLevelsHelp(false)} title="Comment fonctionnent les niveaux ?">
-          <p className="cl-muted">
-            Chaque carte a un niveau de 1 à 5. Les cartes des premiers niveaux reviennent plus souvent dans tes parties, pour que tu les
-            travailles davantage.
-          </p>
-          <LevelRules />
-        </InfoDialog>
-      </section>
-
-      <section className="cl-card-dark cl-stats-card" aria-labelledby="stats-title">
-        <h2 id="stats-title">Statistiques</h2>
-        <dl className="cl-stats">
-          <div>
-            <dt>Parties jouées</dt>
-            <dd>{stats.sessions}</dd>
-          </div>
-          <div>
-            <dt>Réponses</dt>
-            <dd>{stats.answers}</dd>
-          </div>
-          <div>
-            <dt>Taux de réussite</dt>
-            <dd>
-              {stats.answers ? percent(stats.correct, stats.answers) : "—"}
-              {stats.answers ? <small>&nbsp;%</small> : null}
-            </dd>
-          </div>
-          <div data-tone="streak">
-            <dt>Série en cours</dt>
-            <dd>
-              {summary.streak}
-              <small>&nbsp;j</small>
-            </dd>
-          </div>
-        </dl>
-        <h3 className="cl-label-mono">Réussite par catégorie</h3>
-        <ul className="cl-cat-rates">
-          {CAT_KEYS.map((cat) => {
-            const { a, c } = stats.byCat[cat];
-            return (
+          <GradeBar mastered={summary.mastered} scale="long" />
+          <hr className="cl-sep cl-sep--indigo" />
+          <ul className="cl-note-cats">
+            {CAT_KEYS.map((cat) => (
               <li key={cat} data-cat={cat}>
-                <span className="cl-cat-rate-row">
-                  <span className="cl-cat-rate-name">{CATEGORIES[cat].label}</span>
-                  <span className="cl-cat-rate-n">{a ? `${c}/${a}` : "pas encore jouée"}</span>
-                  <span className="cl-cat-rate-pct">{a ? `${percent(c, a)}\u00a0%` : ""}</span>
+                <span className="cl-note-cat-row">
+                  <CatIcon cat={cat} size={28} />
+                  <span className="cl-note-cat-name">{CATEGORIES[cat].label}</span>
+                  <span className="cl-note-cat-n">
+                    {summary.masteredByCat[cat]}
+                    <span>/{CAT_TOTAL[cat]}</span>
+                  </span>
                 </span>
-                <span className="cl-cat-rate-bar" aria-hidden="true">
-                  <span style={{ width: `${percent(c, a)}%` }} />
+                <span className="cl-mode-bar" aria-hidden="true">
+                  <span style={{ width: `${percent(summary.masteredByCat[cat], CAT_TOTAL[cat])}%` }} />
                 </span>
               </li>
-            );
-          })}
-        </ul>
-      </section>
+            ))}
+          </ul>
+        </section>
 
-      <section className="cl-card-dark cl-top" aria-labelledby="top-title">
-        <div className="cl-top-head">
-          <h2 id="top-title">Cartes les plus ratées</h2>
-          {topMissed.length > 0 && <span className="cl-top-count">top {shownTop.length}</span>}
-        </div>
-        {topMissed.length ? (
-          <ol className="cl-list cl-list--ranked">
-            {shownTop.map((card, i) => (
-              <li key={card.id} className="cl-list-item" data-cat={card.cat}>
-                <span className="cl-rank">{i + 1}</span>
-                <div className="cl-list-main">
-                  <span className="cl-list-top">
-                    <span className="cl-cat-label">
-                      <i />
-                      {CATEGORIES[card.cat].badge}
-                    </span>
-                    <span className="cl-list-count">{plural(progress.cards[card.id].w, "erreur", "erreurs")}</span>
-                  </span>
-                  <span className="cl-list-fr">{card.cat === "def" ? card.hint : card.fr}</span>
-                  <span className="cl-list-en">{card.en}</span>
-                </div>
+        <section className="cl-card-dark cl-levels cl-boxchart" aria-labelledby="boxes-title">
+          <div className="cl-levels-head">
+            <div className="cl-heading-row">
+              <h2 id="boxes-title">Tes 5 niveaux</h2>
+              <button
+                type="button"
+                className="cl-info-btn"
+                onClick={() => setLevelsHelp(true)}
+                aria-label="Comment fonctionnent les niveaux ?"
+                aria-haspopup="dialog"
+                aria-controls="levels-help"
+                title="Comment fonctionnent les niveaux ?"
+              >
+                <IconInfo size={20} />
+              </button>
+            </div>
+            <p>Une bonne réponse fait monter la carte d'un niveau. Une erreur la renvoie au niveau 1.</p>
+          </div>
+          <div className="cl-levels-bar" role="img" aria-label={summary.boxes.map((n, i) => `niveau ${i + 1} : ${n}`).join(", ")}>
+            {summary.boxes.map((n, i) => (n ? <span key={i} style={{ flex: n, background: `var(--box-${i + 1})` }} /> : null))}
+          </div>
+          <ol className="cl-level-tiles cl-level-tiles--named">
+            {summary.boxes.map((n, i) => (
+              <li key={i} className={cls(i === MAX_BOX - 1 && "is-top")} title={`Niveau ${i + 1} (${LEVEL_NAMES[i].toLowerCase()})\u00a0: ${plural(n, "carte", "cartes")}`}>
+                <span className="cl-level-key">
+                  <i style={{ background: `var(--box-${i + 1})` }} />
+                  {i + 1}
+                </span>
+                <span className="cl-level-n">{n}</span>
+                <span className="cl-level-name">{LEVEL_NAMES[i]}</span>
               </li>
             ))}
           </ol>
-        ) : (
-          <p className="cl-muted">Aucune carte ratée pour l'instant.</p>
-        )}
-        {topMissed.length > SHOWN_TOP && (
-          <button type="button" className="cl-ghost cl-top-more" onClick={() => setShowAll((v) => !v)} aria-expanded={showAll}>
-            {showAll ? "Voir moins" : `Voir les ${topMissed.length} cartes`}
-          </button>
-        )}
-      </section>
+          {summary.unseen > 0 && <p className="cl-chart-note">Dont {plural(summary.unseen, "carte jamais jouée", "cartes jamais jouées")} au niveau 1.</p>}
+          <InfoDialog id="levels-help" open={levelsHelp} onClose={() => setLevelsHelp(false)} title="Comment fonctionnent les niveaux ?">
+            <p className="cl-muted">
+              Chaque carte a un niveau de 1 à 5. Les cartes des premiers niveaux reviennent plus souvent dans tes parties, pour que tu les
+              travailles davantage.
+            </p>
+            <LevelRules />
+          </InfoDialog>
+        </section>
 
-      <section className="cl-danger-zone" aria-labelledby="reset-title">
-        <div className="cl-danger-part">
-          <div className="cl-danger-text">
-            <h2 id="reset-title">Réinitialiser ma progression</h2>
-            <p>Remet les {TOTAL} cartes au niveau 1 et efface tes statistiques, séries et erreurs. Action définitive.</p>
-          </div>
-          {resetDone && !confirming ? <p role="status">Progression réinitialisée. Toutes les cartes sont de retour au niveau 1.</p> : null}
-          {confirming ? (
-            <div className="cl-confirm" role="alertdialog" aria-labelledby="reset-confirm-text">
-              <p id="reset-confirm-text">Toutes les cartes reviendront au niveau 1 et tes statistiques, séries et erreurs seront effacées.</p>
-              <div className="cl-actions">
-                <button
-                  type="button"
-                  className="cl-btn cl-btn--danger"
-                  onClick={() => {
-                    onReset();
-                    setConfirming(false);
-                    setResetDone(true);
-                  }}
-                >
-                  Oui, tout effacer
-                </button>
-                <button type="button" className="cl-btn" onClick={() => setConfirming(false)} autoFocus>
-                  Annuler
-                </button>
-              </div>
+        <section className="cl-card-dark cl-stats-card" aria-labelledby="stats-title">
+          <h2 id="stats-title">Statistiques</h2>
+          <dl className="cl-stats">
+            <div>
+              <dt>Parties jouées</dt>
+              <dd>{stats.sessions}</dd>
             </div>
+            <div>
+              <dt>Réponses</dt>
+              <dd>{stats.answers}</dd>
+            </div>
+            <div>
+              <dt>Taux de réussite</dt>
+              <dd>
+                {stats.answers ? percent(stats.correct, stats.answers) : "—"}
+                {stats.answers ? <small>&nbsp;%</small> : null}
+              </dd>
+            </div>
+            <div data-tone="streak">
+              <dt>Série en cours</dt>
+              <dd>
+                {summary.streak}
+                <small>&nbsp;j</small>
+              </dd>
+            </div>
+          </dl>
+          <h3 className="cl-label-mono">Réussite par catégorie</h3>
+          <ul className="cl-cat-rates">
+            {CAT_KEYS.map((cat) => {
+              const { a, c } = stats.byCat[cat];
+              return (
+                <li key={cat} data-cat={cat}>
+                  <span className="cl-cat-rate-row">
+                    <span className="cl-cat-rate-name">{CATEGORIES[cat].label}</span>
+                    <span className="cl-cat-rate-n">{a ? `${c}/${a}` : "pas encore jouée"}</span>
+                    <span className="cl-cat-rate-pct">{a ? `${percent(c, a)}\u00a0%` : ""}</span>
+                  </span>
+                  <span className="cl-cat-rate-bar" aria-hidden="true">
+                    <span style={{ width: `${percent(c, a)}%` }} />
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+
+        <section className="cl-card-dark cl-top" aria-labelledby="top-title">
+          <div className="cl-top-head">
+            <h2 id="top-title">Cartes les plus ratées</h2>
+            {topMissed.length > 0 && <span className="cl-top-count">top {shownTop.length}</span>}
+          </div>
+          {topMissed.length ? (
+            <ol className="cl-list cl-list--ranked">
+              {shownTop.map((card, i) => (
+                <li key={card.id} className="cl-list-item" data-cat={card.cat}>
+                  <span className="cl-rank">{i + 1}</span>
+                  <div className="cl-list-main">
+                    <span className="cl-list-top">
+                      <span className="cl-cat-label">
+                        <i />
+                        {CATEGORIES[card.cat].badge}
+                      </span>
+                      <span className="cl-list-count">{plural(progress.cards[card.id].w, "erreur", "erreurs")}</span>
+                    </span>
+                    <span className="cl-list-fr">{card.cat === "def" ? card.hint : card.fr}</span>
+                    <span className="cl-list-en">{card.en}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
           ) : (
-            <button type="button" className="cl-danger-btn" onClick={() => setConfirming(true)}>
-              Réinitialiser
+            <p className="cl-muted">Aucune carte ratée pour l'instant.</p>
+          )}
+          {topMissed.length > SHOWN_TOP && (
+            <button type="button" className="cl-ghost cl-top-more" onClick={() => setShowAll((v) => !v)} aria-expanded={showAll}>
+              {showAll ? "Voir moins" : `Voir les ${topMissed.length} cartes`}
             </button>
           )}
-        </div>
-        {onDeleteAccount && <DeleteAccount account={account} onDelete={onDeleteAccount} />}
-      </section>
+        </section>
+
+        <section className="cl-danger-zone" aria-labelledby="reset-title">
+          <div className="cl-danger-part">
+            <div className="cl-danger-text">
+              <h2 id="reset-title">Réinitialiser ma progression</h2>
+              <p>Remet les {TOTAL} cartes au niveau 1 et efface tes statistiques, séries et erreurs. Action définitive.</p>
+            </div>
+            {resetDone && !confirming ? <p role="status">Progression réinitialisée. Toutes les cartes sont de retour au niveau 1.</p> : null}
+            {confirming ? (
+              <div className="cl-confirm" role="alertdialog" aria-labelledby="reset-confirm-text">
+                <p id="reset-confirm-text">Toutes les cartes reviendront au niveau 1 et tes statistiques, séries et erreurs seront effacées.</p>
+                <div className="cl-actions">
+                  <button
+                    type="button"
+                    className="cl-btn cl-btn--danger"
+                    onClick={() => {
+                      onReset();
+                      setConfirming(false);
+                      setResetDone(true);
+                    }}
+                  >
+                    Oui, tout effacer
+                  </button>
+                  <button type="button" className="cl-btn" onClick={() => setConfirming(false)} autoFocus>
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className="cl-danger-btn" onClick={() => setConfirming(true)}>
+                Réinitialiser
+              </button>
+            )}
+          </div>
+          {onDeleteAccount && <DeleteAccount account={account} onDelete={onDeleteAccount} />}
+        </section>
+      </div>
     </div>
   );
 }
@@ -3235,9 +3238,26 @@ body { margin: 0; background: var(--bg); color: var(--text); }
 .cl-danger-btn { justify-self: start; height: 44px; padding: 0 16px; border-radius: 12px; border: 1.5px solid var(--error); background: transparent; color: #ff8e8e; font-weight: 600; font-size: 14px; }
 .cl-danger-btn:hover { background: var(--error-bg); }
 
+.cl-profile-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+
 @media (min-width: 768px) {
-  .cl-profile { gap: 20px; }
+  .cl-profile, .cl-profile-grid { gap: 20px; }
   .cl-app .cl-profile-who h1 { font-size: 32px; }
+}
+/* Ordinateur : note et statistiques côte à côte, puis niveaux et zone sensible à gauche, cartes ratées à droite. */
+@media (min-width: 960px) {
+  .cl-profile { max-width: 1120px; }
+  .cl-profile-grid {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas: "note stats" "levels top" "danger top";
+    gap: 20px 24px;
+  }
+  .cl-note { grid-area: note; align-content: space-between; padding: 24px; }
+  .cl-stats-card { grid-area: stats; align-content: start; }
+  .cl-levels { grid-area: levels; align-content: start; }
+  .cl-top { grid-area: top; align-content: start; }
+  .cl-danger-zone { grid-area: danger; align-self: start; }
 }
 
 /* Classement */
