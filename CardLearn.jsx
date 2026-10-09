@@ -12,12 +12,10 @@ const SESSION_SIZES = [10, 20, 50];
 const DEFAULT_SIZE = 20;
 
 // Durées des retours et animations (ms)
-const FEEDBACK_MS = 650; // retour vert avant que la carte parte derrière la pile
+// Bonne réponse : le panneau vert reste ce temps-là, puis la partie continue seule (Entrée ou « Continuer » pour aller plus vite).
+// Erreur : le panneau rouge attend « Continuer », sans limite de temps pour lire.
+const FEEDBACK_MS = 1000;
 const NEAR_MS = 2600; // réponse acceptée à quelques fautes près : le temps de voir la bonne orthographe
-// Après une erreur, la bonne réponse reste affichée le temps de la lire : 4 à 9 s selon la longueur.
-const REVEAL_MIN_MS = 4000;
-const REVEAL_MAX_MS = 9000;
-const revealDelay = (card, input) => Math.min(REVEAL_MAX_MS, Math.max(REVEAL_MIN_MS, 3000 + 45 * (card.en.length + input.length)));
 const CHOICES = 4; // propositions par carte en QCM
 const MAX_REMATCH_ERRORS = 3; // Revanche : à la 3e erreur, la carte ne revient plus dans la partie et reste en Revanche
 const EXIT_BACK_MS = 680;
@@ -898,18 +896,23 @@ function Marked({ segments }) {
 }
 
 const TYPO_WORDS = ["", "une faute", "deux fautes", "trois fautes"];
+const LETTERS = ["A", "B", "C", "D"];
 
-// Les propositions d'une carte en QCM ; touches 1 à 4 pour choisir au clavier.
-function Choices({ card, verdict, disabled, onChoose }) {
+// Les propositions d'une carte en QCM (A à D) ; touches 1 à 4 ou A à D pour choisir au clavier.
+function Choices({ card, verdict, disabled, onChoose, onOptions }) {
   const [options] = useState(() => makeChoices(card));
+  useEffect(() => {
+    onOptions?.(options);
+  }, [options, onOptions]);
   useEffect(() => {
     if (disabled) return undefined;
     const onKey = (event) => {
       if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || document.querySelector("dialog[open]")) return;
-      const n = Number(event.key);
-      if (n >= 1 && n <= options.length) {
+      const key = event.key.toUpperCase();
+      const n = LETTERS.includes(key) ? LETTERS.indexOf(key) : Number(key) - 1;
+      if (n >= 0 && n < options.length) {
         event.preventDefault();
-        onChoose(options[n - 1].text);
+        onChoose(options[n].text);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -917,7 +920,7 @@ function Choices({ card, verdict, disabled, onChoose }) {
   }, [disabled, options, onChoose]);
   return (
     <div className="cl-choices" role="group" aria-labelledby="cl-choices-label">
-      <span id="cl-choices-label" className="cl-answer-label">
+      <span id="cl-choices-label" className="cl-sr">
         Propositions
       </span>
       {options.map(({ text, segments }, i) => {
@@ -929,15 +932,13 @@ function Choices({ card, verdict, disabled, onChoose }) {
             type="button"
             className={cls("cl-choice", right && "is-right", chosen && !right && "is-wrong", verdict && !right && !chosen && "is-off")}
             disabled={disabled}
-            aria-keyshortcuts={String(i + 1)}
+            aria-keyshortcuts={`${i + 1} ${LETTERS[i]}`}
             onClick={() => onChoose(text)}
           >
             <span className="cl-choice-key" aria-hidden="true">
-              {i + 1}
+              {right ? <IconCheck size={18} /> : chosen ? <IconCross size={16} /> : LETTERS[i]}
             </span>
             <span className="cl-choice-text">{verdict && segments ? <Marked segments={segments} /> : text}</span>
-            {right && <IconCheck size={18} />}
-            {chosen && !right && <IconCross size={18} />}
             {chosen && <span className="cl-sr">{right ? " (ton choix, juste)" : " (ton choix)"}</span>}
           </button>
         );
@@ -959,7 +960,59 @@ function Strikes({ count }) {
   );
 }
 
-function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
+// Ce que devient la carte, dans le panneau de résultat.
+function levelLine({ ok, from, to }) {
+  if (!ok) return from === 1 ? "La carte reste au niveau 1" : "Retour au niveau 1";
+  if (from === MAX_BOX) return "La carte reste maîtrisée";
+  return to === MAX_BOX ? "Carte maîtrisée : niveau 5\u00a0!" : `La carte monte au niveau ${to}`;
+}
+
+// Panneau qui monte du bas après une réponse : vert (bonne réponse) ou rouge (erreur), avec « Continuer ».
+function ResultSheet({ verdict, card, choice, letter, rematch, misses, autoMs, onContinue, buttonRef }) {
+  const { ok } = verdict;
+  const title = ok ? "Bien joué\u00a0!" : choice ? `C'était la réponse ${letter}` : verdict.input ? "Pas tout à fait" : "À retenir";
+  return (
+    <section className={cls("cl-sheet", "cl-verdict", ok ? "cl-verdict--ok" : "cl-verdict--bad")} aria-live="polite" aria-labelledby="cl-sheet-title">
+      {autoMs > 0 && <span className="cl-countdown" style={{ animationDuration: `${autoMs}ms` }} />}
+      <div className="cl-sheet-head">
+        <span className="cl-sheet-icon" aria-hidden="true">
+          {ok ? <IconCheck size={22} /> : <IconCross size={20} />}
+        </span>
+        <div className="cl-sheet-text">
+          <h2 id="cl-sheet-title" className="cl-verdict-title">
+            {title}
+          </h2>
+          {ok && verdict.near && <span className="cl-near-note">Acceptée à {TYPO_WORDS[verdict.typos]} près</span>}
+          {!ok && !choice && verdict.input && <span className="cl-verdict-label">Réponse attendue</span>}
+          {(!choice || !ok) && <span className="cl-answer-text">{verdict.expected ? <Marked segments={verdict.expected} /> : card.en}</span>}
+          {!choice && verdict.input && verdict.given && (
+            <span className="cl-given">
+              Ta réponse&nbsp;: <Marked segments={verdict.given} />
+            </span>
+          )}
+          {!ok && !choice && verdict.input && !verdict.given && <span className="cl-given">Ta réponse&nbsp;: {verdict.input}</span>}
+          {!verdict.input && <span className="cl-given">Carte passée avec «\u00a0Je ne sais pas\u00a0».</span>}
+        </div>
+      </div>
+      {rematch && !ok && (
+        <p className="cl-strike-note">
+          {verdict.setAside
+            ? `Erreur ${MAX_REMATCH_ERRORS} sur ${MAX_REMATCH_ERRORS}\u00a0: la carte reste dans la Revanche pour la prochaine fois.`
+            : `Erreur ${misses} sur ${MAX_REMATCH_ERRORS}${misses === MAX_REMATCH_ERRORS - 1 ? "\u00a0: plus qu'une chance." : "."}`}
+        </p>
+      )}
+      <div className="cl-sheet-level">
+        <span>{levelLine(verdict)}</span>
+        <LevelDots level={verdict.to} tone={ok ? "ok" : "bad"} size={10} />
+      </div>
+      <button type="button" ref={buttonRef} className={cls("cl-cta", ok ? "cl-cta--ok" : "cl-cta--bad", "cl-answer-next")} onClick={onContinue}>
+        Continuer <IconNext size={18} />
+      </button>
+    </section>
+  );
+}
+
+function Session({ config, progress: initialProgress, onEnd, onQuit, reducedMotion }) {
   const [state, dispatch] = useReducer(sessionReducer, { config, progress: initialProgress }, initSession);
   const { progress } = state;
   const inputRef = useRef(null);
@@ -967,15 +1020,18 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
   const revealedAt = useRef(0);
   const onEndRef = useRef(onEnd);
   onEndRef.current = onEnd;
+  const [options, setOptions] = useState(null); // propositions du QCM affiché, pour « C'était la réponse B »
 
   const { phase, verdict } = state;
   const card = CARD_BY_ID[state.queue[0]];
+  const answeredPhase = phase === "correct" || phase === "wrong";
+  // Une bonne réponse continue seule ; une erreur attend « Continuer ».
+  const autoMs = phase === "correct" ? verdict.revealMs : 0;
 
   // Enchaînement des phases : retour → départ de la carte → carte suivante.
   useEffect(() => {
     let timer;
     if (phase === "correct") timer = setTimeout(() => dispatch({ type: "exit", kind: "back" }), state.verdict.revealMs);
-    else if (phase === "wrong") timer = setTimeout(() => dispatch({ type: "exit", kind: "side" }), state.verdict.revealMs);
     else if (phase === "exiting") {
       const duration = reducedMotion ? EXIT_REDUCED_MS : state.exit === "back" ? EXIT_BACK_MS : EXIT_SIDE_MS;
       timer = setTimeout(() => dispatch({ type: "advance", size: config.size }), duration);
@@ -983,17 +1039,15 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
     return () => clearTimeout(timer);
   }, [phase, state.exit, state.turn, state.results, state.progress, config.size, reducedMotion]);
 
-  // Après une erreur ou une faute de frappe, la bonne réponse reste affichée : Entrée ou « Continuer » passe à la suite.
-  const lingering = phase === "wrong" || (phase === "correct" && !!verdict?.near);
-
-  // Le focus revient dans le champ à chaque nouvelle carte ; en QCM, sur « Continuer » après une erreur.
+  // Focus : le champ à chaque nouvelle carte. Après une erreur (ou en QCM), le bouton « Continuer » :
+  // sur téléphone, le clavier se ferme et laisse voir le panneau.
+  const choice = !!card && !!CATEGORIES[card.cat].choices;
   useEffect(() => {
     if (phase === "answering") inputRef.current?.focus({ preventScroll: true });
-    else if (lingering) nextRef.current?.focus({ preventScroll: true });
-  }, [phase, lingering, state.turn]);
+    else if (phase === "wrong" || (phase === "correct" && choice)) nextRef.current?.focus({ preventScroll: true });
+  }, [phase, state.turn, choice]);
 
   if (phase === "done" || !card) return null;
-  const choice = !!CATEGORIES[card.cat].choices;
   const rematch = config.mode === "errors";
   const misses = state.results.filter((r) => r.id === card.id && !r.ok).length; // erreurs sur cette carte dans la partie
 
@@ -1007,7 +1061,7 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
         : grade(card, input);
     const from = boxOf(progress, card.id);
     const to = result.ok ? Math.min(MAX_BOX, from + 1) : 1;
-    const revealMs = !result.ok ? revealDelay(card, input) : result.near ? NEAR_MS : FEEDBACK_MS;
+    const revealMs = result.near ? NEAR_MS : FEEDBACK_MS;
     // Revanche : à la 3e erreur, la carte est mise de côté jusqu'à la prochaine partie.
     const setAside = rematch && !result.ok && misses + 1 >= MAX_REMATCH_ERRORS;
     revealedAt.current = Date.now();
@@ -1019,176 +1073,143 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
     });
   };
 
+  const next = () => {
+    if (answeredPhase && Date.now() - revealedAt.current > 300) dispatch({ type: "exit", kind: verdict.ok ? "back" : "side" });
+  };
+
   const submit = (event) => {
     event.preventDefault();
     if (phase === "answering") {
       const value = state.input.trim();
       if (value) answer(value);
-    } else if (lingering && Date.now() - revealedAt.current > 300) {
-      dispatch({ type: "exit", kind: verdict.ok ? "back" : "side" });
-    }
+    } else next();
   };
 
   const keepFocus = (event) => event.preventDefault(); // évite de fermer le clavier mobile
 
   const answered = state.results.length;
-  const good = state.results.filter((r) => r.ok).length;
   const pending = state.nextQueue ?? state.queue.slice(1);
   const upcoming = Math.max(0, Math.min(config.size - state.turn - 1, pending.length));
   const total = Math.min(config.size, state.turn + 1 + upcoming);
-  const backCount = Math.min(3, upcoming);
+  const backCount = Math.min(2, upcoming);
   const shift = phase === "exiting" ? 1 : 0;
-
-  const boxMeta = verdict ? levelMove(verdict.from, verdict.to, verdict.ok) : `Niveau ${boxOf(progress, card.id)}`;
+  const level = verdict ? verdict.from : boxOf(progress, card.id);
+  const letter = options ? LETTERS[options.findIndex((o) => o.text === card.en)] : "";
+  const frSize = card.fr.length > 110 ? "is-xlong" : card.fr.length > 60 ? "is-long" : choice ? "is-mid" : null;
 
   return (
-    <div className="cl-wrap cl-wrap--session">
-      <div className="cl-session-bar">
-        <div className="cl-session-progress">
-          <span className="cl-session-count">
-            {config.mode === "errors" ? "Revanche · " : ""}Carte {state.turn + 1}&nbsp;/&nbsp;{total}
-          </span>
-          <Meter value={answered} max={total} />
-        </div>
-        <span className="cl-session-score" aria-label={`${good} bonnes réponses, ${answered - good} erreurs`}>
-          <span className="is-ok">
-            <IconCheck size={14} /> {good}
-          </span>
-          <span className="is-bad">
-            <IconCross size={14} /> {answered - good}
-          </span>
+    <div className={cls("cl-run", verdict && phase !== "exiting" && "has-sheet")}>
+      <div className="cl-run-bar">
+        <button type="button" className="cl-run-close" onClick={onQuit} aria-label="Quitter la partie" aria-haspopup="dialog" title="Quitter la partie">
+          <IconCross size={22} />
+        </button>
+        <span className="cl-run-meter" role="progressbar" aria-label="Progression de la partie" aria-valuemin={0} aria-valuemax={total} aria-valuenow={answered}>
+          <span style={{ width: `${percent(answered, total)}%` }} />
         </span>
+        <span className="cl-session-count" aria-label={`${rematch ? "Revanche, " : ""}carte ${state.turn + 1} sur ${total}`}>
+          {state.turn + 1}
+          <span>/{total}</span>
+        </span>
+        {rematch && <Strikes count={misses} />}
       </div>
 
       <div className="cl-deck">
         {Array.from({ length: backCount }, (_, i) => {
           const depth = i + 1 - shift;
-          return <div key={`b${state.turn + i + 1}`} className="cl-card cl-card--back" style={{ "--depth": depth, zIndex: 5 - depth }} aria-hidden="true" />;
+          return <div key={`b${state.turn + i + 1}`} className="cl-card cl-card--back" data-depth={depth} aria-hidden="true" />;
         })}
         <article
           key={`f${state.turn}`}
           className={cls(
             "cl-card",
             "cl-card--front",
+            choice && "is-choice",
             verdict && (verdict.ok ? "is-correct" : "is-wrong"),
             phase === "exiting" && (reducedMotion ? "is-exit-fade" : `is-exit-${state.exit}`)
           )}
         >
           <header className="cl-card-head">
-            <Badge cat={card.cat} />
-            <span className="cl-card-head-end">
-              {rematch && <Strikes count={misses} />}
-              <span className="cl-card-box">{boxMeta}</span>
+            <span className="cl-pill" data-cat={card.cat}>
+              <CatGlyph cat={card.cat} size={13} />
+              <span>{CATEGORIES[card.cat].badge}</span>
+            </span>
+            <span className="cl-card-level">
+              <span>Niveau</span>
+              <LevelDots level={level} />
             </span>
           </header>
-          <div className="cl-card-body">
-            <p className="cl-card-instruction">{CATEGORIES[card.cat].instruction}</p>
-            {card.cat === "def" ? (
-              <DefinitionText card={card} reveal={state.hint || !!verdict} />
-            ) : (
-              <p className={cls("cl-card-fr", card.fr.length > 60 && "is-long", card.fr.length > 110 && "is-xlong")}>{card.fr}</p>
-            )}
-            {card.cat === "def" && (state.hint || verdict) && (
-              <p className="cl-hint">
-                Terme français&nbsp;: <strong>{card.hint}</strong>
-              </p>
-            )}
-            <div aria-live="polite">
-              {verdict?.ok && (
-                <div className="cl-verdict cl-verdict--ok">
-                  <span className="cl-verdict-title">
-                    <IconCheck /> {verdict.near ? `Correct, à ${TYPO_WORDS[verdict.typos]} près` : "Correct"}
-                  </span>
-                  <span className="cl-answer-text">{verdict.expected ? <Marked segments={verdict.expected} /> : card.en}</span>
-                  {verdict.given && (
-                    <span className="cl-given">
-                      Ta réponse&nbsp;: <Marked segments={verdict.given} />
-                    </span>
-                  )}
-                  {lingering && <span className="cl-countdown" style={{ animationDuration: `${verdict.revealMs}ms` }} />}
-                </div>
-              )}
-              {verdict && !verdict.ok && (
-                <div className="cl-verdict cl-verdict--bad">
-                  <span className="cl-verdict-title">
-                    <IconCross /> {verdict.input ? "Incorrect" : "À retenir"}
-                  </span>
-                  <span className="cl-verdict-label">Réponse attendue</span>
-                  <span className="cl-answer-text">{verdict.expected ? <Marked segments={verdict.expected} /> : card.en}</span>
-                  {verdict.input && !choice && (
-                    <span className="cl-given">
-                      Ta réponse&nbsp;: {verdict.given ? <Marked segments={verdict.given} /> : verdict.input}
-                    </span>
-                  )}
-                  {!verdict.input && <span className="cl-given">Carte passée avec « Je ne sais pas ».</span>}
-                  {rematch && (
-                    <span className="cl-strike-note">
-                      {verdict.setAside
-                        ? `Erreur ${MAX_REMATCH_ERRORS} sur ${MAX_REMATCH_ERRORS} : la carte reste dans la Revanche pour la prochaine fois.`
-                        : `Erreur ${misses} sur ${MAX_REMATCH_ERRORS}${misses === MAX_REMATCH_ERRORS - 1 ? " : plus qu'une chance." : "."}`}
-                    </span>
-                  )}
-                  {lingering && <span className="cl-countdown" style={{ animationDuration: `${verdict.revealMs}ms` }} />}
-                </div>
-              )}
-            </div>
-          </div>
+          {card.cat === "def" ? (
+            <DefinitionText card={card} reveal={state.hint || !!verdict} />
+          ) : (
+            <h1 className={cls("cl-card-fr", frSize)}>{card.fr}</h1>
+          )}
+          {card.cat === "def" && (state.hint || verdict) && (
+            <p className="cl-hint">
+              Terme français&nbsp;: <strong>{card.hint}</strong>
+            </p>
+          )}
+          <p className="cl-card-foot">
+            <span className="cl-card-dir">FR → EN</span>
+            <span>{CATEGORIES[card.cat].instruction}</span>
+          </p>
         </article>
       </div>
 
       <form className="cl-answer" onSubmit={submit} autoComplete="off">
         {choice ? (
-          <Choices key={`c${state.turn}`} card={card} verdict={verdict} disabled={phase !== "answering"} onChoose={answer} />
+          <Choices key={`c${state.turn}`} card={card} verdict={verdict} disabled={phase !== "answering"} onChoose={answer} onOptions={setOptions} />
         ) : (
           <>
             <label htmlFor="cl-answer-input" className="cl-answer-label">
               Ta réponse en anglais
             </label>
-            <div className="cl-answer-row">
-              <input
-                id="cl-answer-input"
-                ref={inputRef}
-                className={cls("cl-input", verdict && (verdict.ok ? "is-correct" : "is-wrong"))}
-                value={state.input}
-                onChange={(event) => dispatch({ type: "input", value: event.target.value })}
-                readOnly={phase !== "answering"}
-                placeholder="Tape ta traduction…"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                enterKeyHint="done"
-              />
-              {lingering ? (
-                <button type="submit" className="cl-btn cl-btn--primary" onMouseDown={keepFocus}>
-                  Continuer <IconNext size={16} />
-                </button>
-              ) : (
-                <button type="submit" className="cl-btn cl-btn--primary" onMouseDown={keepFocus} disabled={phase !== "answering" || !state.input.trim()}>
-                  Valider
-                </button>
-              )}
-            </div>
+            <input
+              id="cl-answer-input"
+              ref={inputRef}
+              className={cls("cl-input", verdict && (verdict.ok ? "is-correct" : "is-wrong"))}
+              value={state.input}
+              onChange={(event) => dispatch({ type: "input", value: event.target.value })}
+              readOnly={phase !== "answering"}
+              placeholder="Tape ta traduction…"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              enterKeyHint="done"
+            />
+            {!verdict && (
+              <button type="submit" className="cl-cta cl-validate" onMouseDown={keepFocus} disabled={phase !== "answering" || !state.input.trim()}>
+                Valider
+              </button>
+            )}
           </>
         )}
         <div className="cl-answer-actions">
-          <button type="button" className="cl-btn cl-btn--quiet" onMouseDown={keepFocus} onClick={() => answer("")} disabled={phase !== "answering"}>
+          <button type="button" className="cl-quiet" onMouseDown={keepFocus} onClick={() => answer("")} disabled={phase !== "answering"}>
             Je ne sais pas
           </button>
           {card.cat === "def" && (
-            <button type="button" className="cl-btn cl-btn--quiet" onMouseDown={keepFocus} onClick={() => dispatch({ type: "hint" })} disabled={phase !== "answering" || state.hint}>
+            <button type="button" className="cl-quiet" onMouseDown={keepFocus} onClick={() => dispatch({ type: "hint" })} disabled={phase !== "answering" || state.hint}>
               Indice
             </button>
           )}
-          {choice && lingering ? (
-            <button type="submit" ref={nextRef} className="cl-btn cl-btn--primary cl-answer-next">
-              Continuer <IconNext size={16} />
-            </button>
-          ) : (
-            <span className="cl-answer-tip">{choice ? "Touches 1 à 4 pour choisir" : "Entrée pour valider"}</span>
-          )}
+          <span className="cl-answer-tip">{choice ? "Touches A à D (ou 1 à 4)" : "Entrée pour valider"}</span>
         </div>
       </form>
+
+      {verdict && phase !== "exiting" && (
+        <ResultSheet
+          verdict={verdict}
+          card={card}
+          choice={choice}
+          letter={letter}
+          rematch={rematch}
+          misses={misses}
+          autoMs={autoMs}
+          onContinue={next}
+          buttonRef={nextRef}
+        />
+      )}
     </div>
   );
 }
@@ -1200,19 +1221,10 @@ const NAV_ITEMS = [
 ];
 
 // Mobile : barre d'onglets en bas. Desktop : barre du haut avec libellés, série, avatar et déconnexion.
-// Pendant une partie, un seul bouton : quitter la partie.
-function NavBar({ screen, onNavigate, account, onSignOut, leaving, onQuit, streak, pseudo }) {
-  const active = screen === "summary" ? "home" : screen;
+// Absente pendant une partie (sa propre barre a la croix pour quitter) et en fin de partie.
+function NavBar({ screen, onNavigate, account, onSignOut, leaving, streak, pseudo }) {
+  const active = screen;
   const logoutLabel = leaving ? "Déconnexion en cours" : account?.email ? `Se déconnecter (${account.email})` : "Se déconnecter";
-  if (onQuit) {
-    return (
-      <header className="cl-nav cl-nav--session">
-        <button type="button" className="cl-nav-quit" onClick={onQuit} aria-haspopup="dialog">
-          <IconCross size={16} /> Quitter la partie
-        </button>
-      </header>
-    );
-  }
   return (
     <>
       <header className="cl-nav cl-topbar">
@@ -2298,7 +2310,7 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
 
   const stayInSession = () => {
     setQuitting(false);
-    setTimeout(() => (document.getElementById("cl-answer-input") || document.querySelector(".cl-answer-next, .cl-choice:not(:disabled)"))?.focus({ preventScroll: true }), 0);
+    setTimeout(() => (document.querySelector(".cl-answer-next") || document.getElementById("cl-answer-input") || document.querySelector(".cl-choice:not(:disabled)"))?.focus({ preventScroll: true }), 0);
   };
 
   // Laisse partir la dernière sauvegarde (3 s au plus).
@@ -2338,7 +2350,9 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
       </div>
     );
   } else if (screen === "session" && session) {
-    content = <Session key={session.id} config={session} progress={progress} onEnd={handleEnd} reducedMotion={reducedMotion} />;
+    content = (
+      <Session key={session.id} config={session} progress={progress} onEnd={handleEnd} onQuit={() => setQuitting(true)} reducedMotion={reducedMotion} />
+    );
   } else if (screen === "summary" && result) {
     content = (
       <Summary
@@ -2388,14 +2402,13 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
   return (
     <div lang="fr" className={cls("cl-app", !loading && screen !== "session" && screen !== "summary" && "has-tabbar")}>
       <style>{STYLES}</style>
-      {!loading && screen !== "summary" && (
+      {!loading && !inSession && screen !== "summary" && (
         <NavBar
           screen={screen}
           onNavigate={navigate}
           account={account}
           onSignOut={onSignOut ? signOut : null}
           leaving={leaving}
-          onQuit={inSession ? () => setQuitting(true) : null}
           streak={summary.streak}
           pseudo={pseudo}
         />
@@ -2613,15 +2626,6 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-nav-logout:hover:not(:disabled) { border-color: var(--error); color: var(--error-text); }
 .cl-nav-logout:disabled { opacity: .55; cursor: progress; }
 
-/* Partie en cours : seul bouton, quitter la partie. */
-.cl-nav--session { display: flex; justify-content: center; padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 0; }
-.cl-nav-quit {
-  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px 16px;
-  border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted);
-  font-weight: 700; font-size: 14px; white-space: nowrap;
-}
-.cl-nav-quit:hover { border-color: var(--error); color: var(--error-text); }
-
 /* Composants communs */
 .cl-logo { flex: none; display: block; }
 .cl-avatar {
@@ -2838,120 +2842,142 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-meter[data-tone="expr"] { --fill: var(--cat-expr); }
 .cl-meter[data-tone="def"] { --fill: var(--cat-def); }
 
-/* Session */
-.cl-session-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; }
-.cl-session-progress { display: grid; gap: 6px; min-width: 0; }
-.cl-session-count { font: 600 13px/1.2 var(--font-mono); color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cl-session-score { display: inline-flex; gap: 10px; font: 600 14px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
-.cl-session-score span { display: inline-flex; align-items: center; gap: 3px; }
-.cl-session-score .is-ok { color: var(--ok); }
-.cl-session-score .is-bad { color: var(--bad); }
+/* Partie : barre du haut, carte « papier » sur sa pile, saisie ou QCM, panneau de résultat */
+.cl-run { max-width: 560px; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.cl-run.has-sheet { padding-bottom: 300px; }
+.cl-run-bar { display: flex; align-items: center; gap: 12px; margin-left: -8px; }
+.cl-run-close { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border: 0; border-radius: 12px; background: none; color: var(--muted); }
+.cl-run-close:hover { background: var(--surface); color: var(--text); }
+.cl-run-meter { flex: 1; height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.cl-run-meter > span { display: block; height: 100%; border-radius: 999px; background: var(--yellow); transition: width .4s ease; }
+.cl-session-count { font: 700 14px/1 var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cl-session-count > span { color: var(--faint); }
+.cl-strikes { display: inline-flex; gap: 3px; flex: none; }
+.cl-strike { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line-2); color: transparent; }
+.cl-strike.is-used { background: var(--error); box-shadow: none; color: var(--on-error); }
 
-.cl-deck { position: relative; margin-top: 4px; padding-bottom: 38px; }
-.cl-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+/* Pile : la carte de devant, et jusqu'à deux cartes qui dépassent dessous */
+.cl-deck { position: relative; margin: 22px 0 40px; }
 .cl-card--back {
-  position: absolute; inset: 0 0 38px 0;
-  transform-origin: 50% 100%;
-  transform: translateY(calc(var(--depth) * 12px)) scale(calc(1 - var(--depth) * .05));
-  box-shadow: 0 1px 2px rgba(22, 26, 44, .06);
-  transition: transform .42s cubic-bezier(.2, .7, .2, 1);
+  position: absolute; left: calc(var(--d) * 13px); right: calc(var(--d) * 13px); bottom: calc(var(--d) * -8px); height: 60px;
+  border-radius: var(--r-block); background: var(--back);
+  transition: left .42s cubic-bezier(.2, .7, .2, 1), right .42s cubic-bezier(.2, .7, .2, 1), bottom .42s cubic-bezier(.2, .7, .2, 1), background-color .42s;
   animation: cl-fade-in .35s ease-out both;
 }
+.cl-card--back[data-depth="0"] { --d: 0; --back: #4a4f84; }
+.cl-card--back[data-depth="1"] { --d: 1; --back: #383c6b; z-index: 2; }
+.cl-card--back[data-depth="2"] { --d: 2; --back: #23264a; z-index: 1; }
 .cl-card--front {
   position: relative; z-index: 10;
-  min-height: 260px; padding: 16px 22px 24px;
-  display: flex; flex-direction: column; gap: 16px;
-  box-shadow: var(--shadow);
+  min-height: 236px; padding: 20px;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 16px;
+  border-radius: var(--r-block); background: var(--paper); color: var(--paper-ink);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
   transform-origin: 50% 100%;
-  transition: border-color .2s, box-shadow .2s;
 }
-.cl-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1.5px solid var(--rule); }
-.cl-card-box { font: 600 12px/1.3 var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; text-align: right; }
-.cl-card-body { display: grid; gap: 12px; align-content: start; flex: 1; }
-.cl-card--front .cl-card-head, .cl-card--front .cl-card-body { animation: cl-fade-in .3s ease-out both; }
-.cl-card-instruction { font-size: 14px; color: var(--ink-3); }
-.cl-card-fr { font: 700 34px/1.15 var(--font-display); letter-spacing: -0.015em; color: var(--ink); text-wrap: balance; overflow-wrap: anywhere; }
-.cl-card-fr.is-long { font-size: 25px; line-height: 1.25; }
-.cl-card-fr.is-xlong { font-size: 21px; line-height: 1.3; }
-.cl-card-def { font-size: 18px; line-height: 1.6; color: var(--ink); max-width: 60ch; }
-.cl-blank { display: inline-block; min-width: 4.5em; border-bottom: 2px dotted var(--ink-3); line-height: 1.2; }
-.cl-blank.is-revealed { min-width: 0; border-bottom-style: solid; border-bottom-color: var(--cat-def); font-weight: 700; }
-.cl-hint { font-size: 15px; color: var(--ink-2); padding: 8px 12px; border-radius: 6px; background: var(--surface-2); justify-self: start; }
-.cl-hint strong { color: var(--ink); }
-
-.cl-verdict { display: grid; gap: 4px; padding: 12px 14px; border-radius: 8px; position: relative; overflow: hidden; }
-.cl-verdict--ok { background: var(--ok-soft); }
-.cl-verdict--bad { background: var(--bad-soft); }
-.cl-verdict-title { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
-.cl-verdict--ok .cl-verdict-title { color: var(--ok); }
-.cl-verdict--bad .cl-verdict-title { color: var(--bad); }
-.cl-verdict-label { font: 600 11.5px/1.5 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); margin-top: 4px; }
-.cl-answer-text { font: 600 19px/1.4 var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
-.cl-given { font-size: 14px; color: var(--ink-2); overflow-wrap: anywhere; }
-.cl-countdown { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--bad); transform-origin: left center; animation: cl-countdown 2s linear forwards; }
-.cl-verdict--ok .cl-countdown { background: var(--ok); }
-/* Lettres à revoir : fausses (gras, rouge) ou manquantes (_) dans la réponse donnée, à corriger dans la réponse attendue. */
-.cl-diff-bad { font-weight: 800; color: var(--bad); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
-.cl-diff-gap { font-weight: 800; color: var(--bad); }
-.cl-diff-fix { font-weight: 800; color: var(--fix-ink); background: var(--fix-bg); border-radius: 3px; }
-
-.cl-card--front.is-correct { border-color: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft), var(--shadow); animation: cl-pop .32s ease-out; }
-.cl-card--front.is-wrong { border-color: var(--bad); box-shadow: 0 0 0 3px var(--bad-soft), var(--shadow); animation: cl-shake .36s ease-in-out; }
+.cl-card--front.is-choice { min-height: 204px; }
+.cl-card--front > * { animation: cl-fade-in .3s ease-out both; }
+.cl-card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cl-pill {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px;
+  font: 700 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
+}
+.cl-pill .cl-glyph-text { font-size: 12px; letter-spacing: 0; text-transform: none; }
+.cl-pill[data-cat="mots"] { background: #dce9ff; color: #1d4c9c; }
+.cl-pill[data-cat="expr"] { background: #ffe3d3; color: #8a3a0e; }
+.cl-pill[data-cat="def"] { background: #ece2ff; color: #5a2ea6; }
+.cl-card-level { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--paper-muted); }
+.cl-app .cl-card-fr { font: 800 34px/1.05 var(--font-display); letter-spacing: -0.02em; color: var(--paper-ink); text-wrap: balance; overflow-wrap: anywhere; }
+.cl-app .cl-card-fr.is-mid { font-size: 29px; line-height: 1.08; }
+.cl-app .cl-card-fr.is-long { font-size: 24px; line-height: 1.15; }
+.cl-app .cl-card-fr.is-xlong { font-size: 20px; line-height: 1.25; }
+.cl-card-def { font-size: 17px; line-height: 1.55; color: var(--paper-ink); }
+.cl-blank { display: inline-block; min-width: 4.5em; border-bottom: 2px dotted var(--paper-muted); line-height: 1.2; }
+.cl-blank.is-revealed { min-width: 0; border-bottom: 2px solid #8a5ad8; font-weight: 700; }
+.cl-hint { justify-self: start; align-self: flex-start; padding: 6px 10px; border-radius: 8px; background: #e8e3d6; color: #3b3e5c; font-size: 14px; }
+.cl-hint strong { color: var(--paper-ink); }
+.cl-card-foot { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--paper-muted); }
+.cl-card-dir { flex: none; font: 700 11px/1 var(--font-mono); padding: 4px 6px; border-radius: 6px; background: #e8e3d6; color: #3b3e5c; }
+.cl-card--front.is-correct { box-shadow: 0 0 0 3px var(--success), 0 18px 40px rgba(0, 0, 0, 0.35); animation: cl-pop .32s ease-out; }
+.cl-card--front.is-wrong { box-shadow: 0 0 0 3px var(--error), 0 18px 40px rgba(0, 0, 0, 0.35); animation: cl-shake .36s ease-in-out; }
 .cl-card--front.is-exit-back { animation: cl-to-back .68s cubic-bezier(.45, .05, .35, 1) forwards, cl-sink .68s linear forwards; }
-.cl-card--front.is-exit-back .cl-card-head, .cl-card--front.is-exit-back .cl-card-body { animation: cl-fade-out .24s ease-out forwards; }
+.cl-card--front.is-exit-back > * { animation: cl-fade-out .24s ease-out forwards; }
 .cl-card--front.is-exit-side { animation: cl-slide-out .42s cubic-bezier(.55, 0, .8, .2) forwards; }
 .cl-card--front.is-exit-fade { animation: cl-fade-out .18s linear forwards; }
 
-/* Saisie */
+/* Saisie : juste sous la carte, pour rester visible avec le clavier ouvert */
 .cl-answer { display: grid; gap: 8px; }
-.cl-answer-label { font: 600 12px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
-.cl-answer-row { display: flex; gap: 10px; }
+.cl-answer-label { font-size: 13px; font-weight: 600; color: var(--muted); padding-left: 4px; }
 .cl-input {
-  flex: 1; width: 0; min-width: 0; min-height: 50px; padding: 12px 14px;
-  border: 1.5px solid var(--line); border-radius: 8px;
-  background: var(--surface); color: var(--ink);
-  font: 500 17px/1.3 var(--font-mono);
-  transition: border-color .15s, background-color .15s;
+  width: 100%; min-width: 0; height: 58px; padding: 0 18px;
+  border: 2px solid var(--line-2); border-radius: var(--r-btn);
+  background: var(--surface); color: var(--text);
+  font: 500 18px/1.2 var(--font-mono);
+  transition: border-color .15s;
 }
-.cl-input::placeholder { color: var(--ink-3); }
-.cl-input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
-.cl-input.is-correct { border-color: var(--ok); background: var(--ok-soft); }
-.cl-input.is-wrong { border-color: var(--bad); background: var(--bad-soft); }
-.cl-answer-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.cl-answer-tip { margin-left: auto; font-size: 13px; color: var(--ink-3); }
-.cl-answer-next { margin-left: auto; }
+.cl-input::placeholder { color: var(--faint); }
+.cl-app .cl-input:focus { outline: none; border-color: var(--yellow); }
+.cl-app .cl-input.is-correct { border-color: var(--success); }
+.cl-app .cl-input.is-wrong { border-color: var(--error); }
+.cl-validate { margin-top: 6px; }
+.cl-answer-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 4px; }
+.cl-quiet { min-height: 44px; padding: 0 12px; border: 0; border-radius: 12px; background: none; color: var(--muted); font-weight: 600; font-size: 14px; }
+.cl-quiet:hover:not(:disabled) { background: var(--surface); color: var(--text); }
+.cl-quiet:disabled { opacity: .45; cursor: default; }
+.cl-answer-actions .cl-quiet:first-child { margin-left: -12px; }
+.cl-answer-tip { margin-left: auto; font-size: 13px; color: var(--faint); }
+@media (max-width: 767px) { .cl-answer-tip { display: none; } }
 
-/* QCM */
-.cl-choices { display: grid; gap: 8px; }
+/* QCM : 4 boutons A à D, texte anglais en mono */
+.cl-choices { display: grid; gap: 10px; }
 .cl-choice {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px;
-  width: 100%; min-height: 52px; padding: 10px 14px;
-  border: 1.5px solid var(--line); border-radius: 10px;
-  background: var(--surface); color: var(--ink);
-  font: 600 15.5px/1.35 var(--font-body); text-align: left;
-  cursor: pointer;
+  display: flex; align-items: center; gap: 14px; width: 100%; min-height: 60px; padding: 8px 14px 8px 8px;
+  border: 2px solid var(--line); border-radius: var(--r-btn); background: var(--surface); color: var(--text); text-align: left;
   transition: border-color .15s, background-color .15s, opacity .2s, transform .1s;
 }
-.cl-choice:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.cl-choice:hover:not(:disabled) { border-color: var(--line-2); background: var(--surface-2); }
 .cl-choice:active:not(:disabled) { transform: scale(.99); }
-.cl-choice:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .cl-choice:disabled { cursor: default; }
-.cl-choice-key { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-2); font: 700 13px/1 var(--font-mono); }
-.cl-choice-text { overflow-wrap: anywhere; }
-.cl-choice.is-right { border-color: var(--ok); background: var(--ok-soft); color: var(--ink); }
-.cl-choice.is-right .cl-choice-key { background: var(--ok); box-shadow: none; color: var(--surface); }
-.cl-choice.is-right > .cl-icon { color: var(--ok); }
-.cl-choice.is-wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--ink); }
-.cl-choice.is-wrong .cl-choice-key { background: var(--bad); box-shadow: none; color: var(--surface); }
-.cl-choice.is-wrong > .cl-icon { color: var(--bad); }
-.cl-choice.is-off { opacity: .5; }
+.cl-choice-key { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 11px; background: var(--surface-2); color: var(--on-indigo); font: 700 15px/1 var(--font-mono); }
+.cl-choice-text { font: 15px/1.35 var(--font-mono); overflow-wrap: anywhere; }
+.cl-choice.is-right { background: var(--success-bg); border-color: var(--success); }
+.cl-choice.is-right .cl-choice-key { background: var(--success); color: var(--on-success); }
+.cl-choice.is-wrong { background: var(--error-bg); border-color: var(--error); }
+.cl-choice.is-wrong .cl-choice-key { background: var(--error); color: var(--on-error); }
+.cl-choice.is-off { opacity: .45; }
 
-/* Revanche : erreurs sur la carte */
-.cl-card-head-end { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
-.cl-strikes { display: inline-flex; gap: 3px; }
-.cl-strike { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); color: transparent; }
-.cl-strike.is-used { background: var(--bad); box-shadow: none; color: var(--surface); }
-.cl-strike-note { font-size: 14px; font-weight: 700; color: var(--bad); }
+/* Panneau de résultat : monte du bas, vert ou rouge */
+.cl-sheet {
+  position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; margin-inline: auto; width: min(100%, 592px);
+  display: grid; gap: 16px; overflow: hidden;
+  padding: 20px max(20px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+  border-radius: 28px 28px 0 0; border-top: 2px solid var(--tone);
+  background: var(--tone-bg); box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
+  animation: cl-sheet-in .24s cubic-bezier(.2, .8, .2, 1);
+}
+.cl-verdict--ok { --tone: var(--success); --tone-bg: var(--success-bg); --tone-text: var(--success-text); --tone-soft: #d7f5e4; --tone-row: rgba(61, 220, 132, 0.10); --tone-ink: var(--on-success); }
+.cl-verdict--bad { --tone: var(--error); --tone-bg: var(--error-bg); --tone-text: var(--error-text); --tone-soft: #f6d3d3; --tone-row: rgba(255, 107, 107, 0.10); --tone-ink: var(--on-error); }
+.cl-sheet-head { display: flex; align-items: flex-start; gap: 12px; }
+.cl-sheet-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 50%; background: var(--tone); color: var(--tone-ink); }
+.cl-sheet-text { display: grid; gap: 4px; min-width: 0; padding-top: 6px; }
+.cl-app .cl-verdict-title { font: 800 24px/1.1 var(--font-display); color: var(--tone-text); }
+.cl-near-note { font-size: 13px; font-weight: 600; color: var(--tone-soft); }
+.cl-verdict-label { margin-top: 2px; font: 700 11px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: #f0b4b4; }
+.cl-answer-text { font: 700 18px/1.35 var(--font-mono); color: #ffffff; overflow-wrap: anywhere; }
+.cl-verdict--ok .cl-answer-text { font-weight: 500; font-size: 15px; color: var(--tone-soft); }
+.cl-given { font-size: 13px; color: #e7bdbd; overflow-wrap: anywhere; }
+.cl-verdict--ok .cl-given { color: var(--tone-soft); }
+.cl-given .cl-diff-bad, .cl-given .cl-diff-gap { font-family: var(--font-mono); }
+.cl-strike-note { font-size: 14px; font-weight: 700; color: var(--tone-text); }
+.cl-sheet-level { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--tone-row); font-size: 14px; color: var(--tone-soft); }
+.cl-sheet .cl-cta { margin-bottom: 5px; }
+.cl-countdown { position: absolute; left: 0; top: 0; height: 3px; width: 100%; background: var(--tone); transform-origin: left center; animation: cl-countdown 1s linear forwards; }
+@keyframes cl-sheet-in { from { transform: translateY(100%); } }
+
+/* Lettres à revoir : fausses (gras, rouge) ou manquantes (_) dans la réponse donnée, à corriger dans la réponse attendue. */
+.cl-diff-bad { font-weight: 800; color: var(--error-text); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.cl-diff-gap { font-weight: 800; color: var(--error-text); }
+.cl-diff-fix { font-weight: 800; color: var(--fix-ink); background: var(--fix-bg); border-radius: 3px; }
 
 /* Fin de session */
 .cl-score { grid-template-columns: auto 1fr; align-items: center; gap: 20px; }
@@ -3157,19 +3183,13 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   .cl-rules { grid-template-columns: minmax(0, 1fr); }
   .cl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cl-panel { padding: 16px; }
-  .cl-card--front { min-height: 230px; padding: 14px 16px 20px; }
-  .cl-card-fr { font-size: 28px; }
-  .cl-card-fr.is-long { font-size: 22px; }
-  .cl-card-fr.is-xlong { font-size: 19px; }
-  .cl-card-def { font-size: 16.5px; }
-  .cl-answer-tip { display: none; }
   .cl-score { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .cl-attempts li { grid-template-columns: auto minmax(0, 1fr); }
   .cl-attempt-box { grid-column: 2; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cl-app *, .cl-app *::before, .cl-app *::after { transition-duration: .01ms !important; }
-  .cl-card--front.is-correct, .cl-card--front.is-wrong, .cl-card--back { animation: none; }
+  .cl-card--front.is-correct, .cl-card--front.is-wrong, .cl-card--back, .cl-sheet { animation: none; }
   .cl-card--front.is-exit-fade { animation: cl-fade-out .18s linear forwards; }
   .cl-spinner { animation-duration: 2s; }
   .cl-dialog[open] { animation: none; }
