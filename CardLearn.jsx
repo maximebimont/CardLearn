@@ -1672,10 +1672,42 @@ function Attempts({ id, attempts }) {
   );
 }
 
-// inRematch(id) : la carte est en Revanche après la partie.
-function Summary({ result, canReplay, inRematch, onReplay, onHome }) {
+// Anneau du score : arc vert pour les bonnes réponses, arc rouge pour les erreurs.
+function ScoreRing({ good, total }) {
+  const C = 2 * Math.PI * 50;
+  const bad = total - good;
+  const gap = good && bad ? 14 : 0; // petit espace entre les deux arcs (bouts arrondis)
+  const g = total ? (good / total) * C : 0;
+  const b = total ? (bad / total) * C : 0;
+  return (
+    <div className="cl-ring">
+      <svg width="104" height="104" viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="50" fill="none" stroke="#1d2036" strokeWidth="10" />
+        {good > 0 && <circle cx="60" cy="60" r="50" fill="none" stroke="#3ddc84" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${Math.max(0.1, g - gap)} ${C}`} />}
+        {bad > 0 && (
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#ff6b6b" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${Math.max(0.1, b - gap)} ${C}`} strokeDashoffset={-g} />
+        )}
+      </svg>
+      <p className="cl-score-value">
+        {good}
+        <span>/{total}</span>
+      </p>
+    </div>
+  );
+}
+
+const scoreTitle = (ratio) =>
+  ratio === 1 ? "Parfait\u00a0!" : ratio >= 0.8 ? "Excellente partie\u00a0!" : ratio >= 0.6 ? "Belle partie\u00a0!" : ratio >= 0.4 ? "Pas mal\u00a0!" : "Ça viendra\u00a0!";
+
+const SHOWN_MISSED = 3; // cartes ratées affichées avant « Voir les N »
+
+// Fin de partie : score, progression (avec le gain de la partie), cartes à revoir, puis rejouer ou revanche.
+// result.before : progression avant la partie ; summary : après. inRematch(id) : la carte est en Revanche après la partie.
+function Summary({ result, summary, inRematch, replaySize, onPlay, onHome }) {
   const { results, mode } = result;
+  const before = useMemo(() => summarize(result.before), [result.before]);
   const [open, setOpen] = useState(() => new Set());
+  const [showAll, setShowAll] = useState(false);
   const total = results.length;
   const good = results.filter((r) => r.ok).length;
   const missed = [];
@@ -1693,75 +1725,140 @@ function Summary({ result, canReplay, inRematch, onReplay, onHome }) {
       else next.add(id);
       return next;
     });
-  const promoted = new Set(results.filter((r) => r.ok && r.to > r.from).map((r) => r.id)).size;
-  const newlyMastered = new Set(results.filter((r) => r.ok && r.to === MAX_BOX && r.from < MAX_BOX).map((r) => r.id)).size;
+  const gain = summary.mastered - before.mastered;
+  const next = nextGradeFor(summary.mastered);
+  const shown = showAll ? missed : missed.slice(0, SHOWN_MISSED);
+  const rematch = summary.toReview;
+  const delta = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "=");
 
   return (
-    <div className="cl-wrap">
-      <header className="cl-page-head">
-        <p className="cl-eyebrow">{mode === "errors" ? "Revanche" : "Nouvelle partie"}</p>
-        <h1>Partie terminée</h1>
-      </header>
-
-      <section className="cl-panel cl-score">
-        <p className="cl-score-value">
-          {good}
-          <span>&nbsp;/&nbsp;{total}</span>
-        </p>
-        <div className="cl-score-text">
-          <p className="cl-score-pct">{percent(good, total)}&nbsp;% de bonnes réponses</p>
-          <p className="cl-muted">
-            {plural(promoted, "carte montée", "cartes montées")} de niveau
-            {newlyMastered ? ` · ${plural(newlyMastered, "nouvelle carte maîtrisée", "nouvelles cartes maîtrisées")}` : ""}
-            {missed.length ? ` · ${plural(missed.length, "carte", "cartes")} à retravailler` : ""}
+    <div className="cl-end">
+      <section className="cl-end-score" aria-labelledby="score-title">
+        <ScoreRing good={good} total={total} />
+        <div className="cl-end-title">
+          {mode === "errors" && <p className="cl-label-mono">Revanche</p>}
+          <h1 id="score-title">{scoreTitle(total ? good / total : 0)}</h1>
+          <p className="cl-end-legend">
+            <span>
+              <i data-tone="ok" />
+              {good} juste{good > 1 ? "s" : ""}
+            </span>
+            <span>
+              <i data-tone="bad" />
+              {plural(total - good, "erreur", "erreurs")}
+            </span>
+            <span>{percent(good, total)}&nbsp;%</span>
           </p>
         </div>
       </section>
 
-      <section className="cl-panel" aria-labelledby="missed-title">
-        <h2 id="missed-title">Cartes ratées</h2>
-        {missed.length ? (
-          <ul className="cl-list">
-            {missed.map(({ id, attempts }) => {
+      <section className="cl-card-dark cl-end-progress" aria-labelledby="end-prog-title">
+        <div className="cl-end-progress-top">
+          <div className="cl-progress-count">
+            <h2 id="end-prog-title">Cartes maîtrisées</h2>
+            <p className="cl-num">
+              <span className="cl-num-big">{summary.mastered}</span>
+              <span className="cl-num-of">/{TOTAL}</span>
+              {gain !== 0 && <span className="cl-gain">{gain > 0 ? `+${gain}` : `−${-gain}`}</span>}
+            </p>
+          </div>
+          <div className="cl-progress-grade">
+            {next && (
+              <span className="cl-end-next">
+                encore {next.missing}
+                <br />
+                <span>pour viser {next.grade}</span>
+              </span>
+            )}
+            <span className="cl-grade-badge" role="img" aria-label={`Note estimée ${summary.grade}`}>
+              {summary.grade}
+            </span>
+          </div>
+        </div>
+        <GradeBar mastered={summary.mastered} before={before.mastered} />
+        <hr className="cl-sep" />
+        <h3 className="cl-label-mono">Tes niveaux après la partie</h3>
+        <ol className="cl-level-tiles">
+          {summary.boxes.map((n, i) => (
+            <li key={i} className={cls(i === MAX_BOX - 1 && "is-top")} aria-label={`Niveau ${i + 1} : ${plural(n, "carte", "cartes")} (${delta(n - before.boxes[i])})`}>
+              <span className="cl-level-key">
+                <i style={{ background: `var(--box-${i + 1})` }} />
+                {i + 1}
+              </span>
+              <span className="cl-level-n">{n}</span>
+              <span className="cl-level-delta">{delta(n - before.boxes[i])}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="cl-card-dark cl-end-review" aria-labelledby="missed-title">
+        <div className="cl-end-review-head">
+          <div>
+            <h2 id="missed-title">À revoir</h2>
+            <p>{missed.length ? `${plural(missed.length, "carte ratée", "cartes ratées")} pendant la partie` : "Aucune erreur pendant cette partie."}</p>
+          </div>
+          {missed.length > SHOWN_MISSED && (
+            <button type="button" className="cl-link" onClick={() => setShowAll((v) => !v)} aria-expanded={showAll}>
+              {showAll ? "Réduire" : `Voir les ${missed.length}`}
+              <IconChevronRight size={15} />
+            </button>
+          )}
+        </div>
+        {missed.length > 0 && (
+          <ul className="cl-end-list">
+            {shown.map(({ id, attempts }) => {
               const card = CARD_BY_ID[id];
               const isOpen = open.has(id);
               const errors = attempts.filter((a) => !a.ok).length;
-              const stays = inRematch(id);
               return (
-                <li key={id} className={cls("cl-list-item", "cl-missed", isOpen && "is-open")}>
+                <li key={id} className={cls("cl-list-item", "cl-missed", isOpen && "is-open")} data-cat={card.cat}>
                   <button type="button" className="cl-missed-toggle" aria-expanded={isOpen} aria-controls={`attempts-${id}`} onClick={() => toggle(id)}>
-                    <span className="cl-list-main">
-                      <Badge cat={card.cat} />
-                      <span className="cl-list-fr">{card.cat === "def" ? card.hint : card.fr}</span>
-                      <span className="cl-list-en">{card.en}</span>
+                    <i className="cl-cat-dot" aria-hidden="true" />
+                    <span className="cl-missed-text">
+                      <span className="cl-missed-fr">{card.cat === "def" ? card.hint : card.fr}</span>
+                      <span className="cl-missed-en">{card.en}</span>
                     </span>
                     <span className="cl-missed-meta">
                       <span className="cl-list-count">{plural(errors, "erreur", "erreurs")}</span>
-                      {stays && <span className="cl-missed-stay">Reste en Revanche</span>}
-                      <span className="cl-missed-hint">
-                        {plural(attempts.length, "tentative", "tentatives")}
-                        <IconChevron size={16} />
-                      </span>
+                      {inRematch(id) && <span className="cl-missed-stay">Reste en Revanche</span>}
                     </span>
+                    <IconChevron size={16} />
                   </button>
                   {isOpen && <Attempts id={id} attempts={attempts} />}
                 </li>
               );
             })}
           </ul>
-        ) : (
-          <p className="cl-muted">Aucune erreur pendant cette partie.</p>
         )}
       </section>
 
-      <div className="cl-actions">
-        <button type="button" className="cl-btn cl-btn--primary cl-btn--lg" onClick={onReplay} disabled={!canReplay}>
-          Rejouer
-        </button>
-        <button type="button" className="cl-btn cl-btn--lg" onClick={onHome}>
-          Accueil
-        </button>
-        {!canReplay && <span className="cl-foot-note">Plus aucune erreur à revoir.</span>}
+      <div className="cl-end-actions">
+        <div className="cl-end-row">
+          <button type="button" className="cl-ghost cl-end-home" onClick={onHome} aria-label="Retour à l'accueil" title="Accueil">
+            <IconHome size={21} />
+          </button>
+          {rematch > 0 && mode === "learn" && (
+            <button type="button" className="cl-ghost cl-end-replay" onClick={() => onPlay("learn")}>
+              <IconPlay size={15} />
+              <span>Rejouer</span>
+              <span className="cl-end-tag">{plural(replaySize, "carte", "cartes")}</span>
+            </button>
+          )}
+        </div>
+        {rematch > 0 ? (
+          <button type="button" className="cl-cta" onClick={() => onPlay("errors")}>
+            <IconReplay size={19} />
+            <span>Revanche</span>
+            <span className="cl-cta-tag">{plural(rematch, "carte", "cartes")}</span>
+          </button>
+        ) : (
+          <button type="button" className="cl-cta" onClick={() => onPlay("learn")}>
+            <IconPlay size={18} />
+            <span>{mode === "learn" ? "Rejouer" : "Nouvelle partie"}</span>
+            <span className="cl-cta-tag">{plural(replaySize, "carte", "cartes")}</span>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -2335,7 +2432,7 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
   const handleEnd = (results, finalProgress) => {
     setQuitting(false);
     update(() => finalProgress);
-    setResult({ results, mode: session.mode, cats: session.cats });
+    setResult({ results, mode: session.mode, cats: session.cats, before: progress });
     setSession(null);
     setScreen("summary");
   };
@@ -2357,9 +2454,10 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
     content = (
       <Summary
         result={result}
-        canReplay={buildPool(result.mode, result.cats, progress).length > 0}
+        summary={summary}
         inRematch={(id) => !!progress.cards[id]?.r}
-        onReplay={() => startSession(result.mode, result.cats)}
+        replaySize={Math.min(progress.settings.size, buildPool("learn", result.mode === "learn" ? result.cats : cats, progress).length)}
+        onPlay={(mode) => startSession(mode, result.mode === "learn" ? result.cats : cats)}
         onHome={() => setScreen("home")}
       />
     );
@@ -2701,7 +2799,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 /* Carte sombre */
 .cl-card-dark { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); }
 .cl-indigo { position: relative; overflow: hidden; background: var(--indigo); border-radius: var(--r-block); }
-.cl-label-mono { font: 700 11px/1.4 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.cl-app .cl-label-mono { font: 700 11px/1.4 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 
 [data-cat="mots"] { --c: var(--cat-mots); }
 [data-cat="expr"] { --c: var(--cat-expr); }
@@ -2979,12 +3077,77 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-diff-gap { font-weight: 800; color: var(--error-text); }
 .cl-diff-fix { font-weight: 800; color: var(--fix-ink); background: var(--fix-bg); border-radius: 3px; }
 
-/* Fin de session */
-.cl-score { grid-template-columns: auto 1fr; align-items: center; gap: 20px; }
-.cl-score-value { font: 700 56px/1 var(--font-body); font-variant-numeric: tabular-nums; }
-.cl-score-value span { font-size: 22px; color: var(--ink-2); font-weight: 400; }
-.cl-score-text { display: grid; gap: 4px; min-width: 0; }
-.cl-score-pct { font-weight: 700; font-size: 18px; }
+/* Fin de partie */
+.cl-end { max-width: 560px; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.cl-end-score { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.cl-ring { position: relative; width: 104px; height: 104px; }
+.cl-ring svg { transform: rotate(-90deg); }
+.cl-score-value { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 2px; font: 700 31px/1 var(--font-mono); letter-spacing: -0.03em; }
+.cl-score-value span { font-size: 15px; color: var(--faint); align-self: center; margin-top: 10px; }
+.cl-end-title { display: grid; gap: 4px; }
+.cl-end-legend { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 14px; font-size: 14px; color: var(--muted); }
+.cl-end-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.cl-end-legend i { width: 8px; height: 8px; border-radius: 50%; }
+.cl-end-legend i[data-tone="ok"] { background: var(--success); }
+.cl-end-legend i[data-tone="bad"] { background: var(--error); }
+
+.cl-end-progress { display: grid; gap: 14px; padding: 16px; }
+.cl-end-progress-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cl-end-progress .cl-num-big { font-size: 28px; }
+.cl-end-progress .cl-num-of { font-size: 14px; }
+.cl-app .cl-end-progress h2 { font: 500 13px/1.3 var(--font-body); color: var(--muted); }
+.cl-gain { align-self: center; margin-left: 2px; padding: 3px 7px; border-radius: 7px; background: var(--yellow); color: var(--on-yellow); font: 700 12px/1 var(--font-mono); }
+.cl-end-next { font-size: 13px; font-weight: 600; line-height: 1.3; text-align: right; }
+.cl-end-next span { font-weight: 400; color: var(--muted); }
+.cl-end-progress .cl-grade-badge { width: 44px; height: 44px; border-radius: 13px; font-size: 24px; }
+.cl-sep { height: 1px; margin: 0; border: 0; background: #23263f; }
+.cl-level-tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.cl-level-tiles li { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px; border-radius: 12px; background: var(--surface-2); font-family: var(--font-mono); }
+.cl-level-key { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--muted); }
+.cl-level-key i { width: 8px; height: 8px; border-radius: 2px; }
+.cl-level-n { font-size: 18px; font-weight: 700; }
+.cl-level-delta { font-size: 11px; color: var(--muted); }
+.cl-level-tiles li.is-top { background: #2a2614; border: 1px solid rgba(255, 201, 60, 0.45); }
+.cl-level-tiles li.is-top .cl-level-key { color: #ffe08a; }
+.cl-level-tiles li.is-top .cl-level-n { color: var(--yellow); }
+.cl-level-tiles li.is-top .cl-level-delta { color: #ffe08a; font-weight: 700; }
+
+.cl-end-review { display: grid; padding: 12px 16px 6px; }
+.cl-end-review-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 6px; }
+.cl-app .cl-end-review h2 { font-size: 18px; font-weight: 700; }
+.cl-end-review-head p { font-size: 13px; color: var(--muted); }
+.cl-end-review-head .cl-link { margin-right: -4px; white-space: nowrap; }
+.cl-end-list { display: grid; }
+.cl-end .cl-list-item { display: grid; gap: 8px; padding: 0 0 8px; border-top: 0; border-bottom: 1px solid #23263f; }
+.cl-end .cl-list-item:last-child { border-bottom: 0; }
+.cl-end .cl-missed-toggle { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; margin: 0; padding: 9px 0; border: 0; border-radius: 0; background: none; text-align: left; }
+.cl-end .cl-missed-toggle:hover { background: none; }
+.cl-end .cl-missed-toggle:hover .cl-missed-fr { text-decoration: underline; }
+.cl-end .cl-missed-toggle > .cl-icon { color: var(--faint); transition: transform .2s; }
+.cl-end .cl-missed.is-open .cl-missed-toggle > .cl-icon { transform: rotate(180deg); }
+.cl-end .cl-cat-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--c); }
+.cl-missed-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cl-missed-fr { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cl-missed-en { font: 12.5px/1.4 var(--font-mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cl-missed.is-open .cl-missed-fr, .cl-missed.is-open .cl-missed-en { white-space: normal; }
+.cl-end .cl-missed-meta { display: grid; justify-items: end; gap: 3px; flex: none; }
+.cl-end .cl-list-count { padding: 2px 8px; border-radius: 8px; background: rgba(255, 107, 107, 0.14); color: var(--error-text); font: 700 12px/1.4 var(--font-mono); white-space: nowrap; }
+.cl-end .cl-missed-stay { padding: 0; background: none; color: var(--yellow); font-size: 11px; font-weight: 600; white-space: nowrap; }
+
+.cl-end-actions {
+  position: sticky; bottom: 0; z-index: 5; display: grid; gap: 10px;
+  margin: 4px -16px 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--bg); border-top: 1px solid #1f2238;
+}
+.cl-end-row { display: flex; gap: 10px; }
+.cl-end-home { width: 64px; height: 48px; flex: none; padding: 0; border-radius: 14px; }
+.cl-end-replay { flex: 1; height: 48px; gap: 10px; border-radius: 14px; font-size: 16px; }
+.cl-end-tag { font: 12px/1 var(--font-mono); color: var(--muted); }
+.cl-end-actions .cl-cta { min-height: 56px; }
+@media (min-width: 768px) {
+  .cl-end { gap: 16px; }
+  .cl-end-actions { position: static; margin: 4px 0 0; padding: 0; border: 0; background: none; }
+}
 
 /* Listes de cartes */
 .cl-list { display: grid; }
@@ -3007,7 +3170,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-missed-hint { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ink-3); white-space: nowrap; }
 .cl-missed-hint .cl-icon { transition: transform .2s; }
 .cl-missed.is-open .cl-missed-hint .cl-icon { transform: rotate(180deg); }
-.cl-app .cl-attempts { display: grid; gap: 6px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); }
+.cl-app .cl-attempts { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
 .cl-attempts li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; gap: 4px 14px; font-size: 14px; }
 .cl-attempt-turn { font: 600 12px/1.4 var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .cl-attempt-answer { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; font: 500 14px/1.4 var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
@@ -3183,7 +3346,6 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   .cl-rules { grid-template-columns: minmax(0, 1fr); }
   .cl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cl-panel { padding: 16px; }
-  .cl-score { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .cl-attempts li { grid-template-columns: auto minmax(0, 1fr); }
   .cl-attempt-box { grid-column: 2; }
 }
