@@ -1864,34 +1864,6 @@ function Summary({ result, summary, inRematch, replaySize, onPlay, onHome }) {
   );
 }
 
-function BoxChart({ boxes, unseen }) {
-  const max = Math.max(1, ...boxes);
-  return (
-    <div className="cl-boxchart">
-      <table className="cl-boxchart-table">
-        <caption className="cl-sr">Nombre de cartes à chaque niveau</caption>
-        <tbody>
-          {boxes.map((n, i) => (
-            <tr key={i} title={`Niveau ${i + 1} (${LEVEL_NAMES[i].toLowerCase()})\u00a0: ${plural(n, "carte", "cartes")}`}>
-              <th scope="row">
-                <span className="cl-level-num">{i + 1}</span>
-                <span className="cl-level-name">{LEVEL_NAMES[i]}</span>
-              </th>
-              <td>
-                <span className="cl-boxchart-track">
-                  <span className={cls("cl-boxchart-bar", i === MAX_BOX - 1 && "is-mastered")} style={{ "--r": n / max }} />
-                  <span className="cl-boxchart-value">{n}</span>
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {unseen > 0 && <p className="cl-chart-note">Dont {plural(unseen, "carte jamais jouée", "cartes jamais jouées")} au niveau 1.</p>}
-    </div>
-  );
-}
-
 // Fenêtre modale d'information ; un clic sur le fond la ferme aussi.
 function InfoDialog({ open, onClose, id, title, children }) {
   const ref = useRef(null);
@@ -2041,9 +2013,11 @@ function DeleteAccount({ account, onDelete }) {
   };
 
   return (
-    <section className="cl-panel cl-danger" aria-labelledby="delete-title">
-      <h2 id="delete-title">Supprimer mon compte</h2>
-      <p className="cl-muted">Ton compte et toute ta progression seront effacés, sur tous tes appareils.</p>
+    <div className="cl-danger-part" aria-labelledby="delete-title" role="group">
+      <div className="cl-danger-text">
+        <h3 id="delete-title">Supprimer mon compte</h3>
+        <p>Ton compte et toute ta progression seront effacés, sur tous tes appareils.</p>
+      </div>
       {confirming ? (
         <form
           className="cl-confirm"
@@ -2086,96 +2060,128 @@ function DeleteAccount({ account, onDelete }) {
           </div>
         </form>
       ) : (
-        <button type="button" className="cl-btn cl-btn--danger-outline" onClick={() => setConfirming(true)}>
+        <button type="button" className="cl-danger-btn" onClick={() => setConfirming(true)}>
           Supprimer mon compte
         </button>
       )}
-    </section>
+    </div>
   );
 }
 
-function Profile({ progress, summary, onReset, storage, account, onDeleteAccount }) {
+const SHOWN_TOP = 5; // cartes les plus ratées affichées avant « Voir les 10 »
+
+// Profil : en-tête (avatar, pseudo, rang, série, déconnexion), note, niveaux, statistiques, cartes ratées, réinitialisation.
+// me : la ligne de l'élève dans le classement (rang), s'il y participe.
+function Profile({ progress, summary, onReset, storage, account, onDeleteAccount, pseudo, me, onSignOut, leaving, onReload }) {
   const [confirming, setConfirming] = useState(false);
   const [levelsHelp, setLevelsHelp] = useState(false);
   const [resetDone, setResetDone] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const { stats } = progress;
-  const nextGrade = GRADES.slice().reverse().find((g) => g.min > summary.mastered);
+  const next = nextGradeFor(summary.mastered);
   const topMissed = CARDS.filter((card) => progress.cards[card.id]?.w > 0)
     .sort((a, b) => progress.cards[b.id].w - progress.cards[a.id].w || progress.cards[b.id].t - progress.cards[a.id].t)
     .slice(0, 10);
+  const shownTop = showAll ? topMissed : topMissed.slice(0, SHOWN_TOP);
+  const logoutLabel = leaving ? "Déconnexion en cours" : account?.email ? `Se déconnecter (${account.email})` : "Se déconnecter";
+
+  // Rang à jour à l'ouverture du profil.
+  useEffect(() => {
+    onReload?.();
+  }, [onReload]);
 
   return (
-    <div className="cl-wrap cl-wrap--wide">
-      <header className="cl-page-head">
-        <h1>Profil</h1>
-      </header>
-
+    <div className="cl-profile">
       <StorageNotice state={storage} />
 
-      <div className="cl-grid-2">
-        <section className="cl-panel" aria-labelledby="progress-title">
-          <h2 id="progress-title">Avancement global</h2>
-          <p className="cl-big-number">
-            {summary.mastered}
-            <span>&nbsp;/&nbsp;{TOTAL} cartes maîtrisées</span>
+      <header className="cl-profile-head">
+        <Avatar name={pseudo} size={52} />
+        <div className="cl-profile-who">
+          <h1>{pseudo || "Profil"}</h1>
+          <p>
+            {me ? `${ordinal(me.rank)} au classement · ` : ""}
+            {plural(summary.streak, "jour", "jours")} de suite
           </p>
-          <Meter value={summary.mastered} max={TOTAL} tone="ok" />
-          <ul className="cl-cat-progress">
-            {CAT_KEYS.map((cat) => (
-              <li key={cat} data-cat={cat}>
-                <span className="cl-cat-progress-label">
-                  <span className="cl-cat-dot" aria-hidden="true" />
-                  {CATEGORIES[cat].label}
-                </span>
-                <span className="cl-cat-progress-value">
-                  {summary.masteredByCat[cat]}&nbsp;/&nbsp;{CAT_TOTAL[cat]}
-                </span>
-                <Meter value={summary.masteredByCat[cat]} max={CAT_TOTAL[cat]} tone={cat} />
-              </li>
-            ))}
-          </ul>
-        </section>
+        </div>
+        {onSignOut && (
+          <button type="button" className="cl-profile-logout" onClick={onSignOut} disabled={leaving} aria-label={logoutLabel} title={logoutLabel}>
+            <IconLogout size={20} />
+          </button>
+        )}
+      </header>
 
-        <section className="cl-panel" aria-labelledby="grade-title">
-          <h2 id="grade-title">Note d'examen estimée</h2>
-          <div className="cl-grade">
-            <span className="cl-grade-letter" data-grade={summary.grade}>
-              {summary.grade}
-            </span>
-            <p className="cl-muted">
-              Estimation basée sur {plural(summary.mastered, "carte maîtrisée", "cartes maîtrisées")}.
-              {nextGrade && summary.grade !== "A" ? ` Encore ${plural(nextGrade.min - summary.mastered, "carte", "cartes")} à maîtriser pour viser ${nextGrade.grade}.` : ""}
+      <section className="cl-indigo cl-note" aria-labelledby="note-title">
+        <span className="cl-deco cl-deco--note" aria-hidden="true" />
+        <div className="cl-note-top">
+          <span className="cl-note-letter" role="img" aria-label={`Note ${summary.grade}`}>
+            {summary.grade}
+          </span>
+          <div className="cl-note-text">
+            <h2 id="note-title" className="cl-label-mono">
+              Note d'examen estimée
+            </h2>
+            <p>
+              {next
+                ? `Encore ${plural(next.missing, "carte maîtrisée", "cartes maîtrisées")} pour viser ${next.grade}`
+                : "Note maximale\u00a0: toutes les cartes qu'il faut sont maîtrisées\u00a0!"}
             </p>
           </div>
-          <ol className="cl-grade-scale">
-            {GRADES.map((g) => (
-              <li key={g.grade} className={cls(g.grade === summary.grade && "is-current")} data-grade={g.grade}>
-                <span className="cl-grade-scale-letter">{g.grade}</span>
-                <span>
-                  {g.min}–{g.max} cartes
-                </span>
-              </li>
-            ))}
-          </ol>
-        </section>
-      </div>
-
-      <section className="cl-panel" aria-labelledby="boxes-title">
-        <div className="cl-heading-row">
-          <h2 id="boxes-title">Niveau de tes cartes</h2>
-          <button
-            type="button"
-            className="cl-info-btn"
-            onClick={() => setLevelsHelp(true)}
-            aria-label="Comment fonctionnent les niveaux ?"
-            aria-haspopup="dialog"
-            aria-controls="levels-help"
-            title="Comment fonctionnent les niveaux ?"
-          >
-            <IconInfo size={20} />
-          </button>
         </div>
-        <BoxChart boxes={summary.boxes} unseen={summary.unseen} />
+        <GradeBar mastered={summary.mastered} scale="long" />
+        <hr className="cl-sep cl-sep--indigo" />
+        <ul className="cl-note-cats">
+          {CAT_KEYS.map((cat) => (
+            <li key={cat} data-cat={cat}>
+              <span className="cl-note-cat-row">
+                <CatIcon cat={cat} size={28} />
+                <span className="cl-note-cat-name">{CATEGORIES[cat].label}</span>
+                <span className="cl-note-cat-n">
+                  {summary.masteredByCat[cat]}
+                  <span>/{CAT_TOTAL[cat]}</span>
+                </span>
+              </span>
+              <span className="cl-mode-bar" aria-hidden="true">
+                <span style={{ width: `${percent(summary.masteredByCat[cat], CAT_TOTAL[cat])}%` }} />
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="cl-card-dark cl-levels cl-boxchart" aria-labelledby="boxes-title">
+        <div className="cl-levels-head">
+          <div className="cl-heading-row">
+            <h2 id="boxes-title">Tes 5 niveaux</h2>
+            <button
+              type="button"
+              className="cl-info-btn"
+              onClick={() => setLevelsHelp(true)}
+              aria-label="Comment fonctionnent les niveaux ?"
+              aria-haspopup="dialog"
+              aria-controls="levels-help"
+              title="Comment fonctionnent les niveaux ?"
+            >
+              <IconInfo size={20} />
+            </button>
+          </div>
+          <p>Une bonne réponse fait monter la carte d'un niveau. Une erreur la renvoie au niveau 1.</p>
+        </div>
+        <div className="cl-levels-bar" role="img" aria-label={summary.boxes.map((n, i) => `niveau ${i + 1} : ${n}`).join(", ")}>
+          {summary.boxes.map((n, i) => (n ? <span key={i} style={{ flex: n, background: `var(--box-${i + 1})` }} /> : null))}
+        </div>
+        <ol className="cl-level-tiles cl-level-tiles--named">
+          {summary.boxes.map((n, i) => (
+            <li key={i} className={cls(i === MAX_BOX - 1 && "is-top")} title={`Niveau ${i + 1} (${LEVEL_NAMES[i].toLowerCase()})\u00a0: ${plural(n, "carte", "cartes")}`}>
+              <span className="cl-level-key">
+                <i style={{ background: `var(--box-${i + 1})` }} />
+                {i + 1}
+              </span>
+              <span className="cl-level-n">{n}</span>
+              <span className="cl-level-name">{LEVEL_NAMES[i]}</span>
+            </li>
+          ))}
+        </ol>
+        {summary.unseen > 0 && <p className="cl-chart-note">Dont {plural(summary.unseen, "carte jamais jouée", "cartes jamais jouées")} au niveau 1.</p>}
         <InfoDialog id="levels-help" open={levelsHelp} onClose={() => setLevelsHelp(false)} title="Comment fonctionnent les niveaux ?">
           <p className="cl-muted">
             Chaque carte a un niveau de 1 à 5. Les cartes des premiers niveaux reviennent plus souvent dans tes parties, pour que tu les
@@ -2185,7 +2191,7 @@ function Profile({ progress, summary, onReset, storage, account, onDeleteAccount
         </InfoDialog>
       </section>
 
-      <section className="cl-panel" aria-labelledby="stats-title">
+      <section className="cl-card-dark cl-stats-card" aria-labelledby="stats-title">
         <h2 id="stats-title">Statistiques</h2>
         <dl className="cl-stats">
           <div>
@@ -2198,85 +2204,108 @@ function Profile({ progress, summary, onReset, storage, account, onDeleteAccount
           </div>
           <div>
             <dt>Taux de réussite</dt>
-            <dd>{stats.answers ? `${percent(stats.correct, stats.answers)} %` : "—"}</dd>
+            <dd>
+              {stats.answers ? percent(stats.correct, stats.answers) : "—"}
+              {stats.answers ? <small>&nbsp;%</small> : null}
+            </dd>
           </div>
-          <div>
+          <div data-tone="streak">
             <dt>Série en cours</dt>
-            <dd>{plural(summary.streak, "jour", "jours")}</dd>
+            <dd>
+              {summary.streak}
+              <small>&nbsp;j</small>
+            </dd>
           </div>
         </dl>
-        <h3 className="cl-subhead">Réussite par catégorie</h3>
-        <ul className="cl-cat-progress">
+        <h3 className="cl-label-mono">Réussite par catégorie</h3>
+        <ul className="cl-cat-rates">
           {CAT_KEYS.map((cat) => {
             const { a, c } = stats.byCat[cat];
             return (
               <li key={cat} data-cat={cat}>
-                <span className="cl-cat-progress-label">
-                  <span className="cl-cat-dot" aria-hidden="true" />
-                  {CATEGORIES[cat].label}
+                <span className="cl-cat-rate-row">
+                  <span className="cl-cat-rate-name">{CATEGORIES[cat].label}</span>
+                  <span className="cl-cat-rate-n">{a ? `${c}/${a}` : "pas encore jouée"}</span>
+                  <span className="cl-cat-rate-pct">{a ? `${percent(c, a)}\u00a0%` : ""}</span>
                 </span>
-                <span className="cl-cat-progress-value">{a ? `${percent(c, a)} % · ${c}/${a}` : "pas encore jouée"}</span>
-                <Meter value={c} max={a} tone={cat} />
+                <span className="cl-cat-rate-bar" aria-hidden="true">
+                  <span style={{ width: `${percent(c, a)}%` }} />
+                </span>
               </li>
             );
           })}
         </ul>
       </section>
 
-      <section className="cl-panel" aria-labelledby="top-title">
-        <h2 id="top-title">Les 10 cartes les plus ratées</h2>
+      <section className="cl-card-dark cl-top" aria-labelledby="top-title">
+        <div className="cl-top-head">
+          <h2 id="top-title">Cartes les plus ratées</h2>
+          {topMissed.length > 0 && <span className="cl-top-count">top {shownTop.length}</span>}
+        </div>
         {topMissed.length ? (
           <ol className="cl-list cl-list--ranked">
-            {topMissed.map((card, i) => (
-              <li key={card.id} className="cl-list-item">
+            {shownTop.map((card, i) => (
+              <li key={card.id} className="cl-list-item" data-cat={card.cat}>
                 <span className="cl-rank">{i + 1}</span>
                 <div className="cl-list-main">
-                  <Badge cat={card.cat} />
+                  <span className="cl-list-top">
+                    <span className="cl-cat-label">
+                      <i />
+                      {CATEGORIES[card.cat].badge}
+                    </span>
+                    <span className="cl-list-count">{plural(progress.cards[card.id].w, "erreur", "erreurs")}</span>
+                  </span>
                   <span className="cl-list-fr">{card.cat === "def" ? card.hint : card.fr}</span>
                   <span className="cl-list-en">{card.en}</span>
                 </div>
-                <span className="cl-list-count">{plural(progress.cards[card.id].w, "erreur", "erreurs")}</span>
               </li>
             ))}
           </ol>
         ) : (
           <p className="cl-muted">Aucune carte ratée pour l'instant.</p>
         )}
-      </section>
-
-      <section className="cl-panel cl-danger" aria-labelledby="reset-title">
-        <h2 id="reset-title">Réinitialiser</h2>
-        {resetDone && !confirming ? <p role="status">Progression réinitialisée. Toutes les cartes sont de retour au niveau 1.</p> : null}
-        {confirming ? (
-          <div className="cl-confirm" role="alertdialog" aria-labelledby="reset-confirm-text">
-            <p id="reset-confirm-text">
-              Toutes les cartes reviendront au niveau 1 et tes statistiques, séries et erreurs seront effacées. Cette action est définitive.
-            </p>
-            <div className="cl-actions">
-              <button
-                type="button"
-                className="cl-btn cl-btn--danger"
-                onClick={() => {
-                  onReset();
-                  setConfirming(false);
-                  setResetDone(true);
-                }}
-              >
-                Oui, tout effacer
-              </button>
-              <button type="button" className="cl-btn" onClick={() => setConfirming(false)} autoFocus>
-                Annuler
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button type="button" className="cl-btn cl-btn--danger-outline" onClick={() => setConfirming(true)}>
-            Réinitialiser ma progression
+        {topMissed.length > SHOWN_TOP && (
+          <button type="button" className="cl-ghost cl-top-more" onClick={() => setShowAll((v) => !v)} aria-expanded={showAll}>
+            {showAll ? "Voir moins" : `Voir les ${topMissed.length} cartes`}
           </button>
         )}
       </section>
 
-      {onDeleteAccount && <DeleteAccount account={account} onDelete={onDeleteAccount} />}
+      <section className="cl-danger-zone" aria-labelledby="reset-title">
+        <div className="cl-danger-part">
+          <div className="cl-danger-text">
+            <h2 id="reset-title">Réinitialiser ma progression</h2>
+            <p>Remet les {TOTAL} cartes au niveau 1 et efface tes statistiques, séries et erreurs. Action définitive.</p>
+          </div>
+          {resetDone && !confirming ? <p role="status">Progression réinitialisée. Toutes les cartes sont de retour au niveau 1.</p> : null}
+          {confirming ? (
+            <div className="cl-confirm" role="alertdialog" aria-labelledby="reset-confirm-text">
+              <p id="reset-confirm-text">Toutes les cartes reviendront au niveau 1 et tes statistiques, séries et erreurs seront effacées.</p>
+              <div className="cl-actions">
+                <button
+                  type="button"
+                  className="cl-btn cl-btn--danger"
+                  onClick={() => {
+                    onReset();
+                    setConfirming(false);
+                    setResetDone(true);
+                  }}
+                >
+                  Oui, tout effacer
+                </button>
+                <button type="button" className="cl-btn" onClick={() => setConfirming(false)} autoFocus>
+                  Annuler
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" className="cl-danger-btn" onClick={() => setConfirming(true)}>
+              Réinitialiser
+            </button>
+          )}
+        </div>
+        {onDeleteAccount && <DeleteAccount account={account} onDelete={onDeleteAccount} />}
+      </section>
     </div>
   );
 }
@@ -2469,6 +2498,11 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
         storage={storage}
         account={account}
         onReset={() => update((p) => emptyProgress(p.settings.size))}
+        pseudo={pseudo}
+        me={board.status === "ready" ? (board.entries || []).find((e) => e.is_me) : null}
+        onSignOut={onSignOut ? signOut : null}
+        leaving={leaving}
+        onReload={loadBoard}
         onDeleteAccount={
           onDeleteAccount
             ? async () => {
@@ -2649,37 +2683,32 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-wrap--wide { max-width: 760px; }
 .cl-wrap--session { max-width: 600px; gap: 16px; }
 
-/* Boutons */
+/* Boutons génériques (fenêtres, formulaires) */
 .cl-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 44px; padding: 10px 18px;
-  border: 1px solid var(--line); border-radius: 8px;
-  background: var(--surface); color: var(--ink);
-  font: 700 15px/1.2 var(--font-body);
-  cursor: pointer; text-decoration: none;
+  min-height: 44px; padding: 0 16px;
+  border: 1px solid var(--line-2); border-radius: 12px;
+  background: transparent; color: var(--text);
+  font: 600 15px/1.2 var(--font-body); text-decoration: none;
   transition: background-color .15s, border-color .15s, color .15s, transform .1s;
 }
-.cl-btn:hover:not(:disabled) { border-color: var(--ink-3); }
+.cl-btn:hover:not(:disabled) { background: var(--surface-2); }
 .cl-btn:active:not(:disabled) { transform: translateY(1px); }
-.cl-btn:focus-visible, .cl-app input:focus-visible, .cl-rounds-options button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .cl-btn:disabled { opacity: .45; cursor: not-allowed; }
-.cl-btn--primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.cl-btn--primary:hover:not(:disabled) { border-color: var(--accent); filter: brightness(1.08); }
-.cl-btn--ghost { background: transparent; border-color: transparent; color: var(--ink-2); padding-inline: 10px; }
-.cl-btn--ghost:hover:not(:disabled) { border-color: var(--line); color: var(--ink); }
-.cl-btn--quiet { background: transparent; color: var(--ink-2); min-height: 40px; padding: 8px 14px; font-size: 14px; }
-.cl-btn--sm { min-height: 36px; padding: 6px 10px; font-size: 14px; }
-.cl-btn--lg { min-height: 50px; padding-inline: 22px; font-size: 16px; }
-.cl-btn--danger { background: var(--bad); border-color: var(--bad); color: var(--surface); }
-.cl-btn--danger-outline { color: var(--bad); border-color: var(--bad); background: transparent; }
+.cl-btn--primary { background: var(--yellow); border-color: var(--yellow); color: var(--on-yellow); font-weight: 700; }
+.cl-btn--primary:hover:not(:disabled) { background: #ffd35c; }
+.cl-btn--sm { min-height: 44px; padding: 0 14px; font-size: 14px; }
+.cl-btn--danger { background: var(--error); border-color: var(--error); color: var(--on-error); font-weight: 700; }
+.cl-btn--danger:hover:not(:disabled) { background: #ff8585; }
+.cl-btn--danger-outline { color: #ff8e8e; border-color: var(--error); background: transparent; }
 
 /* Panneaux */
-.cl-panel { display: grid; gap: 14px; align-content: start; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.cl-panel { display: grid; gap: 14px; align-content: start; padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); min-width: 0; }
 .cl-grid-2 { display: grid; gap: 20px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .cl-big-number { font: 700 40px/1 var(--font-body); font-variant-numeric: tabular-nums; color: var(--ink); }
 .cl-big-number span { font-size: 16px; font-weight: 400; color: var(--ink-2); }
 .cl-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.cl-notice { padding: 10px 14px; border-radius: 8px; background: var(--bad-soft); color: var(--ink); font-size: 14px; }
+.cl-notice { padding: 12px 14px; border-radius: 14px; background: var(--error-bg); border: 1px solid rgba(255, 107, 107, 0.45); color: var(--text); font-size: 14px; }
 .cl-eyebrow { font: 600 12px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
 .cl-page-head { display: grid; gap: 6px; }
 .cl-app .cl-subhead { font-size: 15px; font-family: var(--font-body); font-weight: 700; color: var(--ink-2); margin-top: 4px; }
@@ -3183,18 +3212,96 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-rank { width: 26px; flex: none; font: 600 15px/1.6 var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
 
 /* Profil */
-.cl-cat-progress { display: grid; gap: 14px; }
-.cl-cat-progress li { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; }
-.cl-cat-progress .cl-meter { grid-column: 1 / -1; }
-.cl-cat-progress-label { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
-.cl-cat-progress-value { font: 500 14px/1.3 var(--font-mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.cl-grade { display: flex; align-items: center; gap: 16px; }
-.cl-grade-letter { display: grid; place-items: center; width: 76px; height: 76px; flex: none; border-radius: 10px; border: 2px solid var(--g, var(--ink)); font: 800 46px/1 var(--font-display); color: var(--g, var(--ink)); background: color-mix(in srgb, var(--g, var(--ink)) 12%, var(--surface)); }
-.cl-grade-scale { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.cl-grade-scale li { display: grid; gap: 2px; padding: 8px; border-radius: 6px; border: 1px solid var(--line); border-top: 4px solid var(--g); font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.cl-grade-scale li.is-current { border-color: var(--g); color: var(--ink); background: color-mix(in srgb, var(--g) 12%, var(--surface)); }
-.cl-grade-scale-letter { font: 700 18px/1.1 var(--font-display); color: var(--g); }
-.cl-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.cl-profile { max-width: 640px; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.cl-profile-head { display: flex; align-items: center; gap: 14px; padding-inline: 4px; }
+.cl-profile-who { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cl-app .cl-profile-who h1 { font-size: 26px; overflow-wrap: anywhere; }
+.cl-profile-who p { font-size: 13px; color: var(--muted); }
+.cl-profile-logout {
+  display: grid; place-items: center; width: 44px; height: 44px; flex: none;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--on-indigo);
+}
+.cl-profile-logout:hover:not(:disabled) { border-color: var(--error); color: var(--error-text); }
+.cl-profile-logout:disabled { opacity: .55; cursor: progress; }
+@media (min-width: 768px) { .cl-profile-logout { display: none; } }
+
+.cl-note { display: grid; gap: 18px; padding: 20px 18px; }
+.cl-deco--note { top: -40px; right: -30px; width: 120px; height: 150px; border-color: rgba(255, 255, 255, 0.12); transform: rotate(16deg); }
+.cl-note-top { position: relative; display: flex; align-items: center; gap: 16px; }
+.cl-note-letter { display: grid; place-items: center; width: 84px; height: 84px; flex: none; border-radius: 22px; background: #1b1e52; border: 3px solid var(--yellow); font: 800 52px/1 var(--font-display); color: var(--yellow); }
+.cl-note-text { display: grid; gap: 6px; }
+.cl-app .cl-note .cl-label-mono { color: var(--on-indigo); }
+.cl-note-text p { font: 700 20px/1.2 var(--font-display); text-wrap: balance; }
+.cl-sep--indigo { background: rgba(255, 255, 255, 0.12); }
+.cl-note-cats { display: grid; gap: 14px; }
+.cl-note-cats li { display: grid; gap: 8px; }
+.cl-note-cat-row { display: flex; align-items: center; gap: 10px; }
+.cl-note-cat-row .cl-glyph-text { font-size: 12px; }
+.cl-note-cat-name { flex: 1; font-size: 14px; font-weight: 600; }
+.cl-note-cat-n { font: 700 13px/1 var(--font-mono); }
+.cl-note-cat-n span { font-weight: 400; color: var(--on-indigo); }
+.cl-note .cl-mode-bar { height: 6px; }
+
+.cl-levels, .cl-stats-card, .cl-top { display: grid; gap: 16px; padding: 18px; }
+.cl-levels-head { display: grid; gap: 6px; }
+.cl-levels-head p { font-size: 13px; line-height: 1.45; color: var(--muted); }
+.cl-heading-row { display: flex; align-items: center; gap: 6px; }
+.cl-info-btn { display: inline-grid; place-items: center; width: 44px; height: 44px; margin: -8px 0; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--muted); }
+.cl-info-btn:hover { background: var(--surface-2); color: var(--yellow); }
+.cl-levels-bar { display: flex; gap: 2px; height: 14px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+.cl-level-tiles--named li { gap: 4px; padding: 10px 2px; text-align: center; }
+.cl-level-tiles--named .cl-level-n { font-size: 20px; }
+.cl-level-name { font: 11px/1.2 var(--font-body); color: var(--muted); }
+.cl-level-tiles li.is-top .cl-level-name { color: #ffe08a; }
+.cl-chart-note { font-size: 13px; color: var(--faint); }
+
+.cl-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.cl-stats > div { display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 4px; padding: 14px; border-radius: 14px; background: var(--surface-2); min-width: 0; }
+.cl-stats dt { font-size: 12px; color: var(--muted); }
+.cl-stats dd { margin: 0; font: 700 26px/1.1 var(--font-mono); }
+.cl-stats dd small { font-size: 16px; font-weight: 400; color: var(--muted); }
+.cl-stats > div[data-tone="streak"] { background: var(--streak-bg); }
+.cl-stats > div[data-tone="streak"] dd { color: var(--streak); }
+.cl-stats > div[data-tone="streak"] dt, .cl-stats > div[data-tone="streak"] dd small { color: #f5cdb0; }
+.cl-app .cl-stats-card .cl-label-mono { margin-top: 4px; }
+.cl-cat-rates { display: grid; gap: 14px; }
+.cl-cat-rates li { display: grid; gap: 7px; }
+.cl-cat-rate-row { display: flex; align-items: baseline; gap: 8px; }
+.cl-cat-rate-name { flex: 1; font-size: 14px; font-weight: 600; }
+.cl-cat-rate-n { font: 12px/1 var(--font-mono); color: var(--faint); }
+.cl-cat-rate-pct { width: 44px; text-align: right; font: 700 14px/1 var(--font-mono); }
+.cl-cat-rate-bar { height: 6px; border-radius: 99px; background: #262a45; overflow: hidden; }
+.cl-cat-rate-bar > span { display: block; height: 100%; border-radius: 99px; background: var(--c); }
+
+.cl-top { gap: 6px; padding: 18px 18px 16px; }
+.cl-top-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.cl-top-count { font: 12px/1 var(--font-mono); color: var(--faint); }
+.cl-top .cl-list-item { display: flex; gap: 12px; padding: 14px 0; border-top: 0; border-bottom: 1px solid #23263f; }
+.cl-top .cl-list-item:last-child { border-bottom: 0; }
+.cl-top .cl-rank { width: 16px; flex: none; padding-top: 1px; font: 700 13px/1.4 var(--font-mono); color: var(--faint); }
+.cl-top .cl-list-main { flex: 1; min-width: 0; display: grid; gap: 4px; justify-items: stretch; }
+.cl-list-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cl-cat-label { display: inline-flex; align-items: center; gap: 6px; font: 700 10px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: color-mix(in srgb, var(--c) 70%, white); }
+.cl-cat-label i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+.cl-top .cl-list-count { padding: 3px 8px; border-radius: 8px; background: rgba(255, 107, 107, 0.14); color: var(--error-text); font: 700 12px/1.3 var(--font-mono); }
+.cl-top .cl-list-fr { font-size: 14px; font-weight: 600; line-height: 1.3; }
+.cl-top .cl-list-en { font: 12.5px/1.4 var(--font-mono); color: var(--muted); }
+.cl-top-more { margin-top: 6px; }
+
+.cl-danger-zone { display: grid; gap: 16px; padding: 16px; border-radius: var(--r-btn); border: 1px dashed #5a2e35; }
+.cl-danger-part { display: grid; gap: 12px; }
+.cl-danger-part + .cl-danger-part { padding-top: 16px; border-top: 1px dashed #5a2e35; }
+.cl-danger-text { display: grid; gap: 4px; }
+.cl-app .cl-danger-text h2, .cl-app .cl-danger-text h3 { font: 700 14px/1.3 var(--font-body); }
+.cl-danger-text p { font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+.cl-danger-btn { justify-self: start; height: 44px; padding: 0 16px; border-radius: 12px; border: 1.5px solid var(--error); background: transparent; color: #ff8e8e; font-weight: 600; font-size: 14px; }
+.cl-danger-btn:hover { background: var(--error-bg); }
+
+@media (min-width: 768px) {
+  .cl-profile { gap: 20px; }
+  .cl-app .cl-profile-who h1 { font-size: 32px; }
+}
+
 /* Classement */
 .cl-page-head--split { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .cl-page-head--split > div { display: grid; gap: 4px; }
@@ -3251,61 +3358,39 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .cl-pseudo-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .cl-pseudo-hint { font-size: 13px; color: var(--ink-3); }
 .cl-pseudo-current { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
-.cl-stats.cl-stats--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.cl-stats div { display: grid; gap: 4px; padding: 12px; border-radius: 8px; background: var(--surface-2); min-width: 0; }
-.cl-stats dt { font-size: 13px; color: var(--ink-2); }
-.cl-stats dd { font: 700 24px/1.1 var(--font-body); font-variant-numeric: tabular-nums; color: var(--ink); }
 
-.cl-boxchart { display: grid; gap: 10px; }
-.cl-boxchart-table { width: 100%; border-collapse: collapse; }
-.cl-boxchart-table th { width: 1%; padding: 6px 14px 6px 0; text-align: left; white-space: nowrap; font: 600 14px/1.3 var(--font-body); color: var(--ink); vertical-align: middle; }
-.cl-boxchart-table th > span { vertical-align: middle; }
-.cl-level-num { display: inline-grid; place-items: center; width: 24px; height: 24px; margin-right: 8px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); font: 700 13px/1 var(--font-mono); color: var(--ink); }
-.cl-level-name { display: inline-block; min-width: 88px; }
-.cl-boxchart-table td { padding: 6px 0; }
-.cl-boxchart-table tr:hover th { color: var(--accent); }
-.cl-boxchart-track { display: flex; align-items: center; gap: 8px; }
-.cl-boxchart-bar { display: block; height: 20px; width: calc((100% - 48px) * var(--r)); border-radius: 0 4px 4px 0; background: var(--accent); transition: width .5s ease; }
-.cl-boxchart-bar.is-mastered { background: var(--ok); }
-.cl-boxchart-value { font: 600 14px/1 var(--font-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
-.cl-chart-note { font-size: 13px; color: var(--ink-3); }
-.cl-heading-row { display: flex; align-items: center; gap: 8px; }
-.cl-info-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink-3); cursor: pointer; transition: background-color .15s, color .15s; }
-.cl-info-btn:hover { background: var(--accent-soft); color: var(--accent); }
 .cl-info-btn:focus-visible, .cl-dialog-close:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
 
 .cl-dialog {
   width: min(460px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
-  padding: 0; border: 1px solid var(--line); border-radius: 16px;
-  background: var(--surface); color: var(--ink);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, .3);
+  padding: 0; border: 1px solid var(--line); border-radius: var(--r-card);
+  background: var(--surface); color: var(--text);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
 }
 .cl-dialog[open] { animation: cl-dialog-in .18s ease-out; }
-.cl-dialog::backdrop { background: rgba(10, 12, 24, .55); }
+.cl-dialog::backdrop { background: rgba(5, 6, 14, .7); }
 .cl-dialog-body { display: grid; gap: 14px; padding: 20px; }
 .cl-dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.cl-dialog-close { display: grid; place-items: center; width: 36px; height: 36px; flex: none; margin: -6px -6px 0 0; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink-3); cursor: pointer; }
-.cl-dialog-close:hover { background: var(--surface-2); color: var(--ink); }
+.cl-dialog-close { display: grid; place-items: center; width: 44px; height: 44px; flex: none; margin: -10px -10px 0 0; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--muted); }
+.cl-dialog-close:hover { background: var(--surface-2); color: var(--text); }
 .cl-dialog-ok { justify-self: end; }
 .cl-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 .cl-dialog-actions .cl-btn { flex: 1 1 auto; }
 .cl-dialog .cl-rules { grid-template-columns: minmax(0, 1fr); }
 @keyframes cl-dialog-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
 .cl-rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.cl-rules li { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); font-size: 14px; line-height: 1.4; color: var(--ink-2); }
+.cl-rules li { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: 14px; line-height: 1.4; color: var(--muted); }
 .cl-rules strong { color: var(--ink); }
 .cl-rule-icon { display: grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 7px; }
 .cl-rule-icon[data-tone="ok"] { background: var(--ok-soft); color: var(--ok); }
 .cl-rule-icon[data-tone="bad"] { background: var(--bad-soft); color: var(--bad); }
 .cl-rule-icon[data-tone="mastered"] { background: var(--accent-soft); color: var(--accent); }
 
-.cl-danger { border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
-.cl-danger .cl-btn { justify-self: start; }
-.cl-confirm { display: grid; gap: 12px; padding: 14px; border-radius: 8px; background: var(--bad-soft); }
+.cl-confirm { display: grid; gap: 12px; padding: 14px; border-radius: 14px; background: var(--error-bg); }
 .cl-confirm-label { font-size: 14px; color: var(--ink); }
-.cl-confirm-input { max-width: 260px; min-height: 46px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: 600 16px/1.2 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
-.cl-confirm-input:focus { outline: none; border-color: var(--bad); box-shadow: 0 0 0 3px var(--bad-soft); }
-.cl-confirm-error { font-size: 14px; font-weight: 700; color: var(--bad); }
+.cl-confirm-input { max-width: 260px; min-height: 48px; padding: 10px 14px; border: 2px solid var(--line-2); border-radius: 12px; background: var(--bg); color: var(--text); font: 600 16px/1.2 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
+.cl-app .cl-confirm-input:focus { outline: none; border-color: var(--error); }
+.cl-confirm-error { font-size: 14px; font-weight: 700; color: var(--error-text); }
 
 /* Chargement */
 .cl-loading { min-height: 60vh; display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--ink-2); }
@@ -3334,9 +3419,6 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 /* La carte ratée glisse sur le côté. */
 @keyframes cl-slide-out { to { transform: translateX(118%) rotate(8deg); opacity: 0; } }
 
-@media (max-width: 400px) {
-  .cl-stats.cl-stats--3 { grid-template-columns: minmax(0, 1fr); }
-}
 @media (max-width: 640px) {
   .cl-grid-2 { grid-template-columns: minmax(0, 1fr); }
   .cl-app .cl-podium { gap: 6px; padding: 24px 10px 0; }
@@ -3344,7 +3426,6 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   .cl-podium-slot[data-place="1"] .cl-podium-name { font-size: 16px; }
   .cl-podium-step { font-size: 24px; }
   .cl-rules { grid-template-columns: minmax(0, 1fr); }
-  .cl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cl-panel { padding: 16px; }
   .cl-attempts li { grid-template-columns: auto minmax(0, 1fr); }
   .cl-attempt-box { grid-column: 2; }
