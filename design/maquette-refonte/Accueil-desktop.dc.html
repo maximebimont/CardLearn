@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Accueil — desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap">
+<style>
+body{margin:0;background:#0D0E1A}
+*{box-sizing:border-box}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:#FFC93C}a:hover{color:#FFD86B}
+:focus-visible{outline:2px solid #FFC93C;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #0D0E1A; color: #F3F2EE; font-family: 'Instrument Sans', system-ui, sans-serif; display: flex; flex-direction: column">
+
+<header style="background: #0F1120; border-bottom: 1px solid #1F2238">
+<div style="max-width: 1120px; margin: 0 auto; padding: 12px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px">
+<a href="Accueil-desktop.dc.html" aria-label="Accueil" style="display: grid; place-items: center; width: 44px; height: 44px">
+<svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="7.5" y="2.5" width="13" height="15" rx="2.5" stroke="#8A8EAE" stroke-width="1.6"></rect><rect x="3.5" y="6.5" width="13" height="15" rx="2.5" fill="#FFC93C"></rect></svg>
+</a>
+<nav aria-label="Navigation principale" style="display: flex; flex-wrap: wrap; gap: 4px">
+<a href="Accueil-desktop.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border-radius: 12px; background: #22253F; color: #FFC93C; text-decoration: none; font-weight: 700; font-size: 15px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"></path></svg>
+<span>Accueil</span>
+</a>
+<a href="Profil.dc.html" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border-radius: 12px; color: #A3A7C4; text-decoration: none; font-weight: 600; font-size: 15px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"></path></svg>
+<span>Profil</span>
+</a>
+<a href="Classement.dc.html" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border-radius: 12px; color: #A3A7C4; text-decoration: none; font-weight: 600; font-size: 15px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21v-8h6v8"></path><path d="M9 21V7h6v14"></path><path d="M15 21v-6h6v6"></path></svg>
+<span>Classement</span>
+</a>
+</nav>
+<div style="margin-left: auto; display: flex; align-items: center; gap: 10px">
+<div style="display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border-radius: 999px; background: #2A1C12; border: 1px solid #4D311D; color: #FF9F5A">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5c.8 3.2 4.8 5.4 4.8 10.1a4.8 4.8 0 0 1-9.6 0c0-2.3 1.1-3.8 2.3-4.8.1 1.5.8 2.6 2 3 0-2.9-.6-5.6.5-8.3z"></path></svg>
+<span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px">4</span>
+<span style="font-size: 13px; color: #F5CDB0">jours</span>
+</div>
+<a href="Profil.dc.html" aria-label="Mon profil" style="width: 44px; height: 44px; border-radius: 50%; background: #FFC93C; color: #1B1400; display: grid; place-items: center; text-decoration: none; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; font-size: 18px">M</a>
+<button type="button" aria-label="Se déconnecter" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid #2A2E4A; background: #161829; color: #C5C8F0; display: grid; place-items: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"></path><path d="M10 17l5-5-5-5"></path><path d="M15 12H4"></path></svg>
+</button>
+</div>
+</div>
+</header>
+
+<main style="width: 100%; max-width: 1120px; margin: 0 auto; padding: 40px 24px 56px; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<p style="margin: 0; font-size: 15px; color: #A3A7C4">Content de te revoir</p>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 44px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.05">Salut Max</h1>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+
+<section aria-labelledby="np-d" style="flex: 999 1 560px; min-width: 0; position: relative; background: #262A6E; border-radius: 28px; padding: 32px; display: flex; flex-direction: column; gap: 24px; overflow: hidden">
+<div aria-hidden="true" style="position: absolute; top: -50px; right: -40px; width: 180px; height: 220px; border-radius: 24px; border: 1.5px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.04); transform: rotate(16deg)"></div>
+<div aria-hidden="true" style="position: absolute; top: -30px; right: 90px; width: 140px; height: 172px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,0.09); transform: rotate(-8deg)"></div>
+<div style="position: relative; display: flex; flex-direction: column; gap: 6px">
+<h2 id="np-d" style="margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.05">Nouvelle partie</h2>
+<p style="margin: 0; font-size: 16px; color: #C5C8F0">Tirage parmi {{pool}} cartes de vocabulaire anglais technique</p>
+</div>
+
+<div style="position: relative; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px">
+<sc-for list="{{cats}}" as="c" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{c.pressed}}" onClick="{{c.toggle}}" style="display: flex; flex-direction: column; align-items: stretch; gap: 12px; min-height: 150px; padding: 16px; border-radius: 18px; text-align: left; color: #F3F2EE; border: {{c.border}}; background: {{c.bg}}; opacity: {{c.opacity}}">
+<span style="display: flex; justify-content: space-between; align-items: flex-start">
+<span style="width: 42px; height: 42px; border-radius: 12px; background: {{c.color}}; color: #0D0E1A; display: grid; place-items: center">
+<sc-if value="{{c.isWords}}" hint-placeholder-val="{{true}}"><span style="font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; font-size: 17px">Aa</span></sc-if>
+<sc-if value="{{c.isExpr}}" hint-placeholder-val="{{false}}"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9.5L4 20z"></path></svg></sc-if>
+<sc-if value="{{c.isDef}}" hint-placeholder-val="{{false}}"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"></path><path d="M5 17a3 3 0 0 1 3-3h11"></path></svg></sc-if>
+</span>
+<sc-if value="{{c.on}}" hint-placeholder-val="{{true}}">
+<span style="width: 24px; height: 24px; border-radius: 50%; background: #FFC93C; color: #1B1400; display: grid; place-items: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"></path></svg></span>
+</sc-if>
+</span>
+<span style="font-weight: 700; font-size: 17px">{{c.name}}</span>
+<span style="display: flex; flex-direction: column; gap: 8px; margin-top: auto">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C5C8F0">{{c.done}}/{{c.total}} maîtrisées</span>
+<span style="display: block; height: 5px; border-radius: 99px; background: rgba(255,255,255,0.14); overflow: hidden"><span style="display: block; height: 100%; border-radius: 99px; width: {{c.pct}}; background: {{c.color}}"></span></span>
+</span>
+</button>
+</sc-for>
+</div>
+
+<div style="position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; align-items: center; gap: 14px">
+<span id="cpp-d" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #C5C8F0">Cartes / partie</span>
+<div aria-labelledby="cpp-d" style="display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: rgba(13,14,26,0.35); border: 1px solid rgba(255,255,255,0.12)">
+<sc-for list="{{counts}}" as="k" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{k.pressed}}" onClick="{{k.pick}}" style="width: 60px; height: 44px; border: 0; border-radius: 10px; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px; background: {{k.bg}}; color: {{k.fg}}">{{k.n}}</button>
+</sc-for>
+</div>
+</div>
+<a href="Partie-saisie.dc.html" style="flex: 0 1 280px; display: flex; align-items: center; justify-content: center; gap: 10px; height: 58px; padding: 0 28px; border-radius: 16px; background: #FFC93C; color: #1B1400; text-decoration: none; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; font-size: 21px; box-shadow: 0 5px 0 #B8860B">
+<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" fill="currentColor"></path></svg>
+<span>Jouer</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; padding: 4px 8px; border-radius: 8px; background: rgba(27,20,0,0.12)">{{count}} cartes</span>
+</a>
+</div>
+</section>
+
+<aside style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<section aria-labelledby="prog-d" style="background: #161829; border: 1px solid #2A2E4A; border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h2 id="prog-d" style="margin: 0; font-size: 14px; font-weight: 500; color: #A3A7C4">Cartes maîtrisées</h2>
+<div style="display: flex; align-items: baseline; gap: 4px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 42px; font-weight: 700; line-height: 1; letter-spacing: -0.03em">13</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 17px; color: #8A8EAE">/126</span>
+</div>
+</div>
+<div style="width: 56px; height: 56px; flex: none; border-radius: 16px; background: #1D2036; border: 2px solid #FFC93C; display: grid; place-items: center; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 30px; font-weight: 800; color: #FFC93C">D</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; gap: 3px; height: 10px">
+<div style="flex: 50; background: #262A45; border-radius: 999px 2px 2px 999px; overflow: hidden"><div style="width: 26%; height: 100%; background: #FFC93C; border-radius: 999px"></div></div>
+<div style="flex: 25; background: #262A45; border-radius: 2px"></div>
+<div style="flex: 31; background: #262A45; border-radius: 2px"></div>
+<div style="flex: 20; background: #262A45; border-radius: 2px 999px 999px 2px"></div>
+</div>
+<div style="display: flex; gap: 3px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8A8EAE">
+<span style="flex: 50; color: #FFC93C; font-weight: 700">D</span>
+<span style="flex: 25">C·50</span>
+<span style="flex: 31">B·75</span>
+<span style="flex: 20">A·106</span>
+</div>
+</div>
+<p style="margin: 0; font-size: 14px; color: #C5C8F0">Note estimée D · encore <strong style="color: #F3F2EE">37 cartes</strong> pour viser C</p>
+<a href="Profil.dc.html" style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 14px; text-decoration: none">
+<span>Voir mon profil</span>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+</a>
+</section>
+
+<section aria-labelledby="rev-d" style="display: flex; align-items: center; gap: 16px; background: #161829; border: 1px solid #2A2E4A; border-radius: 22px; padding: 18px 18px 18px 20px; flex-wrap: wrap">
+<div aria-hidden="true" style="position: relative; width: 46px; height: 56px; flex: none">
+<div style="position: absolute; inset: 0; border-radius: 10px; background: #3A1E22; transform: rotate(-9deg)"></div>
+<div style="position: absolute; inset: 0; border-radius: 10px; background: #4A2328; border: 1.5px solid #FF7A7A; display: grid; place-items: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 21px; color: #FF9A9A">5</div>
+</div>
+<div style="flex: 1 1 140px; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<h2 id="rev-d" style="margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 20px; font-weight: 700">Revanche</h2>
+<p style="margin: 0; font-size: 14px; color: #A3A7C4; line-height: 1.35">5 cartes ratées à retenter</p>
+</div>
+<a href="Partie-saisie.dc.html" style="display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid #3A3F63; color: #F3F2EE; text-decoration: none; font-weight: 600; font-size: 14px">
+<span>Lancer</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+</a>
+</section>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":780}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const sel = s.sel || { mots: true, expr: true, def: true };
+    const count = s.count || 20;
+    const base = [
+      { id: 'mots', name: 'Mots métier', done: 6, total: 50, color: '#63A4FF', isWords: true, isExpr: false, isDef: false },
+      { id: 'expr', name: 'Expressions', done: 5, total: 51, color: '#FF9255', isWords: false, isExpr: true, isDef: false },
+      { id: 'def', name: 'Définitions', done: 2, total: 25, color: '#C09CFF', isWords: false, isExpr: false, isDef: true }
+    ];
+    const selectedCount = base.filter((c) => sel[c.id]).length;
+    const cats = base.map((c) => {
+      const on = !!sel[c.id];
+      return Object.assign({}, c, {
+        on: on,
+        pressed: on ? 'true' : 'false',
+        border: on ? '2px solid #FFC93C' : '2px dashed #4A4F8A',
+        bg: on ? '#33388C' : 'rgba(255,255,255,0.03)',
+        opacity: on ? '1' : '0.75',
+        pct: Math.round((c.done / c.total) * 100) + '%',
+        toggle: () => {
+          if (on && selectedCount === 1) return;
+          const next = Object.assign({}, sel);
+          next[c.id] = !on;
+          this.setState({ sel: next });
+        }
+      });
+    });
+    const pool = base.filter((c) => sel[c.id]).reduce((a, c) => a + c.total, 0);
+    const counts = [10, 20, 50].map((n) => ({
+      n: n,
+      pressed: n === count ? 'true' : 'false',
+      bg: n === count ? '#F3F2EE' : 'transparent',
+      fg: n === count ? '#1B1C3A' : '#C5C8F0',
+      pick: () => this.setState({ count: n })
+    }));
+    return { cats: cats, pool: pool, count: count, counts: counts };
+  }
+}
+</script>
+</body>
+</html>

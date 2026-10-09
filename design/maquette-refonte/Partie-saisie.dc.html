@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Partie — mot métier à écrire</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap">
+<style>
+body{margin:0;background:#0D0E1A}
+*{box-sizing:border-box}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:#FFC93C}a:hover{color:#FFD86B}
+:focus-visible{outline:2px solid #FFC93C;outline-offset:2px}
+input::placeholder{color:#8A8EAE}
+input:focus{outline:none;border-color:#FFC93C !important}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; background: #0D0E1A; color: #F3F2EE; font-family: 'Instrument Sans', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div style="display: flex; align-items: center; gap: 12px; padding: 52px 16px 0 8px">
+<a href="Main.dc.html" aria-label="Quitter la partie" style="width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 12px; color: #A3A7C4">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+</a>
+<div style="flex: 1; height: 10px; border-radius: 999px; background: #1D2036; overflow: hidden"><div style="width: 35%; height: 100%; border-radius: 999px; background: #FFC93C"></div></div>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700">7<span style="color: #8A8EAE">/20</span></span>
+</div>
+
+<div style="position: relative; margin: 24px 16px 0; height: 236px">
+<div aria-hidden="true" style="position: absolute; left: 26px; right: 26px; bottom: -16px; height: 60px; border-radius: 24px; background: #23264A"></div>
+<div aria-hidden="true" style="position: absolute; left: 12px; right: 12px; bottom: -8px; height: 60px; border-radius: 24px; background: #383C6B"></div>
+<article style="position: absolute; inset: 0; border-radius: 24px; background: #F6F3EA; color: #15162B; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 18px 40px rgba(0,0,0,0.35)">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<span style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; background: #DCE9FF; color: #1D4C9C; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.08em">
+<span style="font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 12px; font-weight: 800; letter-spacing: 0">Aa</span>
+<span>MOT MÉTIER</span>
+</span>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5A5D78">
+<span>Niveau</span>
+<span style="display: flex; gap: 3px">
+<sc-for list="{{cardDots}}" as="d" hint-placeholder-count="5"><span style="width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid {{d.ring}}; background: {{d.bg}}"></span></sc-for>
+</span>
+</span>
+</div>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 34px; font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; text-wrap: balance">Service d'hébergement</h1>
+<div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #5A5D78">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; padding: 3px 6px; border-radius: 6px; background: #E8E3D6; color: #3B3E5C">FR → EN</span>
+<span>Écris la traduction anglaise</span>
+</div>
+</article>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; margin: 38px 16px 0">
+<label for="rep" style="font-size: 13px; font-weight: 600; color: #A3A7C4; padding-left: 4px">Ta réponse en anglais</label>
+<input id="rep" type="text" placeholder="Tape ta traduction…" value="{{answer}}" onChange="{{onInput}}" onKeyDown="{{onKey}}" style="height: 58px; padding: 0 18px; border-radius: 16px; background: #161829; border: 2px solid {{inputBorder}}; font-family: 'JetBrains Mono', monospace; font-size: 18px; color: #F3F2EE">
+<sc-if value="{{isQuestion}}" hint-placeholder-val="{{false}}">
+<button type="button" onClick="{{validate}}" style="margin-top: 6px; height: 56px; border: 0; border-radius: 16px; background: #FFC93C; color: #1B1400; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; font-size: 19px; box-shadow: 0 5px 0 #B8860B">Valider</button>
+</sc-if>
+</div>
+
+<sc-if value="{{isCorrect}}" hint-placeholder-val="{{true}}">
+<section aria-live="polite" style="position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 20px 34px; border-radius: 28px 28px 0 0; background: #0F2A1C; border-top: 2px solid #3DDC84; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="width: 44px; height: 44px; flex: none; border-radius: 50%; background: #3DDC84; color: #06210F; display: grid; place-items: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"></path></svg></span>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 24px; font-weight: 800; color: #5BE59A">Bien joué !</h2>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #D7F5E4">Hosting service</span>
+</div>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 14px; background: rgba(61,220,132,0.10)">
+<span style="font-size: 14px; color: #D7F5E4">La carte monte au niveau 3</span>
+<span style="display: flex; gap: 4px">
+<sc-for list="{{upDots}}" as="d" hint-placeholder-count="5"><span style="width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid {{d.ring}}; background: {{d.bg}}"></span></sc-for>
+</span>
+</div>
+<a href="Partie-qcm.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 56px; border-radius: 16px; background: #3DDC84; color: #06210F; text-decoration: none; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; font-size: 19px; box-shadow: 0 5px 0 #1F9A57">
+<span>Continuer</span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+</a>
+</section>
+</sc-if>
+
+<sc-if value="{{isWrong}}" hint-placeholder-val="{{false}}">
+<section aria-live="polite" style="position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 20px 34px; border-radius: 28px 28px 0 0; background: #2E1215; border-top: 2px solid #FF6B6B; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: flex-start; gap: 12px">
+<span style="width: 44px; height: 44px; flex: none; border-radius: 50%; background: #FF6B6B; color: #2A0606; display: grid; place-items: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></span>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 24px; font-weight: 800; color: #FF9A9A">Pas tout à fait</h2>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #F0B4B4">Réponse attendue</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: #FFFFFF">Hosting service</span>
+<span style="font-size: 13px; color: #E7BDBD">Ta réponse : <s style="font-family: 'JetBrains Mono', monospace">{{answer}}</s></span>
+</div>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 14px; background: rgba(255,107,107,0.10)">
+<span style="font-size: 14px; color: #F6D3D3">Retour au niveau 1</span>
+<span style="display: flex; gap: 4px">
+<sc-for list="{{downDots}}" as="d" hint-placeholder-count="5"><span style="width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid {{d.ring}}; background: {{d.bg}}"></span></sc-for>
+</span>
+</div>
+<a href="Partie-qcm.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 56px; border-radius: 16px; background: #FF6B6B; color: #2A0606; text-decoration: none; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; font-size: 19px; box-shadow: 0 5px 0 #B83A3A">
+<span>Continuer</span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+</a>
+</section>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["question","juste","faux"],"default":"juste"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const map = { question: 'question', juste: 'correct', faux: 'wrong' };
+    const initPhase = map[this.props.etat ?? 'juste'] || 'correct';
+    const phase = s.phase || initPhase;
+    const initAnswer = initPhase === 'correct' ? 'Hosting service' : (initPhase === 'wrong' ? 'Host service' : '');
+    const answer = s.answer !== undefined ? s.answer : initAnswer;
+    const norm = (v) => String(v || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const validate = () => {
+      if (!norm(answer)) return;
+      this.setState({ answer: answer, phase: norm(answer) === 'hosting service' ? 'correct' : 'wrong' });
+    };
+    const dots = (n, on, ring) => [1, 2, 3, 4, 5].map((i) => ({ bg: i <= n ? on : 'transparent', ring: ring }));
+    return {
+      answer: answer,
+      isQuestion: phase === 'question',
+      isCorrect: phase === 'correct',
+      isWrong: phase === 'wrong',
+      inputBorder: phase === 'correct' ? '#3DDC84' : (phase === 'wrong' ? '#FF6B6B' : '#3A3F63'),
+      onInput: (e) => this.setState({ answer: e.target.value, phase: 'question' }),
+      onKey: (e) => { if (e.key === 'Enter') validate(); },
+      validate: validate,
+      cardDots: dots(2, '#2B2E5C', '#2B2E5C'),
+      upDots: dots(3, '#3DDC84', '#3DDC84'),
+      downDots: dots(1, '#FF6B6B', '#FF6B6B')
+    };
+  }
+}
+</script>
+</body>
+</html>

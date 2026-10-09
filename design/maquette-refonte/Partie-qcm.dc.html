@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Partie — expression à choisir</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap">
+<style>
+body{margin:0;background:#0D0E1A}
+*{box-sizing:border-box}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:#FFC93C}a:hover{color:#FFD86B}
+:focus-visible{outline:2px solid #FFC93C;outline-offset:2px}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; background: #0D0E1A; color: #F3F2EE; font-family: 'Instrument Sans', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div style="display: flex; align-items: center; gap: 12px; padding: 52px 16px 0 8px">
+<a href="Main.dc.html" aria-label="Quitter la partie" style="width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 12px; color: #A3A7C4">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+</a>
+<div style="flex: 1; height: 10px; border-radius: 999px; background: #1D2036; overflow: hidden"><div style="width: 40%; height: 100%; border-radius: 999px; background: #FFC93C"></div></div>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700">8<span style="color: #8A8EAE">/20</span></span>
+</div>
+
+<div style="position: relative; margin: 20px 16px 0; height: 204px">
+<div aria-hidden="true" style="position: absolute; left: 26px; right: 26px; bottom: -16px; height: 60px; border-radius: 24px; background: #23264A"></div>
+<div aria-hidden="true" style="position: absolute; left: 12px; right: 12px; bottom: -8px; height: 60px; border-radius: 24px; background: #383C6B"></div>
+<article style="position: absolute; inset: 0; border-radius: 24px; background: #F6F3EA; color: #15162B; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 18px 40px rgba(0,0,0,0.35)">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<span style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; background: #FFE3D3; color: #8A3A0E; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.08em">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9.5L4 20z"></path></svg>
+<span>EXPRESSION</span>
+</span>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5A5D78">
+<span>Niveau</span>
+<span style="display: flex; gap: 3px">
+<sc-for list="{{cardDots}}" as="d" hint-placeholder-count="5"><span style="width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid {{d.ring}}; background: {{d.bg}}"></span></sc-for>
+</span>
+</span>
+</div>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 29px; font-weight: 800; line-height: 1.08; letter-spacing: -0.02em; text-wrap: balance">Effectuer des traitements par lot</h1>
+<div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #5A5D78">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; padding: 3px 6px; border-radius: 6px; background: #E8E3D6; color: #3B3E5C">FR → EN</span>
+<span>Choisis la bonne traduction</span>
+</div>
+</article>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px; margin: 36px 16px 0">
+<sc-for list="{{opts}}" as="o" hint-placeholder-count="4">
+<button type="button" onClick="{{o.pick}}" style="display: flex; align-items: center; gap: 14px; width: 100%; min-height: 60px; padding: 8px 14px 8px 8px; border-radius: 16px; text-align: left; color: #F3F2EE; border: 2px solid {{o.border}}; background: {{o.bg}}; opacity: {{o.op}}">
+<span style="width: 40px; height: 40px; flex: none; border-radius: 11px; display: grid; place-items: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px; background: {{o.keyBg}}; color: {{o.keyFg}}">
+<sc-if value="{{o.showLetter}}" hint-placeholder-val="{{true}}"><span>{{o.letter}}</span></sc-if>
+<sc-if value="{{o.showCheck}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"></path></svg></sc-if>
+<sc-if value="{{o.showX}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></sc-if>
+</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; line-height: 1.35">{{o.text}}</span>
+</button>
+</sc-for>
+</div>
+
+<sc-if value="{{isCorrect}}" hint-placeholder-val="{{false}}">
+<section aria-live="polite" style="position: absolute; left: 0; right: 0; bottom: 0; padding: 20px 20px 34px; border-radius: 28px 28px 0 0; background: #0F2A1C; border-top: 2px solid #3DDC84; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="width: 44px; height: 44px; flex: none; border-radius: 50%; background: #3DDC84; color: #06210F; display: grid; place-items: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"></path></svg></span>
+<div style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 22px; font-weight: 800; color: #5BE59A">Bien joué !</h2>
+<span style="font-size: 13px; color: #D7F5E4">La carte monte au niveau 4</span>
+</div>
+<span style="display: flex; gap: 4px">
+<sc-for list="{{upDots}}" as="d" hint-placeholder-count="5"><span style="width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid {{d.ring}}; background: {{d.bg}}"></span></sc-for>
+</span>
+</div>
+<a href="Fin-partie.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 56px; border-radius: 16px; background: #3DDC84; color: #06210F; text-decoration: none; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; font-size: 19px; box-shadow: 0 5px 0 #1F9A57">
+<span>Continuer</span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+</a>
+</section>
+</sc-if>
+
+<sc-if value="{{isWrong}}" hint-placeholder-val="{{true}}">
+<section aria-live="polite" style="position: absolute; left: 0; right: 0; bottom: 0; padding: 20px 20px 34px; border-radius: 28px 28px 0 0; background: #2E1215; border-top: 2px solid #FF6B6B; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="width: 44px; height: 44px; flex: none; border-radius: 50%; background: #FF6B6B; color: #2A0606; display: grid; place-items: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></span>
+<div style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 22px; font-weight: 800; color: #FF9A9A">C'était la réponse A</h2>
+<span style="font-size: 13px; color: #F6D3D3">Retour au niveau 1</span>
+</div>
+<span style="display: flex; gap: 4px">
+<sc-for list="{{downDots}}" as="d" hint-placeholder-count="5"><span style="width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid {{d.ring}}; background: {{d.bg}}"></span></sc-for>
+</span>
+</div>
+<a href="Fin-partie.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 56px; border-radius: 16px; background: #FF6B6B; color: #2A0606; text-decoration: none; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; font-size: 19px; box-shadow: 0 5px 0 #B83A3A">
+<span>Continuer</span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+</a>
+</section>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["question","juste","faux"],"default":"faux"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const initMap = { question: null, juste: 'a', faux: 'c' };
+    const etat = this.props.etat ?? 'faux';
+    const init = Object.prototype.hasOwnProperty.call(initMap, etat) ? initMap[etat] : 'c';
+    const picked = s.picked !== undefined ? s.picked : init;
+    const answered = picked !== null;
+    const right = 'a';
+    const opts = [
+      { id: 'a', letter: 'A', text: 'Perform batch processes' },
+      { id: 'b', letter: 'B', text: 'Make treatments by lot' },
+      { id: 'c', letter: 'C', text: 'Carry out batch treatments' },
+      { id: 'd', letter: 'D', text: 'Execute lot processing' }
+    ].map((o) => {
+      const isRight = o.id === right;
+      const isPicked = o.id === picked;
+      let bg = '#161829', border = '#2A2E4A', keyBg = '#1D2036', keyFg = '#C5C8F0', op = '1';
+      if (answered) {
+        if (isRight) { bg = '#0F2A1C'; border = '#3DDC84'; keyBg = '#3DDC84'; keyFg = '#06210F'; }
+        else if (isPicked) { bg = '#2E1215'; border = '#FF6B6B'; keyBg = '#FF6B6B'; keyFg = '#2A0606'; }
+        else { op = '0.45'; }
+      }
+      return Object.assign({}, o, {
+        bg: bg, border: border, keyBg: keyBg, keyFg: keyFg, op: op,
+        showCheck: answered && isRight,
+        showX: answered && isPicked && !isRight,
+        showLetter: !(answered && (isRight || isPicked)),
+        pick: () => { if (!answered) this.setState({ picked: o.id }); }
+      });
+    });
+    const dots = (n, on, ring) => [1, 2, 3, 4, 5].map((i) => ({ bg: i <= n ? on : 'transparent', ring: ring }));
+    return {
+      opts: opts,
+      isCorrect: answered && picked === right,
+      isWrong: answered && picked !== right,
+      reset: () => this.setState({ picked: null }),
+      cardDots: dots(3, '#2B2E5C', '#2B2E5C'),
+      upDots: dots(4, '#3DDC84', '#3DDC84'),
+      downDots: dots(1, '#FF6B6B', '#FF6B6B')
+    };
+  }
+}
+</script>
+</body>
+</html>

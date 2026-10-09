@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Fin de partie — mobile</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap">
+<style>
+body{margin:0;background:#0D0E1A}
+*{box-sizing:border-box}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:#FFC93C}a:hover{color:#FFD86B}
+:focus-visible{outline:2px solid #FFC93C;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #0D0E1A; color: #F3F2EE; font-family: 'Instrument Sans', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+<main style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 52px 16px 0">
+
+<section aria-labelledby="score-title" style="display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center">
+<div style="position: relative; width: 104px; height: 104px">
+<svg width="104" height="104" viewBox="0 0 120 120" aria-hidden="true" style="transform: rotate(-90deg)">
+<circle cx="60" cy="60" r="50" fill="none" stroke="#1D2036" stroke-width="10"></circle>
+<circle cx="60" cy="60" r="50" fill="none" stroke="#3DDC84" stroke-width="10" stroke-linecap="round" stroke-dasharray="221.6 314.2"></circle>
+<circle cx="60" cy="60" r="50" fill="none" stroke="#FF6B6B" stroke-width="10" stroke-linecap="round" stroke-dasharray="64.5 314.2" stroke-dashoffset="-235.6"></circle>
+</svg>
+<div style="position: absolute; inset: 0; display: flex; align-items: baseline; justify-content: center; padding-top: 34px; gap: 2px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 31px; font-weight: 700; line-height: 1; letter-spacing: -0.03em">15</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #8A8EAE">/20</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 id="score-title" style="margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1">Belle partie !</h1>
+<p style="margin: 0; display: flex; align-items: center; justify-content: center; gap: 14px; font-size: 14px; color: #A3A7C4">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #3DDC84"></span>15 justes</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FF6B6B"></span>5 erreurs</span>
+<span>75 %</span>
+</p>
+</div>
+</section>
+
+<section aria-labelledby="prog-title" style="background: #161829; border: 1px solid #2A2E4A; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 id="prog-title" style="margin: 0; font-size: 13px; font-weight: 500; color: #A3A7C4">Cartes maîtrisées</h2>
+<div style="display: flex; align-items: baseline; gap: 6px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; line-height: 1; letter-spacing: -0.03em">15</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #8A8EAE">/126</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; padding: 3px 7px; border-radius: 7px; background: #FFC93C; color: #1B1400; align-self: center">+2</span>
+</div>
+</div>
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="font-size: 13px; font-weight: 600; text-align: right; line-height: 1.3">encore 35<br><span style="font-weight: 400; color: #A3A7C4">pour viser C</span></span>
+<div style="width: 44px; height: 44px; flex: none; border-radius: 13px; background: #1D2036; border: 2px solid #FFC93C; display: grid; place-items: center; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 24px; font-weight: 800; color: #FFC93C">D</div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; gap: 3px; height: 10px">
+<div style="flex: 50; display: flex; background: #262A45; border-radius: 999px 2px 2px 999px; overflow: hidden">
+<div style="width: 26%; height: 100%; background: #FFC93C"></div>
+<div style="width: 4%; height: 100%; background: #FFF0C2; border-radius: 0 999px 999px 0"></div>
+</div>
+<div style="flex: 25; background: #262A45; border-radius: 2px"></div>
+<div style="flex: 31; background: #262A45; border-radius: 2px"></div>
+<div style="flex: 20; background: #262A45; border-radius: 2px 999px 999px 2px"></div>
+</div>
+<div style="display: flex; gap: 3px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8A8EAE">
+<span style="flex: 50; color: #FFC93C; font-weight: 700">D</span>
+<span style="flex: 25">C·50</span>
+<span style="flex: 31">B·75</span>
+<span style="flex: 20">A·106</span>
+</div>
+</div>
+<div style="height: 1px; background: #23263F"></div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #A3A7C4">Tes boîtes après la partie</h3>
+<ol style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px">
+<li style="display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px; border-radius: 12px; background: #1D2036">
+<span style="display: flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #A3A7C4"><span style="width: 8px; height: 8px; border-radius: 2px; background: #4A4F7E"></span>1</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700">86</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #A3A7C4">−6</span>
+</li>
+<li style="display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px; border-radius: 12px; background: #1D2036">
+<span style="display: flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #A3A7C4"><span style="width: 8px; height: 8px; border-radius: 2px; background: #5E66C4"></span>2</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700">16</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #A3A7C4">+4</span>
+</li>
+<li style="display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px; border-radius: 12px; background: #1D2036">
+<span style="display: flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #A3A7C4"><span style="width: 8px; height: 8px; border-radius: 2px; background: #7F8BF0"></span>3</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700">7</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #A3A7C4">+1</span>
+</li>
+<li style="display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px; border-radius: 12px; background: #1D2036">
+<span style="display: flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #A3A7C4"><span style="width: 8px; height: 8px; border-radius: 2px; background: #A9B3FF"></span>4</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700">2</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #A3A7C4">−1</span>
+</li>
+<li style="display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px; border-radius: 12px; background: #2A2614; border: 1px solid rgba(255,201,60,0.45)">
+<span style="display: flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #FFE08A"><span style="width: 8px; height: 8px; border-radius: 2px; background: #FFC93C"></span>5</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: #FFC93C">15</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #FFE08A">+2</span>
+</li>
+</ol>
+</div>
+</section>
+
+<section aria-labelledby="revoir-title" style="background: #161829; border: 1px solid #2A2E4A; border-radius: 20px; padding: 12px 16px 6px; display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 2px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h2 id="revoir-title" style="margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 18px; font-weight: 700">À revoir</h2>
+<span style="font-size: 13px; color: #A3A7C4">5 cartes retournent en boîte 1</span>
+</div>
+<button type="button" style="height: 44px; margin-right: -8px; padding: 0 8px; border: 0; background: transparent; color: #FFC93C; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 4px">
+<span>Voir les 5</span>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<li style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #23263F">
+<span style="width: 8px; height: 8px; flex: none; border-radius: 50%; background: #FF9255"></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Effectuer des traitements par lot</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #A3A7C4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Perform batch processes</span>
+</span>
+</li>
+<li style="display: flex; align-items: center; gap: 12px; padding: 9px 0">
+<span style="width: 8px; height: 8px; flex: none; border-radius: 50%; background: #63A4FF"></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Balise</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #A3A7C4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Markup</span>
+</span>
+</li>
+</ul>
+</section>
+</main>
+
+<div style="flex: none; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 28px; background: #0D0E1A; border-top: 1px solid #1F2238">
+<div style="display: flex; gap: 10px">
+<a href="Main.dc.html" aria-label="Retour à l'accueil" style="width: 64px; height: 48px; flex: none; border-radius: 14px; border: 1px solid #3A3F63; color: #F3F2EE; display: grid; place-items: center; text-decoration: none">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"></path></svg>
+</a>
+<a href="Partie-saisie.dc.html" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; height: 48px; border-radius: 14px; border: 1px solid #3A3F63; color: #F3F2EE; text-decoration: none; font-weight: 600; font-size: 16px">
+<svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" fill="currentColor"></path></svg>
+<span>Rejouer</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A3A7C4">20 cartes</span>
+</a>
+</div>
+<a href="Partie-saisie.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 10px; height: 56px; border-radius: 16px; background: #FFC93C; color: #1B1400; text-decoration: none; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; font-size: 19px; box-shadow: 0 5px 0 #B8860B">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></svg>
+<span>Revanche</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; padding: 4px 8px; border-radius: 8px; background: rgba(27,20,0,0.12)">5 cartes</span>
+</a>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
