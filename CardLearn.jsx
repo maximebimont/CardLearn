@@ -1500,117 +1500,143 @@ function Ranking({ summary, leaderboard, board: state, onReload: load }) {
   );
 }
 
-function Home({ progress, summary, cats, onCatsChange, onSizeChange, onStart, storage }) {
+// Accueil : salut, progression vers la note, nouvelle partie, revanche.
+// Mobile : une colonne ; desktop : la nouvelle partie à gauche, progression et revanche à droite.
+function Home({ progress, summary, cats, onCatsChange, onSizeChange, onStart, onProfile, storage, pseudo }) {
   const size = progress.settings.size;
   const pool = CARDS.filter((card) => cats.includes(card.cat)).length;
-  const toggle = (cat) => onCatsChange(cats.includes(cat) ? cats.filter((c) => c !== cat) : CAT_KEYS.filter((c) => c === cat || cats.includes(c)));
-  const nextGrade = GRADES.slice().reverse().find((g) => g.min > summary.mastered);
+  const draw = Math.min(size, pool);
+  const next = nextGradeFor(summary.mastered);
+  const rematch = summary.toReview;
+  // Au moins une catégorie reste sélectionnée.
+  const toggle = (cat) => {
+    if (!cats.includes(cat)) onCatsChange(CAT_KEYS.filter((c) => c === cat || cats.includes(c)));
+    else if (cats.length > 1) onCatsChange(cats.filter((c) => c !== cat));
+  };
 
   return (
-    <div className="cl-wrap cl-home">
+    <div className="cl-home">
       <StorageNotice state={storage} />
 
-      <section className="cl-hud" aria-label="Tes scores">
-        <div className="cl-hud-item">
-          <span className="cl-hud-icon" data-tone="streak">
-            <IconFlame size={20} />
-          </span>
-          <span className="cl-hud-text">
-            <span className="cl-hud-value">{summary.streak}</span>
-            <span className="cl-hud-label">{summary.streak > 1 ? "jours de suite" : "jour de suite"}</span>
-          </span>
+      <header className="cl-home-head">
+        <div className="cl-home-hello">
+          <p>{progress.stats.sessions ? "Content de te revoir" : "Bienvenue sur CardLearn"}</p>
+          <h1>{pseudo ? `Salut ${pseudo}` : "Salut"}</h1>
         </div>
-        <div className="cl-hud-item">
-          <span className="cl-hud-icon" data-tone="mastered">
-            <IconStack size={20} />
-          </span>
-          <span className="cl-hud-text">
-            <span className="cl-hud-value">
-              {summary.mastered}
-              <small>/{TOTAL}</small>
-            </span>
-            <span className="cl-hud-label">maîtrisées</span>
-          </span>
-        </div>
-        <div className="cl-hud-item">
-          <span className="cl-hud-grade" data-grade={summary.grade} aria-hidden="true">
-            {summary.grade}
-          </span>
-          <span className="cl-hud-text">
-            <span className="cl-hud-value cl-hud-value--word">Note {summary.grade}</span>
-            <span className="cl-hud-label">{nextGrade ? `encore ${nextGrade.min - summary.mastered} pour ${nextGrade.grade}` : "note maximale"}</span>
-          </span>
-        </div>
-      </section>
+        <StreakPill days={summary.streak} />
+      </header>
 
-      <section className="cl-play" aria-labelledby="play-title">
-        <div className="cl-play-head">
-          <h1 id="play-title">Nouvelle partie</h1>
-          <p>{TOTAL} cartes de vocabulaire anglais technique</p>
-        </div>
-
-        <fieldset className="cl-modes">
-          <legend className="cl-sr">Catégories</legend>
-          {CAT_KEYS.map((cat) => {
-            const on = cats.includes(cat);
-            return (
-              <label key={cat} className={cls("cl-mode", on && "is-on")} data-cat={cat}>
-                <input type="checkbox" id={`cat-${cat}`} className="cl-mode-input" checked={on} onChange={() => toggle(cat)} />
-                <span className="cl-mode-glyph" aria-hidden="true">
-                  <CatGlyph cat={cat} />
-                </span>
-                <span className="cl-mode-check" aria-hidden="true">
-                  <IconCheck size={14} />
-                </span>
-                <span className="cl-mode-name">{CATEGORIES[cat].label}</span>
-                <span className="cl-mode-meta">
-                  {summary.masteredByCat[cat]}/{CAT_TOTAL[cat]} maîtrisées
-                </span>
-                <span className="cl-mode-bar" aria-hidden="true">
-                  <span style={{ width: `${(summary.masteredByCat[cat] / CAT_TOTAL[cat]) * 100}%` }} />
-                </span>
-              </label>
-            );
-          })}
-        </fieldset>
-
-        <div className="cl-play-foot">
-          <div className="cl-rounds">
-            <span className="cl-rounds-label" id="rounds-label">
-              Cartes par partie
-            </span>
-            <div className="cl-rounds-options" role="radiogroup" aria-labelledby="rounds-label">
-              {SESSION_SIZES.map((n) => (
-                <button key={n} type="button" role="radio" aria-checked={size === n} className={cls(size === n && "is-on")} onClick={() => onSizeChange(n)}>
-                  {n}
-                </button>
-              ))}
+      <div className="cl-home-grid">
+        <section className="cl-progress cl-card-dark" aria-labelledby="prog-title">
+          <div className="cl-progress-top">
+            <div className="cl-progress-count">
+              <h2 id="prog-title">Cartes maîtrisées</h2>
+              <p className="cl-num">
+                <span className="cl-num-big">{summary.mastered}</span>
+                <span className="cl-num-of">/{TOTAL}</span>
+              </p>
+            </div>
+            <div className="cl-progress-grade">
+              <p className="cl-progress-next">
+                <span>Note estimée</span>
+                <strong>{next ? `encore ${next.missing} pour ${next.grade}` : "note maximale"}</strong>
+              </p>
+              <span className="cl-grade-badge" role="img" aria-label={`Note estimée ${summary.grade}`}>
+                {summary.grade}
+              </span>
             </div>
           </div>
-          <button type="button" className="cl-play-btn" disabled={!cats.length} onClick={() => onStart("learn")}>
-            <IconPlay size={22} />
-            Jouer
-          </button>
-        </div>
-        <p className="cl-play-note">{cats.length ? `${Math.min(size, pool)} cartes tirées parmi ${pool}` : "Choisis au moins une catégorie pour jouer."}</p>
-      </section>
-
-      <section className={cls("cl-rematch", !summary.toReview && "is-empty")} aria-labelledby="rematch-title">
-        <span className="cl-rematch-count" id="errors-count">
-          {summary.toReview}
-        </span>
-        <div className="cl-rematch-text">
-          <h2 id="rematch-title">Revanche</h2>
-          <p>
-            {summary.toReview
-              ? `${plural(summary.toReview, "carte ratée", "cartes ratées")} à retenter\u00a0: chaque bonne réponse en Revanche en retire une.`
-              : "Aucune erreur à reprendre. Bien joué\u00a0!"}
+          <GradeBar mastered={summary.mastered} />
+          <p className="cl-progress-sentence">
+            Note estimée {summary.grade}
+            {next ? (
+              <>
+                {" "}· encore <strong>{plural(next.missing, "carte", "cartes")}</strong> pour viser {next.grade}
+              </>
+            ) : (
+              " · note maximale, bravo\u00a0!"
+            )}
           </p>
-        </div>
-        <button type="button" className="cl-btn cl-rematch-btn" disabled={!summary.toReview} onClick={() => onStart("errors")}>
-          Revoir mes erreurs
-        </button>
-      </section>
+          <button type="button" className="cl-link cl-progress-link" onClick={onProfile}>
+            Voir mon profil <IconNext size={15} />
+          </button>
+        </section>
+
+        <section className="cl-play cl-indigo" aria-labelledby="play-title">
+          <span className="cl-deco cl-deco--1" aria-hidden="true" />
+          <span className="cl-deco cl-deco--2" aria-hidden="true" />
+          <div className="cl-play-head">
+            <h2 id="play-title">Nouvelle partie</h2>
+            <p>
+              Tirage parmi {pool} cartes<span className="cl-wide-only"> de vocabulaire anglais technique</span>
+            </p>
+          </div>
+
+          <fieldset className="cl-modes">
+            <legend className="cl-sr">Catégories</legend>
+            {CAT_KEYS.map((cat) => {
+              const on = cats.includes(cat);
+              return (
+                <label key={cat} className={cls("cl-mode", on && "is-on")} data-cat={cat}>
+                  <input type="checkbox" id={`cat-${cat}`} className="cl-mode-input" checked={on} onChange={() => toggle(cat)} />
+                  <span className="cl-mode-top">
+                    <CatIcon cat={cat} size={34} />
+                    {on && (
+                      <span className="cl-mode-check" aria-hidden="true">
+                        <IconCheck size={12} />
+                      </span>
+                    )}
+                  </span>
+                  <span className="cl-mode-name">{CATEGORIES[cat].label}</span>
+                  <span className="cl-mode-foot">
+                    <span className="cl-mode-meta">
+                      {summary.masteredByCat[cat]}/{CAT_TOTAL[cat]}
+                      <span className="cl-wide-only"> maîtrisées</span>
+                    </span>
+                    <span className="cl-mode-bar" aria-hidden="true">
+                      <span style={{ width: `${percent(summary.masteredByCat[cat], CAT_TOTAL[cat])}%` }} />
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </fieldset>
+
+          <div className="cl-play-foot">
+            <div className="cl-rounds">
+              <span className="cl-rounds-label" id="rounds-label">
+                Cartes / partie
+              </span>
+              <div className="cl-rounds-options" role="radiogroup" aria-labelledby="rounds-label">
+                {SESSION_SIZES.map((n) => (
+                  <button key={n} type="button" role="radio" aria-checked={size === n} onClick={() => onSizeChange(n)}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button type="button" className="cl-cta cl-play-btn" onClick={() => onStart("learn")} aria-label={`Jouer, ${plural(draw, "carte", "cartes")}`}>
+              <IconPlay size={18} />
+              <span>Jouer</span>
+              <span className="cl-cta-tag">{plural(draw, "carte", "cartes")}</span>
+            </button>
+          </div>
+        </section>
+
+        <section className={cls("cl-rematch cl-card-dark", !rematch && "is-empty")} aria-labelledby="rematch-title">
+          <span className="cl-rematch-stack" aria-hidden="true">
+            <span />
+            <span id="errors-count">{rematch}</span>
+          </span>
+          <div className="cl-rematch-text">
+            <h2 id="rematch-title">Revanche</h2>
+            <p>{rematch ? `${plural(rematch, "carte ratée", "cartes ratées")} à retenter` : "Aucune carte à retenter. Bien joué\u00a0!"}</p>
+          </div>
+          <button type="button" className="cl-ghost cl-rematch-btn" disabled={!rematch} onClick={() => onStart("errors")} aria-label="Lancer la Revanche">
+            Lancer <IconNext size={16} />
+          </button>
+        </section>
+      </div>
     </div>
   );
 }
@@ -2353,12 +2379,14 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
         onCatsChange={setCats}
         onSizeChange={(size) => update((p) => ({ ...p, settings: { ...p.settings, size } }))}
         onStart={startSession}
+        onProfile={() => navigate("profile")}
+        pseudo={pseudo}
       />
     );
   }
 
   return (
-    <div className={cls("cl-app", !loading && screen !== "session" && screen !== "summary" && "has-tabbar")}>
+    <div lang="fr" className={cls("cl-app", !loading && screen !== "session" && screen !== "summary" && "has-tabbar")}>
       <style>{STYLES}</style>
       {!loading && screen !== "summary" && (
         <NavBar
@@ -2481,8 +2509,9 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   font: 16px/1.5 var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
-.cl-app button, .cl-app input { font: inherit; color: inherit; }
-.cl-app button { cursor: pointer; }
+/* :where() : sans priorité, pour que chaque composant garde sa propre police. */
+:where(.cl-app) button, :where(.cl-app) input { font: inherit; color: inherit; }
+:where(.cl-app) button { cursor: pointer; }
 .cl-app :focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .cl-app *, .cl-app *::before, .cl-app *::after { box-sizing: border-box; }
 .cl-app h1, .cl-app h2, .cl-app h3, .cl-app p, .cl-app ul, .cl-app ol, .cl-app dl, .cl-app dd, .cl-app fieldset { margin: 0; }
@@ -2675,95 +2704,127 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 [data-cat="def"] { --c: var(--cat-def); }
 .cl-cat-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
 
-/* Accueil façon jeu : tableau de scores, plateau « Nouvelle partie », revanche */
-.cl-home { gap: 16px; }
-.cl-hud { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.cl-hud-item { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 12px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
-.cl-hud-icon { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 10px; }
-.cl-hud-icon[data-tone="streak"] { background: var(--flame-soft); color: var(--flame); }
-.cl-hud-icon[data-tone="mastered"] { background: var(--ok-soft); color: var(--ok); }
-/* Code couleur des notes : A vert, B vert-jaune, C orange, D rouge */
-[data-grade="A"] { --g: var(--grade-a); }
-[data-grade="B"] { --g: var(--grade-b); }
-[data-grade="C"] { --g: var(--grade-c); }
-[data-grade="D"] { --g: var(--grade-d); }
-.cl-grade-ink { color: var(--g, var(--ink)); }
-.cl-hud-grade { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 10px; border: 2px solid var(--g, var(--ink)); background: color-mix(in srgb, var(--g, var(--ink)) 12%, var(--surface)); font: 800 21px/1 var(--font-display); color: var(--g, var(--ink)); }
-.cl-hud-text { display: grid; gap: 1px; min-width: 0; }
-.cl-hud-value { font: 800 22px/1.1 var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
-.cl-hud-value small { font-size: 14px; font-weight: 600; color: var(--ink-3); }
-.cl-hud-value--word { font-size: 17px; }
-.cl-hud-label { font-size: 12.5px; line-height: 1.3; color: var(--ink-3); }
+/* Accueil */
+.cl-home { max-width: 560px; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.cl-home-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-inline: 4px; }
+.cl-home-hello { display: grid; gap: 2px; min-width: 0; }
+.cl-home-hello p { font-size: 14px; color: var(--muted); }
+.cl-home-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.cl-wide-only { display: none; }
+.cl-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0; border: 0; background: none; color: var(--yellow); font-weight: 600; font-size: 14px; }
+.cl-link:hover { color: #ffd86b; }
 
-.cl-play {
-  position: relative; overflow: hidden; isolation: isolate;
-  display: grid; gap: 18px;
-  padding: 24px;
-  border-radius: 16px;
-  background: var(--play-bg); color: var(--play-ink);
-  box-shadow: var(--shadow);
+.cl-progress { display: grid; gap: 14px; padding: 16px 18px 14px; }
+.cl-progress-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.cl-progress-count { display: grid; gap: 6px; }
+.cl-app .cl-progress h2 { font: 500 13px/1.3 var(--font-body); color: var(--muted); }
+.cl-num { display: flex; align-items: baseline; gap: 4px; font-family: var(--font-mono); }
+.cl-num-big { font-size: 36px; font-weight: 700; line-height: 1; letter-spacing: -0.03em; }
+.cl-num-of { font-size: 16px; color: var(--faint); }
+.cl-progress-grade { display: flex; align-items: center; gap: 10px; }
+.cl-progress-next { display: grid; justify-items: end; gap: 2px; font-size: 12px; color: var(--muted); }
+.cl-progress-next strong { font-size: 13px; font-weight: 600; color: var(--text); }
+.cl-grade-badge {
+  display: grid; place-items: center; width: 48px; height: 48px; flex: none;
+  border-radius: 14px; background: var(--surface-2); border: 2px solid var(--yellow);
+  font: 800 26px/1 var(--font-display); color: var(--yellow);
 }
-/* Fiches décoratives dans le coin du plateau */
-.cl-play::before, .cl-play::after {
-  content: ""; position: absolute; z-index: -1;
-  width: 150px; height: 104px; border-radius: 10px;
-  border: 2px solid var(--play-line); background: var(--play-tile);
-  top: -26px; right: -34px; transform: rotate(14deg);
-}
-.cl-play::after { top: -6px; right: 30px; transform: rotate(-8deg); }
-.cl-play-head { display: grid; gap: 4px; }
-.cl-app .cl-play-head h1 { color: var(--play-ink); font-size: 36px; font-weight: 800; letter-spacing: -0.02em; }
-.cl-play-head p { color: var(--play-muted); font-size: 15px; }
+.cl-progress-sentence, .cl-progress-link { display: none; }
+.cl-progress-sentence { font-size: 14px; color: var(--on-indigo); }
+.cl-progress-sentence strong { color: var(--text); }
 
-.cl-modes { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.cl-play { display: grid; gap: 16px; padding: 20px 16px 22px; }
+.cl-deco { position: absolute; border-radius: 18px; border: 1.5px solid rgba(255, 255, 255, 0.16); pointer-events: none; }
+.cl-deco--1 { top: -34px; right: -26px; width: 112px; height: 140px; background: rgba(255, 255, 255, 0.05); transform: rotate(16deg); }
+.cl-deco--2 { top: -18px; right: 38px; width: 92px; height: 116px; border-radius: 16px; border-color: rgba(255, 255, 255, 0.10); transform: rotate(-8deg); }
+.cl-play-head { position: relative; display: grid; gap: 4px; padding-inline: 4px; }
+.cl-app .cl-play-head h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.cl-play-head p { font-size: 14px; color: var(--on-indigo); }
+
+.cl-modes { position: relative; border: 0; margin: 0; padding: 0; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .cl-mode {
-  position: relative; display: grid; gap: 6px; align-content: start;
-  padding: 14px; border-radius: 12px;
-  background: var(--play-tile); border: 2px solid var(--play-line);
-  color: var(--play-ink); cursor: pointer; user-select: none;
-  transition: background-color .15s, border-color .15s, transform .12s;
+  position: relative; display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 112px;
+  padding: 12px 10px 12px 12px; border-radius: var(--r-btn);
+  border: 2px dashed #4a4f8a; background: rgba(255, 255, 255, 0.03); opacity: .75;
+  cursor: pointer; user-select: none; transition: background-color .15s, border-color .15s, opacity .15s, transform .12s;
 }
-.cl-mode:hover { background: var(--play-tile-on); }
+.cl-mode.is-on { border: 2px solid var(--yellow); background: var(--indigo-2); opacity: 1; }
 .cl-mode:active { transform: scale(.98); }
-.cl-mode.is-on { background: var(--play-tile-on); border-color: var(--cta); }
-.cl-mode:has(.cl-mode-input:focus-visible) { outline: 3px solid var(--play-ink); outline-offset: 2px; }
+.cl-mode:has(.cl-mode-input:focus-visible) { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .cl-mode-input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
-.cl-mode-glyph { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: var(--c); color: #ffffff; margin-bottom: 4px; }
-.cl-glyph-text { font: 800 17px/1 var(--font-display); letter-spacing: -0.02em; }
-.cl-mode-check { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--play-line); color: transparent; }
-.cl-mode.is-on .cl-mode-check { background: var(--cta); border-color: var(--cta); color: var(--cta-ink); }
-.cl-mode-name { font: 700 17px/1.2 var(--font-display); }
-.cl-mode-meta { font-size: 13px; color: var(--play-muted); font-variant-numeric: tabular-nums; }
-.cl-mode-bar { display: block; height: 5px; margin-top: 4px; border-radius: 999px; background: var(--play-line); overflow: hidden; }
-.cl-mode-bar > span { display: block; height: 100%; border-radius: 999px; background: var(--c); }
+.cl-mode-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.cl-mode-check { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--yellow); color: var(--on-yellow); }
+.cl-glyph-text { font: 800 14px/1 var(--font-display); letter-spacing: -0.02em; }
+.cl-mode-name { font-weight: 600; font-size: 14px; line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; }
+.cl-mode-foot { display: grid; gap: 6px; margin-top: auto; }
+.cl-mode-meta { font: 12px/1.2 var(--font-mono); color: var(--on-indigo); }
+.cl-mode-bar { display: block; height: 4px; border-radius: 99px; background: rgba(255, 255, 255, 0.14); overflow: hidden; }
+.cl-mode-bar > span { display: block; height: 100%; border-radius: 99px; background: var(--c); }
 
-.cl-play-foot { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
-.cl-rounds { display: grid; gap: 8px; }
-.cl-rounds-label { font: 600 12px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--play-muted); }
-.cl-rounds-options { display: inline-flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--play-tile); border: 1px solid var(--play-line); }
-.cl-rounds-options button { min-width: 58px; min-height: 42px; border: 0; border-radius: 8px; background: transparent; color: var(--play-ink); font: 700 16px/1 var(--font-mono); cursor: pointer; }
-.cl-rounds-options button.is-on { background: var(--play-ink); color: var(--play-bg); }
-.cl-play-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-  min-width: 200px; min-height: 60px; padding: 0 34px;
-  border: 0; border-radius: 14px;
-  background: var(--cta); color: var(--cta-ink);
-  font: 800 24px/1 var(--font-display); letter-spacing: -0.01em;
-  box-shadow: 0 5px 0 var(--cta-shade);
-  cursor: pointer; transition: transform .08s, box-shadow .08s, filter .15s;
+.cl-play-foot { position: relative; display: grid; gap: 16px; }
+.cl-rounds { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-left: 4px; }
+.cl-rounds-label { font: 700 12px/1.3 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--on-indigo); }
+.cl-rounds-options { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: rgba(13, 14, 26, 0.35); border: 1px solid rgba(255, 255, 255, 0.12); }
+.cl-rounds-options button { width: 56px; height: 44px; border: 0; border-radius: 10px; background: transparent; color: var(--on-indigo); font: 700 15px/1 var(--font-mono); }
+.cl-rounds-options button[aria-checked="true"] { background: var(--text); color: #1b1c3a; }
+.cl-play-btn { min-height: 58px; font-size: 21px; }
+
+.cl-rematch { display: flex; align-items: center; gap: 14px; padding: 12px 12px 12px 16px; }
+.cl-rematch-stack { position: relative; width: 42px; height: 50px; flex: none; }
+.cl-rematch-stack > span { position: absolute; inset: 0; border-radius: 10px; }
+.cl-rematch-stack > span:first-child { background: #3a1e22; transform: rotate(-9deg); }
+.cl-rematch-stack > span:last-child { display: grid; place-items: center; background: #4a2328; border: 1.5px solid #ff7a7a; font: 700 19px/1 var(--font-mono); color: var(--error-text); }
+.cl-rematch.is-empty .cl-rematch-stack > span:first-child { background: #12301f; }
+.cl-rematch.is-empty .cl-rematch-stack > span:last-child { background: var(--success-bg); border-color: var(--success); color: var(--success-text); }
+.cl-rematch-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cl-app .cl-rematch-text h2 { font-size: 18px; font-weight: 700; }
+.cl-rematch-text p { font-size: 13px; line-height: 1.35; color: var(--muted); }
+
+/* Accueil desktop : même composants, grille large (maquette Accueil-desktop) */
+@media (min-width: 768px) {
+  .cl-home { max-width: 1120px; gap: 28px; }
+  .cl-home-head .cl-streak { display: none; }
+  .cl-home-hello p { font-size: 15px; }
+  .cl-app .cl-home-hello h1 { font-size: 44px; letter-spacing: -0.025em; line-height: 1.05; }
+  .cl-wide-only { display: inline; }
+  .cl-home-grid { gap: 16px; }
+  .cl-play { padding: 32px; gap: 24px; border-radius: 28px; }
+  .cl-deco--1 { top: -50px; right: -40px; width: 180px; height: 220px; border-radius: 24px; border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.04); }
+  .cl-deco--2 { top: -30px; right: 90px; width: 140px; height: 172px; border-radius: 20px; border-color: rgba(255, 255, 255, 0.09); }
+  .cl-app .cl-play-head h2 { font-size: 40px; letter-spacing: -0.025em; line-height: 1.05; }
+  .cl-play-head p { font-size: 16px; }
+  .cl-modes { grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px; }
+  .cl-mode { min-height: 150px; padding: 16px; border-radius: 18px; gap: 12px; }
+  .cl-mode .cl-cat-icon { --s: 42px !important; }
+  .cl-mode .cl-glyph-text { font-size: 17px; }
+  .cl-mode-check { width: 24px; height: 24px; }
+  .cl-mode-name { font-weight: 700; font-size: 17px; }
+  .cl-mode-meta { font-size: 13px; }
+  .cl-mode-bar { height: 5px; }
+  .cl-play-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+  .cl-rounds { gap: 14px; }
+  .cl-rounds-options button { width: 60px; }
+  .cl-play-btn { flex: 0 1 280px; margin-bottom: 5px; padding: 0 28px; }
+  .cl-progress { padding: 22px; gap: 18px; border-radius: 22px; }
+  .cl-progress-top { align-items: flex-start; }
+  .cl-progress-next { display: none; }
+  .cl-app .cl-progress h2 { font-size: 14px; }
+  .cl-num-big { font-size: 42px; }
+  .cl-num-of { font-size: 17px; }
+  .cl-grade-badge { width: 56px; height: 56px; border-radius: 16px; font-size: 30px; }
+  .cl-progress-sentence { display: block; }
+  .cl-progress-link { display: inline-flex; justify-self: start; }
+  .cl-rematch { padding: 18px 18px 18px 20px; border-radius: 22px; flex-wrap: wrap; }
+  .cl-rematch-stack { width: 46px; height: 56px; }
+  .cl-app .cl-rematch-text h2 { font-size: 20px; }
+  .cl-rematch-text p { font-size: 14px; }
 }
-.cl-play-btn:hover:not(:disabled) { filter: brightness(1.05); }
-.cl-play-btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 var(--cta-shade); }
-.cl-play-btn:focus-visible { outline: 3px solid var(--play-ink); outline-offset: 3px; }
-.cl-play-btn:disabled { opacity: .45; cursor: not-allowed; }
-.cl-app .cl-play-note { font-size: 13px; color: var(--play-muted); margin-top: -6px; }
-
-.cl-rematch { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
-.cl-rematch-count { display: grid; place-items: center; min-width: 54px; height: 54px; padding: 0 10px; border-radius: 14px; background: var(--bad-soft); color: var(--bad); font: 800 26px/1 var(--font-display); font-variant-numeric: tabular-nums; }
-.cl-rematch.is-empty .cl-rematch-count { background: var(--ok-soft); color: var(--ok); }
-.cl-rematch-text { display: grid; gap: 2px; min-width: 0; }
-.cl-rematch-text p { font-size: 14px; color: var(--ink-2); }
-.cl-rematch-btn { white-space: nowrap; }
+@media (min-width: 960px) {
+  .cl-home-grid { grid-template-columns: minmax(0, 1fr) minmax(300px, 340px); grid-template-rows: auto 1fr; grid-template-areas: "play progress" "play rematch"; gap: 16px 24px; align-items: start; }
+  .cl-play { grid-area: play; }
+  .cl-progress { grid-area: progress; }
+  .cl-rematch { grid-area: rematch; }
+}
 
 /* Badge de catégorie */
 .cl-badge { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px 3px 8px; border-radius: 999px; background: color-mix(in srgb, var(--c) 16%, var(--surface)); color: var(--ink); font: 600 11.5px/1.5 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
@@ -3088,31 +3149,12 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
   .cl-stats.cl-stats--3 { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
-  .cl-main { padding-block: 16px calc(40px + env(safe-area-inset-bottom, 0px)); }
-  .cl-app h1 { font-size: 28px; }
   .cl-grid-2 { grid-template-columns: minmax(0, 1fr); }
   .cl-app .cl-podium { gap: 6px; padding: 24px 10px 0; }
   .cl-podium-name { font-size: 14px; }
   .cl-podium-slot[data-place="1"] .cl-podium-name { font-size: 16px; }
   .cl-podium-step { font-size: 24px; }
   .cl-rules { grid-template-columns: minmax(0, 1fr); }
-  .cl-play { padding: 18px; gap: 16px; }
-  .cl-play::before { width: 96px; height: 68px; top: -30px; right: -30px; }
-  .cl-play::after { display: none; }
-  .cl-app .cl-play-head h1 { font-size: 30px; }
-  .cl-modes { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-  .cl-mode { grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; row-gap: 2px; padding: 10px 44px 10px 12px; align-items: center; }
-  .cl-mode-glyph { grid-row: span 3; margin-bottom: 0; }
-  .cl-mode-check { top: 50%; transform: translateY(-50%); }
-  .cl-mode-name, .cl-mode-meta, .cl-mode-bar { grid-column: 2; }
-  .cl-play-foot { flex-direction: column; align-items: stretch; }
-  .cl-rounds-options { display: flex; }
-  .cl-rounds-options button { flex: 1; }
-  .cl-play-btn { width: 100%; }
-  .cl-hud { gap: 8px; }
-  .cl-hud-item { flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px; }
-  .cl-rematch { grid-template-columns: auto minmax(0, 1fr); }
-  .cl-rematch-btn { grid-column: 1 / -1; }
   .cl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cl-panel { padding: 16px; }
   .cl-card--front { min-height: 230px; padding: 14px 16px 20px; }
