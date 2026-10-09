@@ -34,11 +34,10 @@ function StorageScope({ storage, children }) {
 function Brand() {
   return (
     <div className="sh-brand">
-      <span className="sh-logo" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </span>
+      <svg className="sh-logo" width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="7.5" y="2.5" width="13" height="15" rx="2.5" stroke="#8A8EAE" strokeWidth="1.6" />
+        <rect x="3.5" y="6.5" width="13" height="15" rx="2.5" fill="#FFC93C" />
+      </svg>
       <span className="sh-brand-name">CardLearn</span>
     </div>
   );
@@ -52,7 +51,7 @@ function errorFromUrl() {
     if (!description) return "";
     window.history.replaceState(null, "", window.location.pathname);
     return /expired|invalid/i.test(description)
-      ? "Ce lien a expiré ou a déjà servi. Demandez-en un nouveau."
+      ? "Ce lien a expiré ou a déjà servi. Demandes-en un nouveau."
       : `Connexion impossible : ${description}`;
   } catch (err) {
     return "";
@@ -64,11 +63,11 @@ function authMessage(err, fallback) {
     case "invalid_credentials":
       return "Adresse e-mail ou mot de passe incorrect.";
     case "email_not_confirmed":
-      return "Confirmez d'abord votre adresse : cliquez sur le lien reçu par e-mail à l'inscription.";
+      return "Confirme d'abord ton adresse : clique sur le lien reçu par e-mail à l'inscription.";
     case "user_already_exists":
-      return "Un compte existe déjà avec cette adresse. Connectez-vous, ou utilisez « Mot de passe oublié ».";
+      return "Un compte existe déjà avec cette adresse. Connecte-toi, ou utilise « Mot de passe oublié ».";
     case "weak_password":
-      return "Mot de passe trop faible. Choisissez-en un plus long, avec des lettres et des chiffres.";
+      return "Mot de passe trop faible. Choisis-en un plus long, avec des lettres et des chiffres.";
     case "same_password":
       return "Le nouveau mot de passe doit être différent de l'ancien.";
     case "email_address_invalid":
@@ -78,9 +77,9 @@ function authMessage(err, fallback) {
     case "email_provider_disabled":
       return "La connexion par e-mail est désactivée dans Supabase (Authentication → Sign In / Providers).";
     case "over_email_send_rate_limit":
-      return "Trop d'e-mails envoyés en peu de temps. Patientez quelques minutes avant de réessayer.";
+      return "Trop d'e-mails envoyés en peu de temps. Patiente quelques minutes avant de réessayer.";
     default:
-      return err?.status === 429 ? "Trop de tentatives en peu de temps. Patientez quelques minutes avant de réessayer." : fallback;
+      return err?.status === 429 ? "Trop de tentatives en peu de temps. Patiente quelques minutes avant de réessayer." : fallback;
   }
 }
 
@@ -114,17 +113,17 @@ function PasswordField({ id, value, onChange, autoComplete, label = "Mot de pass
 }
 
 const SCREENS = {
-  signin: { title: "Connexion", intro: "Retrouvez vos niveaux, vos erreurs et vos statistiques sur tous vos appareils.", submit: "Se connecter" },
-  signup: { title: "Créer un compte", intro: "Votre progression sera enregistrée et synchronisée sur tous vos appareils.", submit: "Créer mon compte" },
-  forgot: { title: "Mot de passe oublié", intro: "Indiquez votre adresse : vous recevrez un lien pour choisir un nouveau mot de passe.", submit: "Envoyer le lien" },
-  magic: { title: "Connexion sans mot de passe", intro: "Recevez un lien de connexion par e-mail. Un clic suffit pour vous connecter.", submit: "Recevoir le lien" },
+  signin: { title: "Connexion", intro: "Retrouve tes niveaux, tes erreurs et tes statistiques sur tous tes appareils.", submit: "Se connecter" },
+  signup: { title: "Créer un compte", intro: "Ta progression sera enregistrée et synchronisée sur tous tes appareils.", submit: "Créer mon compte" },
+  forgot: { title: "Mot de passe oublié", intro: "Indique ton adresse : tu recevras un lien pour choisir un nouveau mot de passe.", submit: "Envoyer le lien" },
+  magic: { title: "Connexion sans mot de passe", intro: "Reçois un lien de connexion par e-mail. Un clic suffit pour te connecter.", submit: "Recevoir le lien" },
 };
 
 const FAILURES = {
-  signin: "La connexion a échoué. Vérifiez votre connexion internet, puis réessayez.",
-  signup: "La création du compte a échoué. Vérifiez votre connexion internet, puis réessayez.",
-  forgot: "L'envoi du lien a échoué. Vérifiez l'adresse et votre connexion, puis réessayez.",
-  magic: "L'envoi du lien a échoué. Vérifiez l'adresse et votre connexion, puis réessayez.",
+  signin: "La connexion a échoué. Vérifie ta connexion internet, puis réessaie.",
+  signup: "La création du compte a échoué. Vérifie ta connexion internet, puis réessaie.",
+  forgot: "L'envoi du lien a échoué. Vérifie l'adresse et ta connexion, puis réessaie.",
+  magic: "L'envoi du lien a échoué. Vérifie l'adresse et ta connexion, puis réessaie.",
 };
 
 function Login({ notice = "" }) {
@@ -178,21 +177,21 @@ function Login({ notice = "" }) {
   const withGitHub = async () => {
     setError("");
     const { error: authError } = await supabase.auth.signInWithOAuth({ provider: "github", options: { redirectTo } });
-    if (authError) setError("La connexion avec GitHub a échoué. Réessayez ou utilisez votre e-mail.");
+    if (authError) setError("La connexion avec GitHub a échoué. Réessaie ou utilise ton e-mail.");
   };
 
   const sentText =
     sent &&
     (installedApp
       ? {
-          confirm: "Ouvrez l'e-mail de confirmation et cliquez sur le lien, puis revenez dans l'appli et connectez-vous.",
-          reset: "Le lien de l'e-mail ouvre CardLearn dans le navigateur pour choisir un nouveau mot de passe. Revenez ensuite dans l'appli pour vous connecter.",
-          magic: "Ouvrez l'e-mail et cliquez sur le lien pour vous connecter.",
+          confirm: "Ouvre l'e-mail de confirmation et clique sur le lien, puis reviens dans l'appli et connecte-toi.",
+          reset: "Le lien de l'e-mail ouvre CardLearn dans le navigateur pour choisir un nouveau mot de passe. Reviens ensuite dans l'appli pour te connecter.",
+          magic: "Ouvre l'e-mail et clique sur le lien pour te connecter.",
         }
       : {
-          confirm: "Ouvrez l'e-mail de confirmation et cliquez sur le lien : votre compte sera activé et vous serez connecté.",
-          reset: "Ouvrez l'e-mail et cliquez sur le lien pour choisir un nouveau mot de passe.",
-          magic: "Ouvrez l'e-mail et cliquez sur le lien pour vous connecter.",
+          confirm: "Ouvre l'e-mail de confirmation et clique sur le lien : ton compte sera activé et tu seras connecté.",
+          reset: "Ouvre l'e-mail et clique sur le lien pour choisir un nouveau mot de passe.",
+          magic: "Ouvre l'e-mail et clique sur le lien pour te connecter.",
         })[sent.kind];
 
   return (
@@ -226,7 +225,7 @@ function Login({ notice = "" }) {
             <p>
               E-mail envoyé à <strong>{sent.email}</strong>.
             </p>
-            <p>{sentText} Pensez à regarder dans les indésirables.</p>
+            <p>{sentText} Pense à regarder dans les indésirables.</p>
             <button type="button" className="sh-link" onClick={() => goTo("signin")}>
               Retour à la connexion
             </button>
@@ -240,7 +239,7 @@ function Login({ notice = "" }) {
                 type="email"
                 inputMode="email"
                 autoComplete={mode === "signup" ? "email" : "username"}
-                placeholder="vous@exemple.fr"
+                placeholder="prenom.nom@exemple.fr"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
@@ -262,7 +261,7 @@ function Login({ notice = "" }) {
               </button>
             )}
             <button type="submit" className="sh-btn sh-btn--primary" disabled={busy}>
-              {busy ? "Patientez…" : screen.submit}
+              {busy ? "Patiente…" : screen.submit}
             </button>
           </form>
         )}
@@ -312,7 +311,7 @@ function NewPassword({ email, onDone }) {
       if (authError) throw authError;
       onDone();
     } catch (err) {
-      setError(authMessage(err, "L'enregistrement du mot de passe a échoué. Vérifiez votre connexion internet, puis réessayez."));
+      setError(authMessage(err, "L'enregistrement du mot de passe a échoué. Vérifie ta connexion internet, puis réessaie."));
       setBusy(false);
     }
   };
@@ -324,7 +323,7 @@ function NewPassword({ email, onDone }) {
         <div className="sh-login-text">
           <h1>Nouveau mot de passe</h1>
           <p>
-            Choisissez le mot de passe du compte <strong className="sh-ink">{email}</strong>.
+            Choisis le mot de passe du compte <strong className="sh-ink">{email}</strong>.
           </p>
         </div>
         <form className="sh-form" onSubmit={submit}>
@@ -356,8 +355,8 @@ function SignedIn({ session, onAccountDeleted }) {
     if (error) {
       throw new Error(
         error.code === "PGRST202"
-          ? "La suppression de compte n'est pas encore activée sur ce site. Réessayez plus tard."
-          : "La suppression du compte a échoué. Vérifiez votre connexion internet, puis réessayez."
+          ? "La suppression de compte n'est pas encore activée sur ce site. Réessaie plus tard."
+          : "La suppression du compte a échoué. Vérifie ta connexion internet, puis réessaie."
       );
     }
     forgetLocalCopies(userId);
@@ -375,7 +374,7 @@ function SignedIn({ session, onAccountDeleted }) {
   const leaderboard = useMemo(() => {
     const notReady = (error) => ["PGRST202", "PGRST205", "42P01", "42883"].includes(error?.code);
     const fail = (error, fallback) =>
-      new Error(notReady(error) ? "Le classement n'est pas encore activé sur ce site. Réessayez plus tard." : fallback);
+      new Error(notReady(error) ? "Le classement n'est pas encore activé sur ce site. Réessaie plus tard." : fallback);
     return {
       async load() {
         const [board, mine] = await Promise.all([
@@ -383,19 +382,19 @@ function SignedIn({ session, onAccountDeleted }) {
           supabase.from("players").select("pseudo").eq("user_id", userId).maybeSingle(),
         ]);
         const error = board.error || mine.error;
-        if (error) throw fail(error, "Le classement n'a pas pu être chargé. Vérifiez votre connexion internet, puis réessayez.");
+        if (error) throw fail(error, "Le classement n'a pas pu être chargé. Vérifie ta connexion internet, puis réessaie.");
         return { entries: Array.isArray(board.data) ? board.data : [], pseudo: mine.data?.pseudo ?? null };
       },
       async join(pseudo) {
         const { error } = await supabase.from("players").upsert({ user_id: userId, pseudo }, { onConflict: "user_id" });
         if (!error) return;
-        if (error.code === "23505") throw new Error("Ce pseudo est déjà pris. Choisissez-en un autre.");
+        if (error.code === "23505") throw new Error("Ce pseudo est déjà pris. Choisis-en un autre.");
         if (error.code === "23514") throw new Error("Le pseudo doit faire entre 2 et 20 caractères.");
-        throw fail(error, "Le pseudo n'a pas pu être enregistré. Vérifiez votre connexion internet, puis réessayez.");
+        throw fail(error, "Le pseudo n'a pas pu être enregistré. Vérifie ta connexion internet, puis réessaie.");
       },
       async leave() {
         const { error } = await supabase.from("players").delete().eq("user_id", userId);
-        if (error) throw fail(error, "Impossible de quitter le classement pour le moment. Réessayez.");
+        if (error) throw fail(error, "Impossible de quitter le classement pour le moment. Réessaie.");
       },
     };
   }, [userId]);
@@ -442,7 +441,7 @@ function WithAccount() {
   }
   if (!session) return <Login notice={notice} />;
   if (recovery) return <NewPassword email={session.user.email} onDone={() => setRecovery(false)} />;
-  return <SignedIn session={session} onAccountDeleted={() => setNotice("Votre compte et votre progression ont été supprimés.")} />;
+  return <SignedIn session={session} onAccountDeleted={() => setNotice("Ton compte et ta progression ont été supprimés.")} />;
 }
 
 const localStorageBackend = createLocalStorage();

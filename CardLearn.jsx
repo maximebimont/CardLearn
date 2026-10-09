@@ -25,10 +25,10 @@ const EXIT_SIDE_MS = 420;
 const EXIT_REDUCED_MS = 180;
 
 const CATEGORIES = {
-  mots: { label: "Mots métier", badge: "Mot métier", instruction: "Traduisez en anglais" },
+  mots: { label: "Mots métier", badge: "Mot métier", instruction: "Écris la traduction anglaise" },
   // choices : la carte se joue en QCM (4 propositions, une seule juste) au lieu d'être tapée.
-  expr: { label: "Expressions", badge: "Expression", instruction: "Choisissez la bonne traduction anglaise", choices: true },
-  def: { label: "Définitions", badge: "Définition", instruction: "Quel terme anglais correspond à cette définition ?" },
+  expr: { label: "Expressions", badge: "Expression", instruction: "Choisis la bonne traduction", choices: true },
+  def: { label: "Définitions", badge: "Définition", instruction: "Écris le terme anglais qui correspond à cette définition" },
 };
 const CAT_KEYS = Object.keys(CATEGORIES);
 
@@ -763,8 +763,8 @@ function StorageNotice({ state }) {
   return (
     <p className="cl-notice" role="status">
       {state === "unavailable"
-        ? "La sauvegarde n'est pas disponible ici : votre progression sera perdue en fermant la page."
-        : "La dernière sauvegarde a échoué. Vos réponses restent comptées et seront réenregistrées à la prochaine réponse."}
+        ? "La sauvegarde n'est pas disponible ici : ta progression sera perdue en fermant la page."
+        : "La dernière sauvegarde a échoué. Tes réponses restent comptées et seront réenregistrées à la prochaine réponse."}
     </p>
   );
 }
@@ -831,7 +831,7 @@ function Choices({ card, verdict, disabled, onChoose }) {
             <span className="cl-choice-text">{verdict && segments ? <Marked segments={segments} /> : text}</span>
             {right && <IconCheck size={18} />}
             {chosen && !right && <IconCross size={18} />}
-            {chosen && <span className="cl-sr">{right ? " (votre choix, juste)" : " (votre choix)"}</span>}
+            {chosen && <span className="cl-sr">{right ? " (ton choix, juste)" : " (ton choix)"}</span>}
           </button>
         );
       })}
@@ -995,7 +995,7 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
                   <span className="cl-answer-text">{verdict.expected ? <Marked segments={verdict.expected} /> : card.en}</span>
                   {verdict.given && (
                     <span className="cl-given">
-                      Votre réponse&nbsp;: <Marked segments={verdict.given} />
+                      Ta réponse&nbsp;: <Marked segments={verdict.given} />
                     </span>
                   )}
                   {lingering && <span className="cl-countdown" style={{ animationDuration: `${verdict.revealMs}ms` }} />}
@@ -1010,7 +1010,7 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
                   <span className="cl-answer-text">{verdict.expected ? <Marked segments={verdict.expected} /> : card.en}</span>
                   {verdict.input && !choice && (
                     <span className="cl-given">
-                      Votre réponse&nbsp;: {verdict.given ? <Marked segments={verdict.given} /> : verdict.input}
+                      Ta réponse&nbsp;: {verdict.given ? <Marked segments={verdict.given} /> : verdict.input}
                     </span>
                   )}
                   {!verdict.input && <span className="cl-given">Carte passée avec « Je ne sais pas ».</span>}
@@ -1035,7 +1035,7 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
         ) : (
           <>
             <label htmlFor="cl-answer-input" className="cl-answer-label">
-              Votre réponse en anglais
+              Ta réponse en anglais
             </label>
             <div className="cl-answer-row">
               <input
@@ -1045,7 +1045,7 @@ function Session({ config, progress: initialProgress, onEnd, reducedMotion }) {
                 value={state.input}
                 onChange={(event) => dispatch({ type: "input", value: event.target.value })}
                 readOnly={phase !== "answering"}
-                placeholder="Tapez votre réponse…"
+                placeholder="Tape ta traduction…"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -1179,7 +1179,7 @@ function Podium({ entries }) {
                 {medal !== "none" ? <Trophy medal={medal} size={i === 0 ? 56 : 44} /> : <span className="cl-podium-spacer" />}
                 <span className="cl-podium-name">
                   {entry.pseudo}
-                  {entry.is_me && <span className="cl-me-tag">vous</span>}
+                  {entry.is_me && <span className="cl-me-tag">toi</span>}
                 </span>
                 <span className="cl-podium-score">{plural(entry.mastered, "carte", "cartes")}</span>
               </>
@@ -1213,12 +1213,12 @@ function PseudoForm({ initial = "", submitLabel, onSubmit, onCancel }) {
         try {
           await onSubmit(pseudo);
         } catch (err) {
-          setError(err?.message || "L'enregistrement du pseudo a échoué. Réessayez.");
+          setError(err?.message || "L'enregistrement du pseudo a échoué. Réessaie.");
           setBusy(false);
         }
       }}
     >
-      <label htmlFor="pseudo-input">Votre pseudo</label>
+      <label htmlFor="pseudo-input">Ton pseudo</label>
       <div className="cl-pseudo-row">
         <input
           id="pseudo-input"
@@ -1239,7 +1239,7 @@ function PseudoForm({ initial = "", submitLabel, onSubmit, onCancel }) {
           </button>
         )}
       </div>
-      <p className="cl-pseudo-hint">Votre pseudo est visible par les autres élèves. Votre adresse e-mail ne l'est jamais.</p>
+      <p className="cl-pseudo-hint">Ton pseudo est visible par les autres élèves. Ton adresse e-mail ne l'est jamais.</p>
       {error && (
         <p className="cl-confirm-error" role="alert">
           {error}
@@ -1281,7 +1281,7 @@ function Ranking({ summary, leaderboard }) {
       await leaderboard.leave();
       await load();
     } catch (err) {
-      setActionError(err?.message || "Impossible de quitter le classement pour le moment. Réessayez.");
+      setActionError(err?.message || "Impossible de quitter le classement pour le moment. Réessaie.");
     }
   };
 
@@ -1304,8 +1304,8 @@ function Ranking({ summary, leaderboard }) {
       <div className="cl-wrap">
         {head}
         <section className="cl-panel">
-          <p>Le classement nécessite un compte : connectez-vous sur le site CardLearn pour affronter les autres élèves.</p>
-          <p className="cl-muted">Vous avez pour l'instant {plural(summary.mastered, "carte maîtrisée", "cartes maîtrisées")}.</p>
+          <p>Le classement nécessite un compte : connecte-toi sur le site CardLearn pour affronter les autres élèves.</p>
+          <p className="cl-muted">Tu as pour l'instant {plural(summary.mastered, "carte maîtrisée", "cartes maîtrisées")}.</p>
         </section>
       </div>
     );
@@ -1344,9 +1344,9 @@ function Ranking({ summary, leaderboard }) {
         {head}
         <section className="cl-panel cl-join" aria-labelledby="join-title">
           <Trophy medal="gold" size={48} />
-          <h2 id="join-title">Entrez dans la compétition</h2>
+          <h2 id="join-title">Entre dans la compétition</h2>
           <p className="cl-muted">
-            Choisissez un pseudo pour apparaître dans le classement avec vos {plural(summary.mastered, "carte maîtrisée", "cartes maîtrisées")}.
+            Choisis un pseudo pour apparaître dans le classement avec tes {plural(summary.mastered, "carte maîtrisée", "cartes maîtrisées")}.
             {entries.length ? ` ${plural(entries.length, "élève y participe", "élèves y participent")} déjà.` : ""}
           </p>
           <PseudoForm submitLabel="Rejoindre le classement" onSubmit={join} />
@@ -1360,7 +1360,7 @@ function Ranking({ summary, leaderboard }) {
       {head}
       {me && (
         <p className="cl-rank-summary">
-          Vous êtes <strong>{ordinal(me.rank)}</strong> sur {entries.length} avec {plural(me.mastered, "carte maîtrisée", "cartes maîtrisées")}.
+          Tu es <strong>{ordinal(me.rank)}</strong> sur {entries.length} avec {plural(me.mastered, "carte maîtrisée", "cartes maîtrisées")}.
         </p>
       )}
       <Podium entries={entries} />
@@ -1371,20 +1371,20 @@ function Ranking({ summary, leaderboard }) {
               <span className="cl-board-rank">{entry.rank}</span>
               <span className="cl-board-name">
                 {entry.pseudo}
-                {entry.is_me && <span className="cl-me-tag">vous</span>}
+                {entry.is_me && <span className="cl-me-tag">toi</span>}
               </span>
               <span className="cl-board-score">{plural(entry.mastered, "carte", "cartes")}</span>
             </li>
           ))}
         </ol>
       )}
-      <section className="cl-panel cl-pseudo-panel" aria-label="Votre pseudo">
+      <section className="cl-panel cl-pseudo-panel" aria-label="Ton pseudo">
         {editing ? (
           <PseudoForm initial={state.pseudo} submitLabel="Enregistrer" onSubmit={join} onCancel={() => setEditing(false)} />
         ) : (
           <div className="cl-pseudo-current">
             <span>
-              Votre pseudo : <strong>{state.pseudo}</strong>
+              Ton pseudo : <strong>{state.pseudo}</strong>
             </span>
             <span className="cl-actions">
               <button type="button" className="cl-btn cl-btn--sm" onClick={() => setEditing(true)}>
@@ -1416,7 +1416,7 @@ function Home({ progress, summary, cats, onCatsChange, onSizeChange, onStart, st
     <div className="cl-wrap cl-home">
       <StorageNotice state={storage} />
 
-      <section className="cl-hud" aria-label="Vos scores">
+      <section className="cl-hud" aria-label="Tes scores">
         <div className="cl-hud-item">
           <span className="cl-hud-icon" data-tone="streak">
             <IconFlame size={20} />
@@ -1498,7 +1498,7 @@ function Home({ progress, summary, cats, onCatsChange, onSizeChange, onStart, st
             Jouer
           </button>
         </div>
-        <p className="cl-play-note">{cats.length ? `${Math.min(size, pool)} cartes tirées parmi ${pool}` : "Choisissez au moins une catégorie pour jouer."}</p>
+        <p className="cl-play-note">{cats.length ? `${Math.min(size, pool)} cartes tirées parmi ${pool}` : "Choisis au moins une catégorie pour jouer."}</p>
       </section>
 
       <section className={cls("cl-rematch", !summary.toReview && "is-empty")} aria-labelledby="rematch-title">
@@ -1737,7 +1737,7 @@ function QuitDialog({ open, onStay, onQuit }) {
       <div className="cl-dialog-body">
         <h2 id="quit-dialog-title">Quitter la partie&nbsp;?</h2>
         <p id="quit-dialog-text" className="cl-muted">
-          Les réponses de cette partie ne seront pas enregistrées&nbsp;: vos cartes restent au niveau qu'elles avaient avant la partie.
+          Les réponses de cette partie ne seront pas enregistrées&nbsp;: tes cartes restent au niveau qu'elles avaient avant la partie.
         </p>
         <div className="cl-dialog-actions">
           <button type="button" className="cl-btn" onClick={onStay}>
@@ -1777,7 +1777,7 @@ function LevelRules() {
           <IconStack size={16} />
         </span>
         <span>
-          <strong>Niveau 5</strong> : la carte est maîtrisée et compte pour votre note.
+          <strong>Niveau 5</strong> : la carte est maîtrisée et compte pour ta note.
         </span>
       </li>
     </ul>
@@ -1806,7 +1806,7 @@ function DeleteAccount({ account, onDelete }) {
     try {
       await onDelete();
     } catch (err) {
-      setError(err?.message || "La suppression du compte a échoué. Réessayez dans un moment.");
+      setError(err?.message || "La suppression du compte a échoué. Réessaie dans un moment.");
       setBusy(false);
     }
   };
@@ -1814,7 +1814,7 @@ function DeleteAccount({ account, onDelete }) {
   return (
     <section className="cl-panel cl-danger" aria-labelledby="delete-title">
       <h2 id="delete-title">Supprimer mon compte</h2>
-      <p className="cl-muted">Votre compte et toute votre progression seront effacés, sur tous vos appareils.</p>
+      <p className="cl-muted">Ton compte et toute ta progression seront effacés, sur tous tes appareils.</p>
       {confirming ? (
         <form
           className="cl-confirm"
@@ -1830,7 +1830,7 @@ function DeleteAccount({ account, onDelete }) {
             séries. Cette action ne peut pas être annulée.
           </p>
           <label htmlFor="delete-confirm" className="cl-confirm-label">
-            Pour confirmer, tapez <strong>{DELETE_WORD}</strong>
+            Pour confirmer, tape <strong>{DELETE_WORD}</strong>
           </label>
           <input
             id="delete-confirm"
@@ -1933,7 +1933,7 @@ function Profile({ progress, summary, onReset, storage, account, onDeleteAccount
 
       <section className="cl-panel" aria-labelledby="boxes-title">
         <div className="cl-heading-row">
-          <h2 id="boxes-title">Niveau de vos cartes</h2>
+          <h2 id="boxes-title">Niveau de tes cartes</h2>
           <button
             type="button"
             className="cl-info-btn"
@@ -1949,8 +1949,8 @@ function Profile({ progress, summary, onReset, storage, account, onDeleteAccount
         <BoxChart boxes={summary.boxes} unseen={summary.unseen} />
         <InfoDialog id="levels-help" open={levelsHelp} onClose={() => setLevelsHelp(false)} title="Comment fonctionnent les niveaux ?">
           <p className="cl-muted">
-            Chaque carte a un niveau de 1 à 5. Les cartes des premiers niveaux reviennent plus souvent dans vos parties, pour que vous les
-            travailliez davantage.
+            Chaque carte a un niveau de 1 à 5. Les cartes des premiers niveaux reviennent plus souvent dans tes parties, pour que tu les
+            travailles davantage.
           </p>
           <LevelRules />
         </InfoDialog>
@@ -2021,7 +2021,7 @@ function Profile({ progress, summary, onReset, storage, account, onDeleteAccount
         {confirming ? (
           <div className="cl-confirm" role="alertdialog" aria-labelledby="reset-confirm-text">
             <p id="reset-confirm-text">
-              Toutes les cartes reviendront au niveau 1 et vos statistiques, séries et erreurs seront effacées. Cette action est définitive.
+              Toutes les cartes reviendront au niveau 1 et tes statistiques, séries et erreurs seront effacées. Cette action est définitive.
             </p>
             <div className="cl-actions">
               <button
@@ -2195,7 +2195,7 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
     content = (
       <div className="cl-loading" role="status">
         <span className="cl-spinner" aria-hidden="true" />
-        Chargement de votre progression…
+        Chargement de ta progression…
       </div>
     );
   } else if (screen === "session" && session) {
@@ -2266,131 +2266,94 @@ export default function CardLearn({ account = null, onSignOut = null, onDeleteAc
 /* ------------------------------------------------------------------ Styles -- */
 
 const STYLES = `
-@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=JetBrains+Mono:wght@400;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&family=JetBrains+Mono:wght@400..700&display=swap");
 
-/* Mise en page : une colonne d'étude ; la pile de fiches au centre, la saisie juste dessous. */
+/* Jetons de la refonte (design/maquette-refonte/HANDOFF.md) : thème sombre uniquement. */
 :root {
-  --bg: #eceef4;
-  --surface: #ffffff;
-  --surface-2: #f4f5f9;
-  --ink: #161a2c;
-  --ink-2: #444a63;
-  --ink-3: #5f6580;
-  --line: #d6d9e5;
-  --accent: #34399a;
-  --accent-ink: #ffffff;
-  --accent-soft: #e3e4f6;
-  --ok: #1b7a37;
-  --ok-soft: #dff1e4;
+  color-scheme: dark;
+  --bg: #0d0e1a;
+  --surface: #161829;
+  --surface-2: #1d2036;
+  --line: #2a2e4a;
+  --line-2: #3a3f63;
+  --nav: #12142a;
+  --text: #f3f2ee;
+  --muted: #a3a7c4;
+  --faint: #8a8eae;
+  --indigo: #262a6e;
+  --indigo-2: #33388c;
+  --on-indigo: #c5c8f0;
+  --yellow: #ffc93c;
+  --yellow-shadow: #b8860b;
+  --on-yellow: #1b1400;
+  --yellow-soft: #2e2a1a;
+  --paper: #f6f3ea;
+  --paper-ink: #15162b;
+  --paper-muted: #5a5d78;
+  --success: #3ddc84;
+  --success-bg: #0f2a1c;
+  --success-text: #5be59a;
+  --success-shadow: #1f9a57;
+  --on-success: #06210f;
+  --error: #ff6b6b;
+  --error-bg: #2e1215;
+  --error-text: #ff9a9a;
+  --error-shadow: #b83a3a;
+  --on-error: #2a0606;
+  --streak: #ff9f5a;
+  --streak-bg: #2a1c12;
+  --streak-line: #4d311d;
+  --cat-mots: #63a4ff;
+  --cat-expr: #ff9255;
+  --cat-def: #c09cff;
+  --box-1: #4a4f7e;
+  --box-2: #5e66c4;
+  --box-3: #7f8bf0;
+  --box-4: #a9b3ff;
+  --box-5: #ffc93c;
   --fix-bg: #ffd75e;
   --fix-ink: #231a00;
-  --bad: #bf3329;
-  --bad-soft: #fae5e3;
-  --cat-mots: #2a78d6;
-  --cat-expr: #eb6834;
-  --cat-def: #1baf7a;
-  --rule: rgba(191, 51, 41, 0.32);
-  --play-bg: #262a74;
-  --play-ink: #ffffff;
-  --play-muted: rgba(255, 255, 255, 0.74);
-  --play-line: rgba(255, 255, 255, 0.2);
-  --play-tile: rgba(255, 255, 255, 0.07);
-  --play-tile-on: rgba(255, 255, 255, 0.15);
-  --cta: #ffc93c;
-  --cta-ink: #231a00;
-  --cta-shade: #c9921a;
-  --flame: #d4570f;
-  --flame-soft: #fde9dc;
-  --grade-a: #1b7a37;
-  --grade-b: #4a6b09;
-  --grade-c: #995200;
-  --grade-d: #bf3329;
-  --gold: #f6c343;
-  --gold-edge: #8f6200;
-  --silver: #d5dbe4;
-  --silver-edge: #5f6b7c;
-  --bronze: #e3a272;
-  --bronze-edge: #85461b;
-  --shadow: 0 1px 2px rgba(22, 26, 44, 0.06), 0 10px 28px rgba(22, 26, 44, 0.09);
+  --r-btn: 16px;
+  --r-card: 20px;
+  --r-block: 24px;
   --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #10121b;
-    --surface: #1a1d29;
-    --surface-2: #222636;
-    --ink: #eceef7;
-    --ink-2: #b6bbcf;
-    --ink-3: #9197ae;
-    --line: #2f3447;
-    --accent: #aeb2f7;
-    --accent-ink: #10121b;
-    --accent-soft: #2a2d52;
-    --ok: #5cc97c;
-    --ok-soft: rgba(92, 201, 124, 0.15);
-    --fix-bg: #f0c24b;
-    --fix-ink: #1a1400;
-    --bad: #f27b6f;
-    --bad-soft: rgba(242, 123, 111, 0.15);
-    --cat-mots: #3987e5;
-    --cat-expr: #d95926;
-    --cat-def: #199e70;
-    --rule: rgba(242, 123, 111, 0.34);
-    --play-bg: #282c6e;
-    --flame: #ff8f4d;
-    --flame-soft: rgba(255, 143, 77, 0.15);
-    --grade-a: #5cc97c;
-    --grade-b: #a8d45a;
-    --grade-c: #f2a541;
-    --grade-d: #f27b6f;
-    --gold: #f6c343;
-    --gold-edge: #8f6200;
-    --silver: #d5dbe4;
-    --silver-edge: #5f6b7c;
-    --bronze: #e3a272;
-    --bronze-edge: #85461b;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.38);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #10121b;
-  --surface: #1a1d29;
-  --surface-2: #222636;
-  --ink: #eceef7;
-  --ink-2: #b6bbcf;
-  --ink-3: #9197ae;
-  --line: #2f3447;
-  --accent: #aeb2f7;
-  --accent-ink: #10121b;
-  --accent-soft: #2a2d52;
-  --ok: #5cc97c;
-  --ok-soft: rgba(92, 201, 124, 0.15);
-  --fix-bg: #f0c24b;
-  --fix-ink: #1a1400;
-  --bad: #f27b6f;
-  --bad-soft: rgba(242, 123, 111, 0.15);
-  --cat-mots: #3987e5;
-  --cat-expr: #d95926;
-  --cat-def: #199e70;
-  --rule: rgba(242, 123, 111, 0.34);
-  --play-bg: #282c6e;
-  --flame: #ff8f4d;
-  --flame-soft: rgba(255, 143, 77, 0.15);
-  --grade-a: #5cc97c;
-  --grade-b: #a8d45a;
-  --grade-c: #f2a541;
-  --grade-d: #f27b6f;
-  --gold: #f6c343;
+
+  /* Anciens noms, le temps de refaire chaque écran. */
+  --ink: var(--text);
+  --ink-2: var(--muted);
+  --ink-3: var(--faint);
+  --accent: var(--yellow);
+  --accent-ink: var(--on-yellow);
+  --accent-soft: var(--yellow-soft);
+  --ok: var(--success);
+  --ok-soft: var(--success-bg);
+  --bad: var(--error);
+  --bad-soft: var(--error-bg);
+  --rule: rgba(255, 107, 107, 0.32);
+  --play-bg: var(--indigo);
+  --play-ink: var(--text);
+  --play-muted: var(--on-indigo);
+  --play-line: rgba(255, 255, 255, 0.14);
+  --play-tile: rgba(255, 255, 255, 0.04);
+  --play-tile-on: var(--indigo-2);
+  --cta: var(--yellow);
+  --cta-ink: var(--on-yellow);
+  --cta-shade: var(--yellow-shadow);
+  --flame: var(--streak);
+  --flame-soft: var(--streak-bg);
+  --grade-a: var(--yellow);
+  --grade-b: var(--yellow);
+  --grade-c: var(--yellow);
+  --grade-d: var(--yellow);
+  --gold: #ffc93c;
   --gold-edge: #8f6200;
-  --silver: #d5dbe4;
+  --silver: #c9cde8;
   --silver-edge: #5f6b7c;
-  --bronze: #e3a272;
+  --bronze: #e39a6a;
   --bronze-edge: #85461b;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.38);
-  color-scheme: dark;
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
 }
 
 body { margin: 0; background: var(--bg); color: var(--ink); }
