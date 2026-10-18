@@ -108,6 +108,10 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
   - rouge, avec la réponse attendue et la tienne : il reste affiché sans limite de temps, jusqu'à
     « Continuer » (ou Entrée), puis la carte glisse sur le côté.
 
+  Sur téléphone, valider ferme le clavier pour laisser voir tout le panneau. Quand le clavier est
+  ouvert, la partie se cale dans la zone qu'il laisse visible : carte resserrée, champ juste
+  dessous, « Je ne sais pas » et « Indice » à portée ; la touche Entrée (OK) du clavier valide.
+
   La réponse donnée n'est pas barrée : ses lettres fausses sont en gras et en rouge, une lettre
   oubliée est marquée « _ », et les lettres à corriger sont surlignées dans la réponse attendue. Une
   réponse sans rapport est entièrement en gras. « Je ne sais pas » compte comme une erreur.
@@ -148,7 +152,10 @@ Fichiers concernés : `public/manifest.webmanifest`, les icônes de `public/icon
   liste les cartes ratées (3 d'abord, puis « Voir les N »). Un clic sur une carte affiche le détail
   de ses tentatives : réponse donnée (lettres fausses en gras), réussie ou non, niveau avant et
   après. « Reste en Revanche » signale les cartes qui sont dans la Revanche après la partie. En bas :
-  retour à l'accueil, « Rejouer » et « Revanche » (ou « Nouvelle partie » sans carte ratée).
+  après une partie classique avec des erreurs, « Rejouer » en gros bouton jaune et « Revanche » à
+  côté du bouton d'accueil. Sinon, l'accueil est sur la même ligne que le bouton jaune : « Rejouer »
+  après une partie sans erreur, « Revanche » s'il reste des cartes après une Revanche,
+  « Nouvelle partie » quand elle est vidée.
 - **Profil** : pseudo, rang et série de jours ; la note et ce qu'il manque pour la suivante, la
   progression par catégorie ; « Tes 5 niveaux » ; les statistiques (réponses, réussite, série, taux
   par catégorie) ; les cartes les plus ratées ; et la zone « Réinitialiser » / « Supprimer mon

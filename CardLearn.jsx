@@ -15,6 +15,7 @@ const DEFAULT_SIZE = 20;
 // Bonne réponse : le panneau vert reste ce temps-là, puis la partie continue seule (Entrée ou « Continuer » pour aller plus vite).
 // Erreur : le panneau rouge attend « Continuer », sans limite de temps pour lire.
 const FEEDBACK_MS = 1000;
+const KEYBOARD_MIN_PX = 120; // hauteur cachée à partir de laquelle on considère le clavier du téléphone ouvert
 const NEAR_MS = 2600; // réponse acceptée à quelques fautes près : le temps de voir la bonne orthographe
 const CHOICES = 4; // propositions par carte en QCM
 const MAX_REMATCH_ERRORS = 3; // Revanche : à la 3e erreur, la carte ne revient plus dans la partie et reste en Revanche
@@ -951,6 +952,39 @@ function levelLine({ ok, from, to }) {
   return to === MAX_BOX ? "Carte maîtrisée : niveau 5\u00a0!" : `La carte monte au niveau ${to}`;
 }
 
+// Clavier du téléphone ouvert sur le champ : zone de l'écran qu'il ne cache pas ({ top, height } en px), sinon null.
+// visualViewport rétrécit quand le clavier s'ouvre, alors que la page garde sa hauteur.
+function useKeyboardRoom(inputRef) {
+  const [room, setRoom] = useState(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return undefined;
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const typing = !!inputRef.current && document.activeElement === inputRef.current;
+        const hidden = document.documentElement.clientHeight - vv.height;
+        const next = typing && vv.scale < 1.05 && hidden > KEYBOARD_MIN_PX ? { top: Math.round(vv.offsetTop), height: Math.round(vv.height) } : null;
+        setRoom((prev) => (prev?.top === next?.top && prev?.height === next?.height ? prev : next));
+      });
+    };
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    document.addEventListener("focusin", update);
+    document.addEventListener("focusout", update);
+    update();
+    return () => {
+      cancelAnimationFrame(frame);
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      document.removeEventListener("focusin", update);
+      document.removeEventListener("focusout", update);
+    };
+  }, [inputRef]);
+  return room;
+}
+
 // Panneau qui monte du bas après une réponse : vert (bonne réponse) ou rouge (erreur), avec « Continuer ».
 function ResultSheet({ verdict, card, choice, letter, rematch, misses, autoMs, onContinue, buttonRef }) {
   const { ok } = verdict;
@@ -1005,6 +1039,7 @@ function Session({ config, progress: initialProgress, onEnd, onQuit, reducedMoti
   const onEndRef = useRef(onEnd);
   onEndRef.current = onEnd;
   const [options, setOptions] = useState(null); // propositions du QCM affiché, pour « C'était la réponse B »
+  const keyboard = useKeyboardRoom(inputRef);
 
   const { phase, verdict } = state;
   const card = CARD_BY_ID[state.queue[0]];
@@ -1023,13 +1058,16 @@ function Session({ config, progress: initialProgress, onEnd, onQuit, reducedMoti
     return () => clearTimeout(timer);
   }, [phase, state.exit, state.turn, state.results, state.progress, config.size, reducedMotion]);
 
-  // Focus : le champ à chaque nouvelle carte. Après une erreur (ou en QCM), le bouton « Continuer » :
-  // sur téléphone, le clavier se ferme et laisse voir le panneau.
+  // Focus : le champ à chaque nouvelle carte, puis le bouton « Continuer » une fois la réponse validée :
+  // sur téléphone, le clavier se ferme et laisse voir tout le panneau de résultat.
   const choice = !!card && !!CATEGORIES[card.cat].choices;
   useEffect(() => {
     if (phase === "answering") inputRef.current?.focus({ preventScroll: true });
-    else if (phase === "wrong" || (phase === "correct" && choice)) nextRef.current?.focus({ preventScroll: true });
-  }, [phase, state.turn, choice]);
+    else if (answeredPhase) {
+      inputRef.current?.blur();
+      nextRef.current?.focus({ preventScroll: true });
+    }
+  }, [phase, state.turn, answeredPhase]);
 
   if (phase === "done" || !card) return null;
   const rematch = config.mode === "errors";
@@ -1038,6 +1076,7 @@ function Session({ config, progress: initialProgress, onEnd, onQuit, reducedMoti
   // input vide : « Je ne sais pas ». En QCM, input est la proposition choisie.
   const answer = (input) => {
     if (phase !== "answering") return;
+    inputRef.current?.blur(); // ferme le clavier du téléphone tout de suite
     const result = !input
       ? { ok: false, near: false, typos: 0, given: null, expected: null }
       : choice
@@ -1080,9 +1119,14 @@ function Session({ config, progress: initialProgress, onEnd, onQuit, reducedMoti
   const level = verdict ? verdict.from : boxOf(progress, card.id);
   const letter = options ? LETTERS[options.findIndex((o) => o.text === card.en)] : "";
   const frSize = card.fr.length > 110 ? "is-xlong" : card.fr.length > 60 ? "is-long" : choice ? "is-mid" : null;
+  // Clavier ouvert : la partie se cale dans la zone visible au-dessus, carte compacte et champ juste dessous.
+  const fit = keyboard && phase === "answering" && !choice;
 
   return (
-    <div className={cls("cl-run", verdict && phase !== "exiting" && "has-sheet")}>
+    <div
+      className={cls("cl-run", verdict && phase !== "exiting" && "has-sheet", fit && "is-kb")}
+      style={fit ? { "--kb-top": `${keyboard.top}px`, "--kb-h": `${keyboard.height}px` } : undefined}
+    >
       <div className="cl-run-bar">
         <button type="button" className="cl-run-close" onClick={onQuit} aria-label="Quitter la partie" aria-haspopup="dialog" title="Quitter la partie">
           <IconCross size={22} />
@@ -1729,6 +1773,24 @@ function Summary({ result, summary, inRematch, replaySize, onPlay, onHome }) {
   const shown = showAll ? missed : missed.slice(0, SHOWN_MISSED);
   const rematch = summary.toReview;
   const delta = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "=");
+  // Après une partie classique avec des erreurs : « Rejouer » en gros bouton, « Revanche » en second.
+  // Après une Revanche : « Revanche » tant qu'il reste des cartes, sinon « Nouvelle partie ».
+  const rematchSecond = rematch > 0 && mode === "learn";
+  const main = rematch > 0 && !rematchSecond
+    ? { play: "errors", icon: <IconReplay size={19} />, label: "Revanche", size: rematch }
+    : { play: "learn", icon: <IconPlay size={18} />, label: mode === "learn" ? "Rejouer" : "Nouvelle partie", size: replaySize };
+  const homeButton = (
+    <button type="button" className="cl-ghost cl-end-home" onClick={onHome} aria-label="Retour à l'accueil" title="Accueil">
+      <IconHome size={21} />
+    </button>
+  );
+  const mainButton = (
+    <button type="button" className="cl-cta" onClick={() => onPlay(main.play)}>
+      {main.icon}
+      <span>{main.label}</span>
+      <span className="cl-cta-tag">{plural(main.size, "carte", "cartes")}</span>
+    </button>
+  );
 
   return (
     <div className="cl-end">
@@ -1833,30 +1895,24 @@ function Summary({ result, summary, inRematch, replaySize, onPlay, onHome }) {
       </section>
 
       <div className="cl-end-actions">
-        <div className="cl-end-row">
-          <button type="button" className="cl-ghost cl-end-home" onClick={onHome} aria-label="Retour à l'accueil" title="Accueil">
-            <IconHome size={21} />
-          </button>
-          {rematch > 0 && mode === "learn" && (
-            <button type="button" className="cl-ghost cl-end-replay" onClick={() => onPlay("learn")}>
-              <IconPlay size={15} />
-              <span>Rejouer</span>
-              <span className="cl-end-tag">{plural(replaySize, "carte", "cartes")}</span>
-            </button>
-          )}
-        </div>
-        {rematch > 0 ? (
-          <button type="button" className="cl-cta" onClick={() => onPlay("errors")}>
-            <IconReplay size={19} />
-            <span>Revanche</span>
-            <span className="cl-cta-tag">{plural(rematch, "carte", "cartes")}</span>
-          </button>
+        {rematchSecond ? (
+          <>
+            <div className="cl-end-row">
+              {homeButton}
+              <button type="button" className="cl-ghost cl-end-replay" onClick={() => onPlay("errors")}>
+                <IconReplay size={16} />
+                <span>Revanche</span>
+                <span className="cl-end-tag">{plural(rematch, "carte", "cartes")}</span>
+              </button>
+            </div>
+            {mainButton}
+          </>
         ) : (
-          <button type="button" className="cl-cta" onClick={() => onPlay("learn")}>
-            <IconPlay size={18} />
-            <span>{mode === "learn" ? "Rejouer" : "Nouvelle partie"}</span>
-            <span className="cl-cta-tag">{plural(replaySize, "carte", "cartes")}</span>
-          </button>
+          // Pas de second bouton : Accueil se range à côté du bouton principal.
+          <div className="cl-end-row cl-end-row--main">
+            {homeButton}
+            {mainButton}
+          </div>
         )}
       </div>
     </div>
@@ -2999,6 +3055,30 @@ body { margin: 0; background: var(--bg); color: var(--text); }
 .cl-answer-tip { margin-left: auto; font-size: 13px; color: var(--faint); }
 @media (max-width: 767px) { .cl-answer-tip { display: none; } }
 
+/* Clavier du téléphone ouvert : la partie occupe exactement la zone visible au-dessus du clavier.
+   Carte compacte qui prend la place restante, champ juste dessous ; « Valider » est la touche du clavier. */
+.cl-run.is-kb {
+  position: fixed; z-index: 30; left: 0; right: 0; top: var(--kb-top); height: var(--kb-h);
+  max-width: none; margin: 0; box-sizing: border-box; overflow: hidden;
+  padding: calc(4px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+  grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px;
+  background: var(--bg);
+}
+.cl-run.is-kb .cl-deck { display: grid; min-height: 0; margin: 0; }
+.cl-run.is-kb .cl-card--back, .cl-run.is-kb .cl-card-foot, .cl-run.is-kb .cl-validate { display: none; }
+.cl-run.is-kb .cl-card--front { min-height: 0; padding: 14px 16px; gap: 10px; justify-content: flex-start; overflow-y: auto; box-shadow: none; }
+.cl-run.is-kb .cl-card-fr, .cl-run.is-kb .cl-card-def { margin-block: auto; }
+.cl-app .cl-run.is-kb .cl-card-fr { font-size: 28px; }
+.cl-app .cl-run.is-kb .cl-card-fr.is-mid { font-size: 24px; }
+.cl-app .cl-run.is-kb .cl-card-fr.is-long { font-size: 20px; }
+.cl-app .cl-run.is-kb .cl-card-fr.is-xlong { font-size: 17px; }
+.cl-run.is-kb .cl-card-def { font-size: 15px; line-height: 1.45; }
+.cl-run.is-kb .cl-answer { gap: 4px; }
+.cl-run.is-kb .cl-answer-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.cl-run.is-kb .cl-input { height: 52px; }
+.cl-run.is-kb .cl-answer-actions { margin-top: 0; }
+.cl-run.is-kb .cl-quiet { min-height: 40px; }
+
 /* QCM : 4 boutons A à D, texte anglais en mono */
 .cl-choices { display: grid; gap: 10px; }
 .cl-choice {
@@ -3108,7 +3188,7 @@ body { margin: 0; background: var(--bg); color: var(--text); }
 .cl-end .cl-missed-stay { padding: 0; background: none; color: var(--yellow); font-size: 11px; font-weight: 600; white-space: nowrap; }
 
 .cl-end-actions {
-  position: sticky; bottom: 0; z-index: 5; display: grid; gap: 10px;
+  position: sticky; bottom: 0; z-index: 5; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px;
   margin: 4px -16px 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
   background: var(--bg); border-top: 1px solid #1f2238;
 }
@@ -3117,6 +3197,15 @@ body { margin: 0; background: var(--bg); color: var(--text); }
 .cl-end-replay { flex: 1; height: 48px; gap: 10px; border-radius: 14px; font-size: 16px; }
 .cl-end-tag { font: 12px/1 var(--font-mono); color: var(--muted); }
 .cl-end-actions .cl-cta { min-height: 56px; }
+.cl-end-row--main { align-items: flex-start; }
+.cl-end-row--main .cl-end-home { width: 56px; height: 56px; }
+.cl-end-row--main .cl-cta { flex: 1; min-width: 0; gap: 8px; padding: 0 12px; white-space: nowrap; }
+/* Petits téléphones : « Nouvelle partie » reste sur une ligne à côté d'Accueil. */
+@media (max-width: 389px) {
+  .cl-end-row--main .cl-cta { font-size: 17px; }
+  .cl-end-row--main .cl-cta > .cl-icon { display: none; }
+}
+@media (max-width: 359px) { .cl-end-row--main .cl-cta-tag { display: none; } }
 @media (min-width: 768px) {
   .cl-end { gap: 16px; }
   .cl-end-actions { position: static; margin: 4px 0 0; padding: 0; border: 0; background: none; }
